@@ -80,6 +80,7 @@ interface LessonPlan {
   consultationAdvice?: string;
   specialAdvice?: string; 
   motivation: string;
+  stageDurations?: Record<string, number>;
 }
 
 interface SavedPlan {
@@ -229,6 +230,31 @@ const App = () => {
   const [classroomError, setClassroomError] = useState<string | null>(null);
   const [classroomSuccess, setClassroomSuccess] = useState<string | null>(null);
   const [showClassroomModal, setShowClassroomModal] = useState(false);
+
+  // Time calculator states
+  const [stageDurations, setStageDurations] = useState<Record<string, number>>({
+    introduction: 5,
+    theory: 10,
+    practice: 20,
+    consolidation: 5,
+    summary: 5
+  });
+
+  useEffect(() => {
+    if (lessonPlan) {
+      if (lessonPlan.stageDurations) {
+        setStageDurations(lessonPlan.stageDurations);
+      } else {
+        setStageDurations({
+          introduction: 5,
+          theory: 10,
+          practice: 20,
+          consolidation: 5,
+          summary: 5
+        });
+      }
+    }
+  }, [lessonPlan]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (usr) => {
@@ -411,8 +437,13 @@ Struktūra:
   };
 
   const executeSavePlan = () => {
-    const planToSave = editedPlan || lessonPlan;
-    if (!planToSave) return;
+    const basePlan = editedPlan || lessonPlan;
+    if (!basePlan) return;
+    
+    const planToSave: LessonPlan = {
+      ...basePlan,
+      stageDurations
+    };
     
     const newPlan: SavedPlan = {
       id: activePlanId || `plan-${Date.now()}`,
@@ -435,7 +466,11 @@ Struktūra:
 
   const handleApplyEdit = () => {
     if (!editedPlan) return;
-    setLessonPlan(editedPlan);
+    const planToSave = {
+      ...editedPlan,
+      stageDurations
+    };
+    setLessonPlan(planToSave);
     setShowEditModal(false);
     if (activePlanId) {
        executeSavePlan();
@@ -875,15 +910,146 @@ Struktūra:
 
               <div className="card">
                 <h3>🚀 Pamokos eiga</h3>
-                <div className="timeline-container">
-                  {lessonPlan.lessonStages ? Object.entries(lessonPlan.lessonStages).map(([key, content]) => (
-                    <div key={key} className="timeline-item">
-                      <div className="timeline-header">
-                        <span className="timeline-label">{STAGE_LABELS[key] || key}</span>
+                
+                {/* Laiko skaičiuoklė / planuoklis */}
+                <div className="time-planner-container">
+                  <div className="time-planner-title">
+                    <span>⏱️ Pamokos laiko skaičiuoklė ir biudžetas</span>
+                    <strong style={{color: 'var(--primary-color)'}}>
+                      Viso: {(() => {
+                        let sum = 0;
+                        for (const val of Object.values(stageDurations)) {
+                          sum += Number(val) || 0;
+                        }
+                        return sum;
+                      })()} min.
+                    </strong>
+                  </div>
+                  
+                  <div className="time-presets">
+                    <button 
+                      type="button" 
+                      onClick={() => setStageDurations({ introduction: 5, theory: 10, practice: 20, consolidation: 5, summary: 5 })}
+                      className="time-preset-btn"
+                    >
+                      🕒 Standartinė pamoka (45 min.)
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setStageDurations({ introduction: 10, theory: 20, practice: 40, consolidation: 10, summary: 10 })}
+                      className="time-preset-btn"
+                    >
+                      🕒 Dviguba pamoka (90 min.)
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setStageDurations({ introduction: 5, theory: 15, practice: 15, consolidation: 5, summary: 5 })}
+                      className="time-preset-btn"
+                    >
+                      🕒 Teorinė / Diskusijų (45 min.)
+                    </button>
+                  </div>
+                  
+                  {/* Proporcinis laiko baras */}
+                  {(() => {
+                    let totalMin = 0;
+                    for (const val of Object.values(stageDurations)) {
+                      totalMin += Number(val) || 0;
+                    }
+                    return (
+                      <div className="time-bar">
+                        {Object.entries(stageDurations).map(([key, mins]) => {
+                          const minsNum = Number(mins) || 0;
+                          const pct = totalMin > 0 ? (minsNum / totalMin) * 100 : 0;
+                          if (minsNum === 0) return null;
+                          return (
+                            <div 
+                              key={key} 
+                              className={`time-bar-segment segment-${key}`} 
+                              style={{ width: `${pct}%` }}
+                              title={`${STAGE_LABELS[key] || key}: ${minsNum} min.`}
+                              onClick={() => {
+                                setStageDurations(prev => ({ ...prev, [key]: (Number(prev[key]) || 0) + 1 }));
+                              }}
+                            >
+                              {pct > 8 && `${minsNum}m`}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <p className="timeline-content">{content}</p>
-                    </div>
-                  )) : <p>Nėra informacijos</p>}
+                    );
+                  })()}
+                  
+                  {/* Laiko koregavimo tinklelis */}
+                  <div className="time-adjust-grid">
+                    {Object.entries(stageDurations).map(([key, mins]) => {
+                      const minsNum = Number(mins) || 0;
+                      return (
+                        <div key={key} className="time-adjust-row">
+                          <div className="time-adjust-label-group">
+                            <span className={`time-stage-dot segment-${key}`}></span>
+                            <span className="time-stage-label">{STAGE_LABELS[key] || key}</span>
+                          </div>
+                          <div className="time-adjust-actions">
+                            <button 
+                              type="button" 
+                              className="time-btn"
+                              onClick={() => setStageDurations(prev => ({ ...prev, [key]: Math.max(0, (Number(prev[key]) || 0) - 1) }))}
+                            >
+                              -
+                            </button>
+                            <span className="time-value">{minsNum} min.</span>
+                            <button 
+                              type="button" 
+                              className="time-btn"
+                              onClick={() => setStageDurations(prev => ({ ...prev, [key]: (Number(prev[key]) || 0) + 1 }))}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {(() => {
+                    let totalMin = 0;
+                    for (const val of Object.values(stageDurations)) {
+                      totalMin += Number(val) || 0;
+                    }
+                    return (
+                      <div className="time-summary-info">
+                        <span>Statusas: </span>
+                        {totalMin === 45 ? (
+                          <span style={{color: 'var(--success-color)'}}><strong>Puiku!</strong> Laikas idealiai subalansuotas 45 min. pamokai. ✅</span>
+                        ) : totalMin === 90 ? (
+                          <span style={{color: 'var(--success-color)'}}><strong>Puiku!</strong> Laikas idealiai subalansuotas dvigubai 90 min. pamokai. ✅</span>
+                        ) : totalMin > 45 && totalMin < 90 ? (
+                          <span style={{color: '#f59e0b'}}>Suplanuota {totalMin} min. (Daugiau nei standartinė 45 min. pamoka). ⚠️</span>
+                        ) : totalMin > 90 ? (
+                          <span style={{color: '#ef4444'}}>Suplanuota {totalMin} min. (Daugiau nei dviguba 90 min. pamoka). 🚨</span>
+                        ) : (
+                          <span style={{color: '#94a3b8'}}>Suplanuota {totalMin} min. (Mažiau nei 45 min. pamoka). ℹ️</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div className="timeline-container">
+                  {lessonPlan.lessonStages ? Object.entries(lessonPlan.lessonStages).map(([key, content]) => {
+                    const stageMin = Number(stageDurations[key]) || 0;
+                    return (
+                      <div key={key} className="timeline-item">
+                        <div className="timeline-header">
+                          <span className="timeline-label">
+                            {STAGE_LABELS[key] || key} ({stageMin} min.)
+                          </span>
+                        </div>
+                        <p className="timeline-content">{content}</p>
+                      </div>
+                    );
+                  }) : <p>Nėra informacijos</p>}
                 </div>
               </div>
 
@@ -1276,5 +1442,10 @@ Struktūra:
   );
 };
 
-const root = createRoot(document.getElementById('root')!);
+const container = document.getElementById('root')!;
+let root = (window as any).__reactRoot;
+if (!root) {
+  root = createRoot(container);
+  (window as any).__reactRoot = root;
+}
 root.render(<App />);
