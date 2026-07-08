@@ -1,0 +1,1280 @@
+
+import React, { useState, useRef, useEffect } from 'react';
+import { createRoot } from 'react-dom/client';
+import { GoogleGenAI, Chat, Type } from '@google/genai';
+import { initializeApp } from 'firebase/app';
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
+import firebaseConfig from './firebase-applet-config.json';
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+provider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+provider.addScope('https://www.googleapis.com/auth/classroom.announcements');
+provider.addScope('https://www.googleapis.com/auth/classroom.coursework.me');
+provider.addScope('https://www.googleapis.com/auth/classroom.courseworkmaterials');
+
+type LessonCategory = 'Įvadinė' | 'Įtvirtinimo' | 'Apibendrinamoji' | 'Vertinamoji' | '';
+
+interface EDiaryEntry {
+  topicClassworkExpectations: string;
+  homework: string;
+  individualHomework: string;
+  notes: string;
+  isIntegrated: boolean;
+  isOutside: boolean;
+  eDiaryLessonType: string;
+}
+
+interface EvaluationData {
+  methods: string[];
+  criteria: string;
+}
+
+interface ClassActivities {
+  individual: string;
+  pairs: string;
+  group: string;
+  toolsResources: string;
+}
+
+interface LessonPlan {
+  generalNotes: string;
+  lessonType?: LessonCategory;
+  bpConnections: string;
+  lessonOverview: {
+    topic: string;
+    goal: string;
+    competencies: string;
+    evaluation: EvaluationData;
+  };
+  tasks: {
+    general: string;
+    highLevel: string;
+    mainLevel: string;
+  };
+  // Naujas laukas veikloms klasėje
+  classActivities: ClassActivities;
+  // Naujas laukas konkretiems individualiems darbams
+  individualWork: string;
+  lessonStages: {
+    introduction: string;
+    theory: string;
+    practice: string;
+    consolidation: string;
+    summary: string;
+  };
+  differentiation: {
+    gifted: string;
+    general: string;
+    struggling: string;
+  };
+  homework: {
+    purpose: string;
+    gifted: string;
+    general: string;
+    struggling: string;
+  };
+  digitalResources: string;
+  eDiaryEntry: EDiaryEntry;
+  consultationAdvice?: string;
+  specialAdvice?: string; 
+  motivation: string;
+}
+
+interface SavedPlan {
+  id: string;
+  title: string;
+  plan: LessonPlan;
+  createdAt: string;
+  comments?: string;
+  subject?: string;
+  grade?: string;
+  lessonType?: LessonCategory;
+}
+
+interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
+}
+
+const EVALUATION_TAGS = [
+  'Paprastas pažymys', 'Kontrolinis darbas', 'Savarankiškas darbas', 'Projektinis darbas',
+  'Integruotas tarpdalykinis įvertinimas', 'Tarpinis atsiskaitymas', 'Galutinis atsiskaitymas',
+  'Atsiskaitomasis darbas', 'Formuojamojo vertinimo darbas', 'Probleminio tipo užduotis'
+];
+
+const RESOURCE_TAGS = [
+  'Google Classroom', 'Vadovėlis', 'Pratybos', 'Darbo lapai', 'Mokymosi programėlės',
+  'Miro lenta', 'Canva', 'YouTube', 'Kahoot / Quizizz', 'Mentimeter', 'Padlet', 'Išmanieji telefonai'
+];
+
+const STAGE_LABELS: Record<string, string> = {
+  introduction: 'Sužadinimas. Įvadas',
+  theory: 'Naujos medžiagos aiškinimas',
+  practice: 'Praktinis darbas. Užduotys',
+  consolidation: 'Įtvirtinimas. Refleksija',
+  summary: 'Apibendrinimas. Pabaiga'
+};
+
+const EXAMPLE_PLAN_DATA: LessonPlan = {
+  generalNotes: "Pamoka orientuota į kritinį mąstymą ir medijų raštingumą.",
+  lessonType: "Įtvirtinimo",
+  bpConnections: "BP 1.2. Mokinys geba analizuoti medijų tekstų turinį, formą ir raiškos priemones. BP 3.1. Taiko kalbos įtaigos priemones kurdamas savo tekstus.",
+  lessonOverview: {
+    topic: "Reklamos kalba ir įtaigos priemonės",
+    goal: "Mokiniai gebės atpažinti 3 pagrindines reklamos įtaigos priemones ir pritaikyti jas kurdami prekės aprašymą.",
+    competencies: "Komunikavimo, kultūrinė, skaitmeninė.",
+    evaluation: {
+      methods: ["Savarankiškas darbas", "Formuojamojo vertinimo darbas"],
+      criteria: "Teisingai įvardintos bent dvi kalbinės įtaigos priemonės pateiktame pavyzdyje."
+    }
+  },
+  tasks: {
+    general: "Išanalizuoti pateiktus reklaminius skelbimus.",
+    highLevel: "Sukurti ironišką antireklamą pasirinktam produktui.",
+    mainLevel: "Perrašyti neutralų tekstą į įtaigų reklaminį tekstą."
+  },
+  classActivities: {
+    individual: "Analizuoja individualiai pasirinktą reklamą telefone.",
+    pairs: "Sikeičia sukurtais aprašymais ir įvertina vienas kito darbą pagal kriterijus.",
+    group: "Kuriamas bendras plakatas naudojant Canva įrankį.",
+    toolsResources: "Išmanieji telefonai, Canva.com, Mentimeter apklausa, reklamos pavyzdžiai iš Youtube."
+  },
+  individualWork: "Parengti trumpą esė 'Ar reklama visada meluoja?' (150 žodžių) arba sukurti video reklamą pasirinktam hobiui.",
+  lessonStages: {
+    introduction: "Trumpa diskusija apie tai, kokios reklamas mus erzina, o kokios priverčia nusišypsoti. Demonstruojami du kontrastingi vaizdo įrašai.",
+    theory: "Pristatoma spalvų psichologija, retoriniai klausimai, hiperbolizacija ir personifikacija reklamoje. Aptariama AIDA formulė (Dėmesys, Interesas, Noras, Veiksmas).",
+    practice: "Darbas grupėse. Mokiniai gauna po 3 skirtingas spausdintas reklamas ir turi užpildyti analizės lentelę. Kiekviena grupė pristato po vieną įdomiausią radinį.",
+    consolidation: "Individuali užduotis. Sukurti trumpą (iki 50 žodžių) reklaminį skelbimą 'Nematomam apsiaustui'.",
+    summary: "Refleksija 'Bilietas išėjimo'. Mokiniai parašo vieną dalyką, kuris juos labiausiai nustebino apie tai, kaip veikia reklama."
+  },
+  differentiation: {
+    gifted: "Analizuoti potekstes ir paslėptas manipuliacijas. Sukurti strategiją, kaip apsisaugoti nuo neigiamo reklamos poveikio.",
+    general: "Atpažinti ir įvardinti tiesiogines įtaigos priemones (epitetus, palyginimus).",
+    struggling: "Naudotis pateiktu pagalbinu frazių žodynėliu. Atlikti tik vieną analizės dalį (tik apie spalvas arba tik apie tekstą)."
+  },
+  digitalResources: "Eduka klasė (skaitmeninis vadovėlis), Youtube kanalas 'Mokslo sriuba' (video apie psichologiją), Canva (plakatų kūrimui), Mentimeter (apklausoms).",
+  homework: {
+    purpose: "Įtvirtinti žinias stebint realią aplinką.",
+    gifted: "Parengti mini tyrimą apie populiariausio socialinio tinklo reklamas.",
+    general: "Rasti vieną reklamos pavyzdį namų aplinkoje ir įvardinti jos tikslinę grupę.",
+    struggling: "Nurašyti vieną šūkį iš matytos reklamos ir nupiešti jai iliustraciją."
+  },
+  eDiaryEntry: {
+    topicClassworkExpectations: "Reklamos kalba ir įtaigos priemonės. Klasės darbas. Reklaminių tekstų analizė, įtaigos priemonių atpažinimas, kūrybinis prekės aprašymas.",
+    homework: "Rasti namų aplinkoje vieną reklamos pavyzdį ir įvardinti tikslinę grupę.",
+    individualHomework: "Analizuoti manipuliacijos būdus pasirinktoje reklamoje.",
+    notes: "Mokiniai dirbo aktyviai, ypač kūrybinėje dalyje.",
+    isIntegrated: false,
+    isOutside: false,
+    eDiaryLessonType: "Įtvirtinimo"
+  },
+  motivation: "Kiekvienas mokinys yra kūrėjas. Šiandien jūs ne tik vartotojai, bet ir tie, kurie supranta žodžio galią. Sėkmės kūryboje."
+};
+
+const App = () => {
+  const [grade, setGrade] = useState('');
+  const [subject, setSubject] = useState('');
+  const [topic, setTopic] = useState('');
+  const [lessonType, setLessonType] = useState<LessonCategory>('');
+  const [goal, setGoal] = useState('');
+  const [activities, setActivities] = useState('');
+  const [evaluationCriteria, setEvaluationCriteria] = useState('');
+  const [selectedEvaluations, setSelectedEvaluations] = useState<string[]>([]);
+  const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  
+  const [isIntegratedInput, setIsIntegratedInput] = useState(false);
+  const [integrationDetails, setIntegrationDetails] = useState('');
+  const [isOutsideInput, setIsOutsideInput] = useState(false);
+  const [outsideLocation, setOutsideLocation] = useState('');
+  const [outsideGoal, setOutsideGoal] = useState('');
+
+  const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  
+  // Modal states
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editedPlan, setEditedPlan] = useState<LessonPlan | null>(null);
+
+  const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
+  const [activePlanId, setActivePlanId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+
+  // Chat bot states
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{role: 'model', text: 'Sveiki! Esu jūsų asistentas. Klauskite manęs, jei reikia pagalbos su pamokos planu, idėjomis ar diferencijavimu.'}]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isChatOpen && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatOpen]);
+
+  // Google Classroom integration states
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [classroomPostType, setClassroomPostType] = useState<'announcement' | 'courseWork' | 'material'>('announcement');
+  const [isClassroomLoading, setIsClassroomLoading] = useState(false);
+  const [classroomError, setClassroomError] = useState<string | null>(null);
+  const [classroomSuccess, setClassroomSuccess] = useState<string | null>(null);
+  const [showClassroomModal, setShowClassroomModal] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (usr) => {
+      if (usr) {
+        setUser(usr);
+      } else {
+        setUser(null);
+        setToken(null);
+        setCourses([]);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    try {
+      const storedPlans = localStorage.getItem('savedLessonPlans');
+      if (storedPlans) setSavedPlans(JSON.parse(storedPlans));
+    } catch (e) { console.error(e); }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('savedLessonPlans', JSON.stringify(savedPlans));
+    } catch (e) { console.error(e); }
+  }, [savedPlans]);
+
+  const loadExample = () => {
+    setSubject('Lietuvių kalba ir literatūra');
+    setGrade('8 kl');
+    setTopic(EXAMPLE_PLAN_DATA.lessonOverview.topic);
+    setLessonType(EXAMPLE_PLAN_DATA.lessonType || 'Įtvirtinimo');
+    setGoal(EXAMPLE_PLAN_DATA.lessonOverview.goal);
+    setSelectedEvaluations(EXAMPLE_PLAN_DATA.lessonOverview.evaluation.methods);
+    setEvaluationCriteria(EXAMPLE_PLAN_DATA.lessonOverview.evaluation.criteria);
+    setLessonPlan(EXAMPLE_PLAN_DATA);
+    setEditedPlan(EXAMPLE_PLAN_DATA);
+  };
+
+  const systemInstruction = `Tu esi ekspertas pedagogas, puikiai išmanantis Lietuvos Bendrąsias ugdymo programas (BP). 
+SVARBU. Visada remkis oficialiomis programomis, kurias galima rasti čia. https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos.
+
+SVARBU. Tekstuose GRIEŽTAI VENGTI DVITAŠKIŲ. Vietoj jų naudok taškus.
+Pvz. Vietoj "Tema: Veiksmažodis" rašyk "Tema. Veiksmažodis".
+
+El. dienyno įrašuose (eDiaryEntry) NERAŠYK žodžių "Tema." ar "Namų darbai." pradžioje. Pateik tik turinį.
+Pvz. Vietoj "Tema. Veiksmažodis" rašyk tiesiog "Veiksmažodis".
+Nenaudok dvitaškių (:).
+
+Struktūrizuotas diferencijavimas (differentiation) turi apimti.
+- Gifted (Gabūs). Užduotys, kurios skatina analitinį, kritinį ir kūrybinį mąstymą (BLOOM taksonomijos viršūnė). Pateik sudėtingesnius tekstus, atvirus klausimus, projektinę veiklą.
+- General (Vidutiniai). Užduotys, užtikrinančios BP reikalavimų pasiekimą (supratimas, taikymas).
+- Struggling (Sunkumų turintys). Strategijos. vizualizacija, pagalbiniai klausimai, užduočių skaidymas į mažesnius etapus, sąvokų žodynėliai.
+
+Būtinai pateik IŠSAMIAS veiklų organizavimo klasėje aprašymus (individualiai, porose, grupėse). Kiekviena veikla turi turėti nurodytą VEIKLOS BŪDĄ (pvz., diskusija, tyrimas, kūrybinis rašymas, simuliacija, debatai ir t.t.) ir konkrečias priemones bei šaltinius (internetines nuorodas, programėles).
+
+Struktūra:
+{
+  "generalNotes": "...",
+  "lessonType": "...",
+  "bpConnections": "...",
+  "lessonOverview": { "topic": "...", "goal": "...", "competencies": "...", "evaluation": { "methods": [], "criteria": "..." } },
+  "tasks": { "general": "...", "highLevel": "...", "mainLevel": "..." },
+  "classActivities": { "individual": "...", "pairs": "...", "group": "...", "toolsResources": "..." },
+  "individualWork": "...", 
+  "lessonStages": { "introduction": "...", "theory": "...", "practice": "...", "consolidation": "...", "summary": "..." },
+  "differentiation": { "gifted": "...", "general": "...", "struggling": "..." },
+  "digitalResources": "...",
+  "homework": { "purpose": "...", "gifted": "...", "general": "...", "struggling": "..." },
+  "eDiaryEntry": { "topicClassworkExpectations": "...", "homework": "...", "individualHomework": "...", "notes": "...", "isIntegrated": false, "isOutside": false, "eDiaryLessonType": "..." },
+  "specialAdvice": "...",
+  "consultationAdvice": "...",
+  "motivation": "..."
+}`;
+
+  const tryParseJSON = (text: string): LessonPlan | null => {
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try { return JSON.parse(jsonMatch[0]); } catch (e2) {}
+      }
+      return null;
+    }
+  };
+
+  const handleEvaluationToggle = (tag: string) => {
+    setSelectedEvaluations(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleResourceToggle = (tag: string) => {
+    setSelectedResources(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleGenerate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grade || !subject || !topic) {
+      setError('Užpildykite privalomus laukus (*).');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setShowEditModal(false);
+
+    const prompt = `
+      Sukurk išsamų ir struktūrizuotą pamokos planą.
+      - Dalykas. ${subject}, Klasė. ${grade}, Tema. ${topic}
+      - Tipas. ${lessonType}, Tikslas. ${goal}, Veiklos. ${activities}
+      - Naudojamos priemonės. ${selectedResources.join(', ')}
+      - Vertinimo metodai. ${selectedEvaluations.join(', ')}
+      - Vertinimo kriterijai. ${evaluationCriteria}
+      - Integracija. ${isIntegratedInput ? integrationDetails : 'Ne'}
+      - Pamoka už mokyklos ribų. ${isOutsideInput ? `Taip. Vieta. ${outsideLocation}, Tikslas. ${outsideGoal}.` : 'Ne'}
+      
+      GRIEŽTAI. 
+      1. Būtinai remkis oficialiomis Lietuvos Bendrosiomis programomis (BP) iš https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos.
+      2. Pateik labai konkrečias diferencijavimo strategijas trims mokinių grupėms (Gabūs, Vidutiniai, Sunkumų turintys). 
+      3. NENAUDOK DVITAŠKIŲ TEKSTUOSE.
+      4. Būtinai užpildyk 'classActivities' objektą pasiūlydamas IŠSAMIAS veiklas individualiai, porose ir grupėse. Kiekviena veikla turi turėti aiškų VEIKLOS BŪDĄ ir nurodytus įrankius.
+      5. Pasiūlyk 'individualWork' (individualų darbą) atskirai bei 'digitalResources' (skaitmeninius išteklius - nuorodas, programėles) geriausiai tinkančius šiai temai.
+      6. El. dienyne (eDiaryEntry) NERAŠYK "Tema." ir "Namų darbas." žodžių, pateik tik turinį.
+    `;
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: prompt,
+        config: { systemInstruction, responseMimeType: "application/json" },
+      });
+      
+      const parsedPlan = tryParseJSON(response.text || '');
+      if (!parsedPlan) throw new Error("Nepavyko sugeneruoti plano formatu. Bandykite iš naujo.");
+
+      const sanitizedPlan: LessonPlan = {
+        ...parsedPlan,
+        lessonOverview: parsedPlan.lessonOverview || { topic: topic || '', goal: goal || '', competencies: '', evaluation: { methods: [], criteria: '' } },
+        lessonStages: parsedPlan.lessonStages || { introduction: '', theory: '', practice: '', consolidation: '', summary: '' },
+        differentiation: parsedPlan.differentiation || { gifted: '', general: '', struggling: '' },
+        homework: parsedPlan.homework || { purpose: '', gifted: '', general: '', struggling: '' },
+        classActivities: parsedPlan.classActivities || { individual: "", pairs: "", group: "", toolsResources: "" },
+        individualWork: parsedPlan.individualWork || "",
+        digitalResources: parsedPlan.digitalResources || "",
+        eDiaryEntry: {
+          topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || '',
+          homework: parsedPlan.eDiaryEntry?.homework || '',
+          individualHomework: parsedPlan.eDiaryEntry?.individualHomework || '',
+          notes: parsedPlan.eDiaryEntry?.notes || '',
+          isIntegrated: isIntegratedInput,
+          isOutside: isOutsideInput,
+          eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || ''
+        }
+      };
+      
+      setLessonPlan(sanitizedPlan);
+      setEditedPlan(sanitizedPlan);
+      setActivePlanId(null);
+      
+      if (window.innerWidth < 1024) {
+        document.querySelector('.results-container')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (e: any) {
+      setError(`Klaida. ${e.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCopy = (text: string, field: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    });
+  };
+
+  const executeSavePlan = () => {
+    const planToSave = editedPlan || lessonPlan;
+    if (!planToSave) return;
+    
+    const newPlan: SavedPlan = {
+      id: activePlanId || `plan-${Date.now()}`,
+      title: `${subject} ${grade}. ${planToSave.lessonOverview.topic}`,
+      plan: planToSave,
+      createdAt: new Date().toISOString(),
+      grade, subject, lessonType: planToSave.lessonType || lessonType
+    };
+
+    if (activePlanId) {
+      setSavedPlans(prev => prev.map(p => p.id === activePlanId ? newPlan : p));
+    } else {
+      setSavedPlans([newPlan, ...savedPlans]);
+      setActivePlanId(newPlan.id);
+    }
+
+    setShowSaveConfirm(false);
+    setLessonPlan(planToSave);
+  };
+
+  const handleApplyEdit = () => {
+    if (!editedPlan) return;
+    setLessonPlan(editedPlan);
+    setShowEditModal(false);
+    if (activePlanId) {
+       executeSavePlan();
+    }
+  };
+
+  const handleLoadPlan = (id: string) => {
+    const p = savedPlans.find(x => x.id === id);
+    if (p) {
+      setLessonPlan(p.plan);
+      setEditedPlan(p.plan);
+      setActivePlanId(p.id);
+      setSubject(p.subject || '');
+      setGrade(p.grade || '');
+
+      if (window.innerWidth < 1024) {
+        document.querySelector('.results-container')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  const updateEditedField = (path: string, value: any) => {
+    if (!editedPlan) return;
+    const newPlan = JSON.parse(JSON.stringify(editedPlan));
+    const parts = path.split('.');
+    let current: any = newPlan;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]]) current[parts[i]] = {}; // Safety check
+      current = current[parts[i]];
+    }
+    current[parts[parts.length - 1]] = value;
+    setEditedPlan(newPlan);
+  };
+
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim()) return;
+
+    const userMessage = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      let context = "Tu esi ekspertas pedagogas, asistentas, padedantis mokytojams. Atsakyk trumpai, aiškiai ir lietuviškai.";
+      if (lessonPlan) {
+        context += `\nŠtai dabartinis pamokos planas, apie kurį gali klausti mokytojas:\nTema: ${lessonPlan.lessonOverview.topic}\nTikslas: ${lessonPlan.lessonOverview.goal}\nEiga: ${JSON.stringify(lessonPlan.lessonStages)}`;
+      }
+
+      // We format the history for the model.
+      const historyContents = chatMessages.map(msg => ({
+        role: msg.role,
+        parts: [{ text: msg.text }]
+      }));
+      
+      // Append the new user message
+      historyContents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: historyContents,
+        config: {
+          systemInstruction: context
+        }
+      });
+
+      setChatMessages(prev => [...prev, { role: 'model', text: response.text || 'Atsiprašau, kažkas nutiko.' }]);
+    } catch (err: any) {
+      setChatMessages(prev => [...prev, { role: 'model', text: `Klaida: ${err.message}` }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
+  const handleClassroomLogin = async () => {
+    setIsClassroomLoading(true);
+    setClassroomError(null);
+    setClassroomSuccess(null);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential && credential.accessToken) {
+        setToken(credential.accessToken);
+        setUser(result.user);
+        await fetchCourses(credential.accessToken);
+      } else {
+        throw new Error("Nepavyko gauti Google prieigos rakto.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setClassroomError(`Nepavyko prisijungti prie Google Classroom: ${err.message}`);
+    } finally {
+      setIsClassroomLoading(false);
+    }
+  };
+
+  const fetchCourses = async (accessToken: string) => {
+    setIsClassroomLoading(true);
+    setClassroomError(null);
+    try {
+      const res = await fetch('https://classroom.googleapis.com/v1/courses?courseStates=ACTIVE', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (!res.ok) {
+        throw new Error(`Klaida gaunant kursus: ${res.statusText}`);
+      }
+      const data = await res.json();
+      if (data.courses && data.courses.length > 0) {
+        setCourses(data.courses);
+        setSelectedCourseId(data.courses[0].id);
+      } else {
+        setCourses([]);
+        setClassroomError("Neradome jokių aktyvių Google Classroom kursų.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setClassroomError(`Nepavyko užkrauti kursų: ${err.message}`);
+    } finally {
+      setIsClassroomLoading(false);
+    }
+  };
+
+  const handlePublishToClassroom = async () => {
+    if (!token) {
+      setClassroomError("Pirmiausia prisijunkite prie savo Google paskyros.");
+      return;
+    }
+    if (!selectedCourseId) {
+      setClassroomError("Pasirinkite kursą, į kurį norite patalpinti.");
+      return;
+    }
+    if (!lessonPlan) {
+      setClassroomError("Nėra sugeneruoto pamokos plano.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Ar tikrai norite paskelbti šį pamokos planą Google Classroom?`);
+    if (!confirmed) return;
+
+    setIsClassroomLoading(true);
+    setClassroomError(null);
+    setClassroomSuccess(null);
+
+    try {
+      let endpoint = '';
+      let body: any = {};
+
+      const topicText = lessonPlan.lessonOverview?.topic || topic || "Pamokos planas";
+      const goalText = lessonPlan.lessonOverview?.goal || "Nėra nurodyto tikslo.";
+      const bpConnectionsText = lessonPlan.bpConnections || "Nėra nurodytų sąsajų su BP.";
+
+      if (classroomPostType === 'announcement') {
+        endpoint = `https://classroom.googleapis.com/v1/courses/${selectedCourseId}/announcements`;
+        
+        let text = `📢 NAUJAS PAMOKOS PLANAS: ${topicText}\n\n`;
+        text += `🎯 TIKSLAS: ${goalText}\n\n`;
+        text += `📚 SĄSAJOS SU BP:\n${bpConnectionsText}\n\n`;
+        text += `🚀 PAMOKOS EIGA:\n`;
+        if (lessonPlan.lessonStages) {
+          Object.entries(lessonPlan.lessonStages).forEach(([key, content]) => {
+            text += `- ${STAGE_LABELS[key] || key}: ${content}\n`;
+          });
+        }
+        text += `\n✍️ EL. DIENYNAS:\n`;
+        text += `- Tema/Darbas: ${lessonPlan.eDiaryEntry?.topicClassworkExpectations || ''}\n`;
+        text += `- Namų darbai: ${lessonPlan.eDiaryEntry?.homework || ''}\n`;
+        
+        body = {
+          text: text,
+          state: "PUBLISHED"
+        };
+      } else if (classroomPostType === 'courseWork') {
+        endpoint = `https://classroom.googleapis.com/v1/courses/${selectedCourseId}/courseWork`;
+        
+        let desc = `🎯 TIKSLAS: ${goalText}\n\n`;
+        desc += `👤 Individualus darbas: ${lessonPlan.individualWork || 'Nėra nurodyta.'}\n\n`;
+        desc += `🏠 Namų darbai:\n`;
+        desc += `- Tikslas: ${lessonPlan.homework?.purpose || 'Nėra nurodyta.'}\n`;
+        desc += `- Gabiesiems: ${lessonPlan.homework?.gifted || 'Nėra nurodyta.'}\n`;
+        desc += `- Bendra užduotis: ${lessonPlan.homework?.general || 'Nėra nurodyta.'}\n`;
+        desc += `- Sunkumų turintiems: ${lessonPlan.homework?.struggling || 'Nėra nurodyta.'}\n`;
+
+        body = {
+          title: `Užduotis. ${topicText}`,
+          description: desc,
+          workType: "ASSIGNMENT",
+          state: "PUBLISHED"
+        };
+      } else if (classroomPostType === 'material') {
+        endpoint = `https://classroom.googleapis.com/v1/courses/${selectedCourseId}/courseWorkMaterials`;
+        
+        let desc = `📚 Priemonės ir skaitmeniniai šaltiniai šiai pamokai:\n\n`;
+        desc += `🌐 Skaitmeniniai ištekliai:\n${lessonPlan.digitalResources || 'Nėra nurodyta.'}\n\n`;
+        desc += `🛠️ Klasės priemonės: ${lessonPlan.classActivities?.toolsResources || 'Nėra nurodyta.'}\n`;
+
+        body = {
+          title: `Medžiaga. ${topicText}`,
+          description: desc,
+          state: "PUBLISHED"
+        };
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json();
+        throw new Error(errorBody?.error?.message || `Klaida: ${res.statusText}`);
+      }
+
+      setClassroomSuccess(`Pavyko! Pamokos planas sėkmingai paskelbtas kaip ${
+        classroomPostType === 'announcement' ? 'skelbimas' : classroomPostType === 'courseWork' ? 'užduotis' : 'mokomoji medžiaga'
+      }.`);
+    } catch (err: any) {
+      console.error(err);
+      setClassroomError(`Nepavyko paskelbti plano: ${err.message}`);
+    } finally {
+      setIsClassroomLoading(false);
+    }
+  };
+
+  const processedPlans = [...savedPlans]
+    .filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  return (
+    <div className="container">
+      <header className="header">
+        <h1>Pamokos plano rengimas ✏️</h1>
+        <p>
+          <a href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" target="_blank" rel="noopener noreferrer" className="header-link">
+            Griežtai vadovaujantis Lietuvos Bendrosiomis programomis
+          </a>
+        </p>
+        
+        <div className="header-sections">
+            <div className="resource-links">
+              <h3>📚 Šaltiniai</h3>
+              <a href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" target="_blank" rel="noopener noreferrer" className="mini-link">Programos (BP)</a>
+              <a href="https://emokykla.lt/skaitmenines-mokymo-priemones" target="_blank" rel="noopener noreferrer" className="mini-link">Priemonės</a>
+              <a href="https://emokykla.lt/bendrosios-programos/kompetencijos" target="_blank" rel="noopener noreferrer" className="mini-link">Kompetencijos</a>
+            </div>
+
+            <div className="tool-links">
+              <h3>🛠️ Įrankiai</h3>
+              <a href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" className="tool-button classroom">Classroom</a>
+              <a href="https://miro.com" target="_blank" rel="noopener noreferrer" className="tool-button miro">Miro</a>
+              <a href="https://canva.com" target="_blank" rel="noopener noreferrer" className="tool-button canva">Canva</a>
+            </div>
+        </div>
+      </header>
+      
+      <main className="main-content">
+        <div className="form-container">
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
+            <h2 style={{margin: 0}}>Pamokos informacija</h2>
+            <button onClick={loadExample} className="mini-link" style={{border: 'none', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary-color)'}}>💡 Užkrauti pavyzdį</button>
+          </div>
+          <form onSubmit={handleGenerate}>
+            <div className="form-group">
+              <label>Dalykas *</label>
+              <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Pvz. Lietuvių kalba ir literatūra" required />
+            </div>
+            <div className="form-group">
+              <label>Klasė / Grupė *</label>
+              <input type="text" value={grade} onChange={e => setGrade(e.target.value)} placeholder="pvz., 7a" required />
+            </div>
+            <div className="form-group">
+              <label>Tema *</label>
+              <input type="text" value={topic} onChange={e => setTopic(e.target.value)} placeholder="pvz., Veiksmažodžiai" required />
+            </div>
+            <div className="form-group">
+              <label>Pamokos tipas</label>
+              <select value={lessonType} onChange={e => setLessonType(e.target.value as LessonCategory)}>
+                <option value="">-- Pasirinkite --</option>
+                <option value="Įvadinė">Įvadinė</option>
+                <option value="Įtvirtinimo">Įtvirtinimo</option>
+                <option value="Apibendrinamoji">Apibendrinamoji</option>
+                <option value="Vertinamoji">Vertinamoji</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Tikslas (Mokiniai gebės...)</label>
+              <textarea value={goal} onChange={e => setGoal(e.target.value)} placeholder="pvz., atpažinti..." rows={3} />
+            </div>
+
+            <div className="differentiation-guide">
+              <h4>💡 Diferencijavimo gidas</h4>
+              <ul>
+                <li><strong>Gabūs.</strong> Analizė, kūryba, sintezė.</li>
+                <li><strong>Vidutiniai.</strong> Suvokimas, taikymas pagal pavyzdį.</li>
+                <li><strong>Sunkumų turintys.</strong> Vizualizacija, skaidymas, parama.</li>
+              </ul>
+            </div>
+
+            <div className="form-group">
+              <label>Papildomos idėjos</label>
+              <textarea value={activities} onChange={e => setActivities(e.target.value)} placeholder="pvz., žaidimai..." rows={2} />
+            </div>
+
+            <div className="form-group">
+              <label>Naudojamos priemonės (pasirinkite kelias)</label>
+              <div className="evaluation-tags-grid">
+                {RESOURCE_TAGS.map(tag => (
+                  <label key={tag} className={`tag-checkbox ${selectedResources.includes(tag) ? 'checked' : ''}`}>
+                    <input type="checkbox" checked={selectedResources.includes(tag)} onChange={() => handleResourceToggle(tag)} />
+                    {tag}
+                  </label>
+                ))}
+              </div>
+            </div>
+            
+            <div className="form-group">
+              <label>Vertinimo metodai (pasirinkite kelis)</label>
+              <div className="evaluation-tags-grid">
+                {EVALUATION_TAGS.map(tag => (
+                  <label key={tag} className={`tag-checkbox ${selectedEvaluations.includes(tag) ? 'checked' : ''}`}>
+                    <input type="checkbox" checked={selectedEvaluations.includes(tag)} onChange={() => handleEvaluationToggle(tag)} />
+                    {tag}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Vertinimo kriterijai</label>
+              <textarea value={evaluationCriteria} onChange={e => setEvaluationCriteria(e.target.value)} placeholder="Aprašykite vertinimo kriterijus..." rows={3} />
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input type="checkbox" checked={isIntegratedInput} onChange={e => setIsIntegratedInput(e.target.checked)} />
+                Integruota pamoka?
+              </label>
+              {isIntegratedInput && (
+                <input 
+                  type="text" 
+                  value={integrationDetails} 
+                  onChange={e => setIntegrationDetails(e.target.value)} 
+                  placeholder="Su kuo?" 
+                  style={{marginTop: '8px'}}
+                />
+              )}
+            </div>
+
+            <div className="form-group">
+              <label className="checkbox-label">
+                <input type="checkbox" checked={isOutsideInput} onChange={e => setIsOutsideInput(e.target.checked)} />
+                Už mokyklos ribų?
+              </label>
+              {isOutsideInput && (
+                <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                  <input 
+                    type="text" 
+                    value={outsideLocation} 
+                    onChange={e => setOutsideLocation(e.target.value)} 
+                    placeholder="Kur? (pvz., Muziejus, parkas)" 
+                  />
+                  <input 
+                    type="text" 
+                    value={outsideGoal} 
+                    onChange={e => setOutsideGoal(e.target.value)} 
+                    placeholder="Kokiu ugdymo tikslu?" 
+                  />
+                  <p className="helper-text">Rekomenduojami tikslai. tyrinėjimas, stebėjimas, patirtinis mokymasis.</p>
+                </div>
+              )}
+            </div>
+
+            <button type="submit" disabled={isLoading} className="generate-button">
+              {isLoading ? "Generuojama..." : "Generuoti planą 🚀"}
+            </button>
+          </form>
+
+          <div className="saved-plans-container">
+            <h3>Išsaugoti planai</h3>
+            <input type="text" placeholder="Ieškoti planuose..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="search-input" />
+            <ul className="saved-plans-list">
+              {processedPlans.map(p => (
+                <li key={p.id} onClick={() => handleLoadPlan(p.id)} className={activePlanId === p.id ? 'active' : ''}>
+                  <div className="plan-info">
+                    <span className="plan-title">{p.title}</span>
+                    <span className="meta-tag">{p.createdAt.split('T')[0]}</span>
+                  </div>
+                  <button onClick={e => { e.stopPropagation(); setDeletingPlanId(p.id); }} className="mini-delete-button">✖</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="results-container">
+          {isLoading && (
+            <div className="loading-overlay">
+              <div className="spinner-large"></div>
+              <p>DI kuria jūsų pamokos planą...</p>
+            </div>
+          )}
+          {error && <div className="error-message">{error}</div>}
+          
+          {!isLoading && !lessonPlan && (
+            <div className="welcome-message">
+              <h2>Sveiki! 👋</h2>
+              <p>Užpildykite duomenis kairėje ir spauskite „Generuoti planą“.</p>
+              <p style={{marginTop: '15px', opacity: 0.8}}>DI paruoš išsamų planą vadovaujantis Lietuvos švietimo standartais.</p>
+            </div>
+          )}
+
+          {lessonPlan && (
+            <div className="lesson-plan-result">
+              <div className="export-container">
+                <button onClick={() => setShowSaveConfirm(true)} className="save-button">Išsaugoti 💾</button>
+                <button onClick={() => { setEditedPlan(lessonPlan); setShowEditModal(true); }} className="edit-modal-btn">Redaguoti ✏️</button>
+                <button onClick={() => setShowClassroomModal(true)} className="classroom-share-button">Classroom 🏫</button>
+                <button onClick={() => window.print()} className="print-button">Spausdinti 🖨️</button>
+              </div>
+
+              <div className="card">
+                <h3>📚 Sąsajos su BP</h3>
+                <p style={{whiteSpace: 'pre-wrap'}}>{lessonPlan.bpConnections}</p>
+              </div>
+
+              <div className="card">
+                <h3>📖 Apžvalga</h3>
+                <p><strong>Tema.</strong> {lessonPlan.lessonOverview?.topic}</p>
+                <p><strong>Tikslas.</strong> {lessonPlan.lessonOverview?.goal}</p>
+                <p><strong>Vertinimas.</strong> {lessonPlan.lessonOverview?.evaluation?.methods?.join(', ')}</p>
+              </div>
+
+              <div className="card">
+                <h3>🚀 Pamokos eiga</h3>
+                <div className="timeline-container">
+                  {lessonPlan.lessonStages ? Object.entries(lessonPlan.lessonStages).map(([key, content]) => (
+                    <div key={key} className="timeline-item">
+                      <div className="timeline-header">
+                        <span className="timeline-label">{STAGE_LABELS[key] || key}</span>
+                      </div>
+                      <p className="timeline-content">{content}</p>
+                    </div>
+                  )) : <p>Nėra informacijos</p>}
+                </div>
+              </div>
+
+               <div className="card">
+                <h3>🤝 Veiklos klasėje ir priemonės</h3>
+                <div style={{display: 'grid', gridTemplateColumns: '1fr', gap: '10px'}}>
+                  <div><strong>👤 Individualiai.</strong> {lessonPlan.classActivities?.individual}</div>
+                  <div><strong>👥 Porose.</strong> {lessonPlan.classActivities?.pairs}</div>
+                  <div><strong>👪 Grupėse.</strong> {lessonPlan.classActivities?.group}</div>
+                  <div style={{marginTop: '8px', borderTop: '1px solid #334155', paddingTop: '8px'}}><strong>🛠️ Priemonės ir nuorodos.</strong> {lessonPlan.classActivities?.toolsResources}</div>
+                </div>
+              </div>
+
+              <div className="card">
+                 <h3>🎯 Individualūs darbai</h3>
+                 <p>{lessonPlan.individualWork}</p>
+              </div>
+
+              <div className="card" style={{borderLeftColor: 'var(--info-color)'}}>
+                <h3>🌐 Skaitmeniniai ištekliai ir nuorodos</h3>
+                <p style={{whiteSpace: 'pre-wrap'}}>{lessonPlan.digitalResources}</p>
+              </div>
+
+              <div className="card results-diff-section">
+                <h3>📝 Diferencijavimas ir individualizavimas</h3>
+                <div className="diff-grid">
+                  <div className="diff-item gifted">
+                    <span className="diff-header">Gabūs mokiniai 🌟</span>
+                    <p className="diff-text">{lessonPlan.differentiation?.gifted}</p>
+                  </div>
+                  <div className="diff-item average">
+                    <span className="diff-header">Vidutiniai mokiniai ✅</span>
+                    <p className="diff-text">{lessonPlan.differentiation?.general}</p>
+                  </div>
+                  <div className="diff-item struggling">
+                    <span className="diff-header">Mokiniai su sunkumais 🛡️</span>
+                    <p className="diff-text">{lessonPlan.differentiation?.struggling}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <h3>✍️ El. dienyno įrašai</h3>
+                {['topicClassworkExpectations', 'homework', 'notes'].map(key => (
+                  <div key={key} className="diary-field-wrapper">
+                    <label className="diary-label">{key === 'topicClassworkExpectations' ? 'Tema ir darbas' : key === 'homework' ? 'Namų darbai' : 'Pastabos'}</label>
+                    <div className="diary-field">
+                      <span className="diary-text">{lessonPlan.eDiaryEntry ? (lessonPlan.eDiaryEntry as any)[key] : ''}</span>
+                      <button onClick={() => lessonPlan.eDiaryEntry && handleCopy((lessonPlan.eDiaryEntry as any)[key], key)} className="copy-button">Kopijuoti</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="card" style={{borderLeftColor: 'var(--secondary-color)'}}>
+                 <h3>💖 Motyvacinė žinutė</h3>
+                 <p style={{fontStyle: 'italic'}}>{lessonPlan.motivation}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* MODALAI */}
+      {showSaveConfirm && (
+        <div className="modal-overlay" onClick={() => setShowSaveConfirm(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Patvirtinkite išsaugojimą</h2>
+            </div>
+            <p className="modal-body-text">Ar norite išsaugoti šį pamokos planą į savo asmeninį sąrašą?</p>
+            <div className="modal-actions">
+                <button onClick={executeSavePlan} className="modal-btn confirm">Taip, išsaugoti</button>
+                <button onClick={() => setShowSaveConfirm(false)} className="modal-btn cancel">Atšaukti</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && editedPlan && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content large" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Redaguoti planą</h2>
+            </div>
+            <div className="modal-body scrollable">
+              
+              <div className="edit-group">
+                <label>Tema</label>
+                <input type="text" value={editedPlan.lessonOverview.topic} onChange={e => updateEditedField('lessonOverview.topic', e.target.value)} />
+              </div>
+              <div className="edit-group">
+                <label>SMART Tikslas</label>
+                <textarea value={editedPlan.lessonOverview.goal} onChange={e => updateEditedField('lessonOverview.goal', e.target.value)} rows={3} />
+              </div>
+              
+              <div className="edit-divider">Pamokos eiga</div>
+              {Object.keys(STAGE_LABELS).map(key => (
+                <div key={key} className="edit-stage-group">
+                   <div className="edit-stage-header">
+                      <label>{STAGE_LABELS[key]}</label>
+                   </div>
+                   <textarea 
+                     value={(editedPlan.lessonStages as any)[key]} 
+                     onChange={e => updateEditedField(`lessonStages.${key}`, e.target.value)} 
+                     rows={2} 
+                   />
+                </div>
+              ))}
+
+              <div className="edit-divider">Veiklos ir priemonės</div>
+              <div className="edit-group">
+                <label>Individualiai</label>
+                <textarea value={editedPlan.classActivities?.individual || ''} onChange={e => updateEditedField('classActivities.individual', e.target.value)} rows={1} />
+              </div>
+              <div className="edit-group">
+                <label>Porose</label>
+                <textarea value={editedPlan.classActivities?.pairs || ''} onChange={e => updateEditedField('classActivities.pairs', e.target.value)} rows={1} />
+              </div>
+              <div className="edit-group">
+                <label>Grupėse</label>
+                <textarea value={editedPlan.classActivities?.group || ''} onChange={e => updateEditedField('classActivities.group', e.target.value)} rows={1} />
+              </div>
+              <div className="edit-group">
+                <label>Priemonės ir šaltiniai</label>
+                <textarea value={editedPlan.classActivities?.toolsResources || ''} onChange={e => updateEditedField('classActivities.toolsResources', e.target.value)} rows={2} />
+              </div>
+
+               <div className="edit-divider">Individualūs darbai ir namų darbai</div>
+               <div className="edit-group">
+                <label>Individualūs darbai</label>
+                <textarea value={editedPlan.individualWork || ''} onChange={e => updateEditedField('individualWork', e.target.value)} rows={2} />
+              </div>
+              <div className="edit-group">
+                <label>Skaitmeniniai ištekliai</label>
+                <textarea value={editedPlan.digitalResources || ''} onChange={e => updateEditedField('digitalResources', e.target.value)} rows={2} />
+              </div>
+              <div className="edit-group">
+                <label>Namų darbų tikslas</label>
+                <textarea value={editedPlan.homework?.purpose || ''} onChange={e => updateEditedField('homework.purpose', e.target.value)} rows={1} />
+              </div>
+               <div className="edit-group">
+                <label>ND Gabiems</label>
+                <textarea value={editedPlan.homework?.gifted || ''} onChange={e => updateEditedField('homework.gifted', e.target.value)} rows={1} />
+              </div>
+              <div className="edit-group">
+                <label>ND Bendras</label>
+                <textarea value={editedPlan.homework?.general || ''} onChange={e => updateEditedField('homework.general', e.target.value)} rows={1} />
+              </div>
+
+              <div className="edit-divider">Diferencijavimas</div>
+              <div className="edit-group">
+                <label>Gabūs mokiniai</label>
+                <textarea value={editedPlan.differentiation.gifted} onChange={e => updateEditedField('differentiation.gifted', e.target.value)} rows={2} />
+              </div>
+              <div className="edit-group">
+                <label>Bendras lygis</label>
+                <textarea value={editedPlan.differentiation.general} onChange={e => updateEditedField('differentiation.general', e.target.value)} rows={2} />
+              </div>
+              <div className="edit-group">
+                <label>Sunkumų turintys mokiniai</label>
+                <textarea value={editedPlan.differentiation.struggling} onChange={e => updateEditedField('differentiation.struggling', e.target.value)} rows={2} />
+              </div>
+
+              <div className="edit-divider">El. dienynas</div>
+              <div className="edit-group">
+                <label>Tema ir darbas</label>
+                <textarea value={editedPlan.eDiaryEntry.topicClassworkExpectations} onChange={e => updateEditedField('eDiaryEntry.topicClassworkExpectations', e.target.value)} rows={2} />
+              </div>
+              <div className="edit-group">
+                <label>Namų darbai (įrašas)</label>
+                <textarea value={editedPlan.eDiaryEntry.homework} onChange={e => updateEditedField('eDiaryEntry.homework', e.target.value)} rows={1} />
+              </div>
+               <div className="edit-group">
+                <label>Pastabos</label>
+                <textarea value={editedPlan.eDiaryEntry.notes} onChange={e => updateEditedField('eDiaryEntry.notes', e.target.value)} rows={2} />
+              </div>
+              
+              <div className="edit-divider">Motyvacija</div>
+              <div className="edit-group">
+                <textarea value={editedPlan.motivation} onChange={e => updateEditedField('motivation', e.target.value)} rows={2} />
+              </div>
+
+            </div>
+            <div className="modal-actions">
+                <button onClick={handleApplyEdit} className="modal-btn confirm">Išsaugoti pakeitimus</button>
+                <button onClick={() => setShowEditModal(false)} className="modal-btn cancel">Uždaryti</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClassroomModal && (
+        <div className="modal-overlay" onClick={() => setShowClassroomModal(false)}>
+          <div className="modal-content large" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Dalintis Google Classroom 🏫</h2>
+            </div>
+            
+            <div className="modal-body scrollable">
+              {classroomError && <div className="error-message">{classroomError}</div>}
+              {classroomSuccess && <div className="success-message" style={{background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success-color)', border: '1px solid var(--success-color)', padding: '12px', borderRadius: '8px', marginBottom: '15px'}}>{classroomSuccess}</div>}
+
+              {(!user || !token) ? (
+                <div style={{textAlign: 'center', padding: '2rem 1rem'}}>
+                  <p style={{color: 'var(--text-color-light)', marginBottom: '1.5rem'}}>
+                    Norėdami dalintis pamokos planu Google Classroom, pirmiausia turite prisijungti su savo Google paskyra.
+                  </p>
+                  <button 
+                    onClick={handleClassroomLogin} 
+                    disabled={isClassroomLoading} 
+                    className="generate-button"
+                    style={{maxWidth: '300px', margin: '0 auto'}}
+                  >
+                    {isClassroomLoading ? "Prisijungiama..." : "Prisijungti su Google 🌐"}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#0f172a', padding: '12px', borderRadius: '8px', marginBottom: '1.5rem'}}>
+                    <div>
+                      <span style={{color: 'var(--text-color)', fontSize: '0.85rem', display: 'block'}}>Prisijungta kaip</span>
+                      <strong style={{color: 'white'}}>{user.displayName || user.email}</strong>
+                    </div>
+                    <button 
+                      onClick={() => auth.signOut()} 
+                      style={{background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error-color)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer'}}
+                    >
+                      Atsijungti
+                    </button>
+                  </div>
+
+                  <div className="edit-group">
+                    <label>Pasirinkite Google Classroom kursą (klasę) *</label>
+                    {courses.length === 0 ? (
+                      <div style={{padding: '10px', background: '#0f172a', borderRadius: '8px', color: 'var(--text-color)'}}>
+                        {isClassroomLoading ? "Kraunami kursai..." : "Nėra aktyvių kursų."}
+                      </div>
+                    ) : (
+                      <select 
+                        value={selectedCourseId} 
+                        onChange={e => setSelectedCourseId(e.target.value)}
+                        style={{width: '100%', padding: '12px', background: '#0f172a', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px', fontSize: '0.95rem'}}
+                      >
+                        {courses.map(course => (
+                          <option key={course.id} value={course.id}>{course.name} ({course.section || 'Nėra sekcijos'})</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div className="edit-group">
+                    <label>Pasirinkite įrašo tipą Google Classroom *</label>
+                    <div style={{display: 'flex', gap: '10px', marginTop: '8px'}}>
+                      <button 
+                        type="button"
+                        onClick={() => { setClassroomPostType('announcement'); setClassroomSuccess(null); }}
+                        className={`modal-btn ${classroomPostType === 'announcement' ? 'confirm' : 'cancel'}`}
+                        style={{padding: '10px', fontSize: '0.85rem'}}
+                      >
+                        📢 Skelbimas (Announcement)
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => { setClassroomPostType('courseWork'); setClassroomSuccess(null); }}
+                        className={`modal-btn ${classroomPostType === 'courseWork' ? 'confirm' : 'cancel'}`}
+                        style={{padding: '10px', fontSize: '0.85rem'}}
+                      >
+                        🎯 Užduotis (Assignment)
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => { setClassroomPostType('material'); setClassroomSuccess(null); }}
+                        className={`modal-btn ${classroomPostType === 'material' ? 'confirm' : 'cancel'}`}
+                        style={{padding: '10px', fontSize: '0.85rem'}}
+                      >
+                        📚 Medžiaga (Material)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="edit-group" style={{marginTop: '1.5rem'}}>
+                    <label>Turinio peržiūra</label>
+                    <div style={{background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.85rem', color: 'var(--text-color-light)', maxHeight: '200px', overflowY: 'auto', whiteSpace: 'pre-wrap'}}>
+                      {classroomPostType === 'announcement' ? (
+                        <>
+                          <strong>📢 NAUJAS PAMOKOS PLANAS:</strong> {lessonPlan.lessonOverview?.topic || topic || "Pamokos planas"}{"\n\n"}
+                          <strong>🎯 TIKSLAS:</strong> {lessonPlan.lessonOverview?.goal || "Nėra nurodyto tikslo."}{"\n\n"}
+                          <strong>🚀 PAMOKOS EIGA:</strong>{"\n"}
+                          {lessonPlan.lessonStages && Object.entries(lessonPlan.lessonStages).map(([key, content]) => (
+                            `- ${STAGE_LABELS[key] || key}. ${content}\n`
+                          ))}
+                        </>
+                      ) : classroomPostType === 'courseWork' ? (
+                        <>
+                          <strong>Užduotis.</strong> {lessonPlan.lessonOverview?.topic || topic || "Pamokos planas"}{"\n\n"}
+                          <strong>🎯 TIKSLAS:</strong> {lessonPlan.lessonOverview?.goal || "Nėra nurodyto tikslo."}{"\n\n"}
+                          <strong>👤 Individualus darbas:</strong> {lessonPlan.individualWork || 'Nėra nurodyta.'}{"\n\n"}
+                          <strong>🏠 Namų darbai:</strong>{"\n"}
+                          - Tikslas: {lessonPlan.homework?.purpose || 'Nėra nurodyta.'}{"\n"}
+                          - Gabiesiems: {lessonPlan.homework?.gifted || 'Nėra nurodyta.'}{"\n"}
+                          - Bendra užduotis: {lessonPlan.homework?.general || 'Nėra nurodyta.'}{"\n"}
+                          - Sunkumų turintiems: {lessonPlan.homework?.struggling || 'Nėra nurodyta.'}
+                        </>
+                      ) : (
+                        <>
+                          <strong>Medžiaga.</strong> {lessonPlan.lessonOverview?.topic || topic || "Pamokos planas"}{"\n\n"}
+                          <strong>📚 Priemonės ir skaitmeniniai šaltiniai šiai pamokai:</strong>{"\n\n"}
+                          <strong>🌐 Skaitmeniniai ištekliai:</strong>{"\n"}{lessonPlan.digitalResources || 'Nėra nurodyta.'}{"\n\n"}
+                          <strong>🛠️ Klasės priemonės:</strong> {lessonPlan.classActivities?.toolsResources || 'Nėra nurodyta.'}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              {user && token && (
+                <button 
+                  onClick={handlePublishToClassroom} 
+                  disabled={isClassroomLoading || courses.length === 0} 
+                  className="modal-btn confirm"
+                >
+                  {isClassroomLoading ? "Skelbiama..." : "Paskelbti Google Classroom 🚀"}
+                </button>
+              )}
+              <button onClick={() => { setShowClassroomModal(false); setClassroomError(null); setClassroomSuccess(null); }} className="modal-btn cancel">Uždaryti</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deletingPlanId && (
+        <div className="modal-overlay" onClick={() => setDeletingPlanId(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Pašalinti planą?</h2>
+            </div>
+            <p className="modal-body-text">Šio veiksmo atšaukti negalėsite. Ar tikrai norite trinti?</p>
+            <div className="modal-actions">
+                <button onClick={() => { setSavedPlans(savedPlans.filter(p => p.id !== deletingPlanId)); setDeletingPlanId(null); if (activePlanId === deletingPlanId) setLessonPlan(null); }} className="modal-btn delete">Trinti</button>
+                <button onClick={() => setDeletingPlanId(null)} className="modal-btn cancel">Atšaukti</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Bot UI */}
+      <div className={`chat-bot-container ${isChatOpen ? 'open' : ''}`}>
+        {!isChatOpen ? (
+          <button className="chat-bot-toggle" onClick={() => setIsChatOpen(true)}>
+            💬 Pagalba
+          </button>
+        ) : (
+          <div className="chat-bot-window">
+            <div className="chat-bot-header">
+              <h3>DI pagalbininkas 🤖</h3>
+              <button onClick={() => setIsChatOpen(false)}>✖</button>
+            </div>
+            <div className="chat-bot-messages">
+              {chatMessages.map((msg, i) => (
+                <div key={i} className={`chat-message ${msg.role}`}>
+                  <div className="message-bubble">{msg.text}</div>
+                </div>
+              ))}
+              {isChatLoading && (
+                <div className="chat-message model">
+                  <div className="message-bubble loading">...</div>
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+            <form className="chat-bot-input" onSubmit={handleChatSubmit}>
+              <input 
+                type="text" 
+                value={chatInput} 
+                onChange={e => setChatInput(e.target.value)} 
+                placeholder="Klauskite apie planą..." 
+                disabled={isChatLoading}
+              />
+              <button type="submit" disabled={isChatLoading || !chatInput.trim()}>➤</button>
+            </form>
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+};
+
+const root = createRoot(document.getElementById('root')!);
+root.render(<App />);
