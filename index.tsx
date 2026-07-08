@@ -94,6 +94,80 @@ interface SavedPlan {
   lessonType?: LessonCategory;
 }
 
+interface LessonTemplate {
+  id: string;
+  name: string;
+  grade: string;
+  subject: string;
+  lessonType: string;
+  goal: string;
+  activities: string;
+  evaluationCriteria: string;
+  selectedEvaluations: string[];
+  selectedResources: string[];
+  stageDurations: Record<string, number>;
+  isCustom: boolean;
+}
+
+const DEFAULT_TEMPLATES: LessonTemplate[] = [
+  {
+    id: 'default-classic',
+    name: "Klasikinė pamoka (45 min.) 🏫",
+    grade: "7 klasė",
+    subject: "Lietuvių kalba",
+    lessonType: "Įtvirtinimo",
+    goal: "Mokiniai gebės pritaikyti teorines taisykles praktinėse užduotyse.",
+    activities: "Sąvokų kartojimas, darbas su tekstu, trumpas apibendrinimas.",
+    evaluationCriteria: "Teisingai atlikta bent 70% praktinių užduočių.",
+    selectedEvaluations: ["Savarankiškas darbas", "Formuojamojo vertinimo darbas"],
+    selectedResources: ["Vadovėlis", "Darbo lapai"],
+    stageDurations: { introduction: 5, theory: 15, practice: 15, consolidation: 5, summary: 5 },
+    isCustom: false
+  },
+  {
+    id: 'default-group',
+    name: "Grupinis / Projektinis darbas (45 min.) 👥",
+    grade: "8 klasė",
+    subject: "Istorija",
+    lessonType: "Įtvirtinimo",
+    goal: "Dirbdami grupėse, mokiniai sukurs trumpą pristatymą ir jį pristatys.",
+    activities: "Darbas grupėse naudojant Miro lentą, bendri pristatymai.",
+    evaluationCriteria: "Kiekviena grupė parengia aiškų planą ir pristato bent 3 argumentus.",
+    selectedEvaluations: ["Projektinis darbas", "Savarankiškas darbas"],
+    selectedResources: ["Miro lenta", "Canva", "Išmanieji telefonai"],
+    stageDurations: { introduction: 5, theory: 5, practice: 25, consolidation: 7, summary: 3 },
+    isCustom: false
+  },
+  {
+    id: 'default-flipped',
+    name: "Apversta klasė (Flipped Classroom) 🔄",
+    grade: "9 klasė",
+    subject: "Matematika",
+    lessonType: "Įtvirtinimo",
+    goal: "Remiantis namuose peržiūrėta vaizdo medžiaga, spręsti sudėtingesnius uždavinius.",
+    activities: "Klausimai-atsakymai apie teoriją, uždavinių sprendimas porose.",
+    evaluationCriteria: "Uždavinių sprendimas porose ir gebėjimas paaiškinti sprendimą.",
+    selectedEvaluations: ["Savarankiškas darbas"],
+    selectedResources: ["YouTube", "Darbo lapai"],
+    stageDurations: { introduction: 10, theory: 0, practice: 25, consolidation: 5, summary: 5 },
+    isCustom: false
+  },
+  {
+    id: 'default-test',
+    name: "Kontrolinio darbo pamoka (45 min.) 📝",
+    grade: "10 klasė",
+    subject: "Fizika",
+    lessonType: "Vertinamoji",
+    goal: "Savarankiškai atlikti kontrolinį darbą ir pasitikrinti sukauptas žinias.",
+    activities: "Instruktažas, savarankiškas sprendimas, lapų surinkimas.",
+    evaluationCriteria: "Teisingi atsakymai į užduotis pagal taškų sistemą.",
+    selectedEvaluations: ["Kontrolinis darbas", "Galutinis atsiskaitymas"],
+    selectedResources: ["Darbo lapai"],
+    stageDurations: { introduction: 3, theory: 2, practice: 35, consolidation: 3, summary: 2 },
+    isCustom: false
+  }
+];
+
 interface ChatMessage {
   role: 'user' | 'model';
   text: string;
@@ -207,6 +281,15 @@ const App = () => {
 
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
 
+  const [autoSavedTime, setAutoSavedTime] = useState<string | null>(null);
+  const isLoadedFromDraft = useRef(false);
+
+  // Reusable Template states
+  const [customTemplates, setCustomTemplates] = useState<LessonTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
+
   // Chat bot states
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([{role: 'model', text: 'Sveiki! Esu jūsų asistentas. Klauskite manęs, jei reikia pagalbos su pamokos planu, idėjomis ar diferencijavimu.'}]);
@@ -281,6 +364,164 @@ const App = () => {
       localStorage.setItem('savedLessonPlans', JSON.stringify(savedPlans));
     } catch (e) { console.error(e); }
   }, [savedPlans]);
+
+  // Load custom templates on mount
+  useEffect(() => {
+    try {
+      const storedTemplates = localStorage.getItem('customLessonTemplates');
+      if (storedTemplates) setCustomTemplates(JSON.parse(storedTemplates));
+    } catch (e) { console.error(e); }
+  }, []);
+
+  // Sync custom templates to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('customLessonTemplates', JSON.stringify(customTemplates));
+    } catch (e) { console.error(e); }
+  }, [customTemplates]);
+
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    try {
+      const draftStr = localStorage.getItem('lessonPlanDraft');
+      if (draftStr) {
+        const draft = JSON.parse(draftStr);
+        if (draft.grade !== undefined) setGrade(draft.grade);
+        if (draft.subject !== undefined) setSubject(draft.subject);
+        if (draft.topic !== undefined) setTopic(draft.topic);
+        if (draft.lessonType !== undefined) setLessonType(draft.lessonType);
+        if (draft.goal !== undefined) setGoal(draft.goal);
+        if (draft.activities !== undefined) setActivities(draft.activities);
+        if (draft.evaluationCriteria !== undefined) setEvaluationCriteria(draft.evaluationCriteria);
+        if (draft.selectedEvaluations !== undefined) setSelectedEvaluations(draft.selectedEvaluations);
+        if (draft.selectedResources !== undefined) setSelectedResources(draft.selectedResources);
+        if (draft.isIntegratedInput !== undefined) setIsIntegratedInput(draft.isIntegratedInput);
+        if (draft.integrationDetails !== undefined) setIntegrationDetails(draft.integrationDetails);
+        if (draft.isOutsideInput !== undefined) setIsOutsideInput(draft.isOutsideInput);
+        if (draft.outsideLocation !== undefined) setOutsideLocation(draft.outsideLocation);
+        if (draft.outsideGoal !== undefined) setOutsideGoal(draft.outsideGoal);
+        if (draft.lessonPlan !== undefined) setLessonPlan(draft.lessonPlan);
+        if (draft.editedPlan !== undefined) setEditedPlan(draft.editedPlan);
+        if (draft.stageDurations !== undefined) setStageDurations(draft.stageDurations);
+        if (draft.activePlanId !== undefined) setActivePlanId(draft.activePlanId);
+      }
+    } catch (e) {
+      console.error("Klaida nuskaitant juodraštį:", e);
+    } finally {
+      isLoadedFromDraft.current = true;
+    }
+  }, []);
+
+  // Auto-save progress to localStorage with debounce
+  useEffect(() => {
+    if (!isLoadedFromDraft.current) return;
+
+    const timer = setTimeout(() => {
+      try {
+        const draft = {
+          grade,
+          subject,
+          topic,
+          lessonType,
+          goal,
+          activities,
+          evaluationCriteria,
+          selectedEvaluations,
+          selectedResources,
+          isIntegratedInput,
+          integrationDetails,
+          isOutsideInput,
+          outsideLocation,
+          outsideGoal,
+          lessonPlan,
+          editedPlan,
+          stageDurations,
+          activePlanId
+        };
+        localStorage.setItem('lessonPlanDraft', JSON.stringify(draft));
+        const now = new Date();
+        const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+        setAutoSavedTime(timeStr);
+      } catch (e) {
+        console.error("Klaida automatiškai išsaugant juodraštį:", e);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [
+    grade,
+    subject,
+    topic,
+    lessonType,
+    goal,
+    activities,
+    evaluationCriteria,
+    selectedEvaluations,
+    selectedResources,
+    isIntegratedInput,
+    integrationDetails,
+    isOutsideInput,
+    outsideLocation,
+    outsideGoal,
+    lessonPlan,
+    editedPlan,
+    stageDurations,
+    activePlanId
+  ]);
+
+  const handleApplyTemplate = (templateId: string) => {
+    const allTemplates = [...DEFAULT_TEMPLATES, ...customTemplates];
+    const t = allTemplates.find(x => x.id === templateId);
+    if (t) {
+      setGrade(t.grade);
+      setSubject(t.subject);
+      setLessonType(t.lessonType as LessonCategory);
+      setGoal(t.goal);
+      setActivities(t.activities);
+      setEvaluationCriteria(t.evaluationCriteria);
+      setSelectedEvaluations(t.selectedEvaluations);
+      setSelectedResources(t.selectedResources);
+      setStageDurations(t.stageDurations);
+      setSelectedTemplateId(t.id);
+    } else {
+      setSelectedTemplateId('');
+    }
+  };
+
+  const handleSaveCustomTemplate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTemplateName.trim()) return;
+
+    const newTemplate: LessonTemplate = {
+      id: `template-${Date.now()}`,
+      name: `${newTemplateName.trim()} 📋`,
+      grade,
+      subject,
+      lessonType,
+      goal,
+      activities,
+      evaluationCriteria,
+      selectedEvaluations,
+      selectedResources,
+      stageDurations,
+      isCustom: true
+    };
+
+    setCustomTemplates(prev => [newTemplate, ...prev]);
+    setSelectedTemplateId(newTemplate.id);
+    setNewTemplateName('');
+    setShowSaveTemplateModal(false);
+  };
+
+  const handleDeleteTemplate = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Ar tikrai norite ištrinti šį šabloną?")) {
+      setCustomTemplates(prev => prev.filter(t => t.id !== id));
+      if (selectedTemplateId === id) {
+        setSelectedTemplateId('');
+      }
+    }
+  };
 
   const loadExample = () => {
     setSubject('Lietuvių kalba ir literatūra');
@@ -733,11 +974,105 @@ Struktūra:
       
       <main className="main-content">
         <div className="form-container">
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
-            <h2 style={{margin: 0}}>Pamokos informacija</h2>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '10px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+              <h2 style={{margin: 0}}>Pamokos informacija</h2>
+              {autoSavedTime && (
+                <span className="auto-save-badge" title="Juodraštis automatiškai išsaugotas naršyklėje">
+                  💾 Išsaugota {autoSavedTime}
+                </span>
+              )}
+            </div>
             <button onClick={loadExample} className="mini-link" style={{border: 'none', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary-color)'}}>💡 Užkrauti pavyzdį</button>
           </div>
           <form onSubmit={handleGenerate}>
+            {/* Šablonų valdymas */}
+            <div className="templates-container" style={{
+              background: 'rgba(59, 130, 246, 0.05)',
+              border: '1px solid rgba(59, 130, 246, 0.2)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px'}}>
+                <h4 style={{margin: 0, color: 'var(--heading-color)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px'}}>
+                  <span>📋 Pamokos struktūros ir šablonai</span>
+                </h4>
+                <button 
+                  type="button" 
+                  onClick={() => setShowSaveTemplateModal(true)} 
+                  className="mini-link"
+                  style={{
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    background: 'rgba(59, 130, 246, 0.15)', 
+                    color: 'var(--primary-color)',
+                    fontWeight: '600',
+                    fontSize: '0.75rem'
+                  }}
+                >
+                  💾 Išsaugoti šį šabloną
+                </button>
+              </div>
+              
+              <div className="templates-list-wrapper" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                <div className="templates-selector-group" style={{display: 'flex', gap: '8px'}}>
+                  <select 
+                    value={selectedTemplateId} 
+                    onChange={e => handleApplyTemplate(e.target.value)}
+                    style={{
+                      flex: '1',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      background: 'var(--background-color)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-color-light)',
+                      fontSize: '0.85rem'
+                    }}
+                  >
+                    <option value="">-- Pasirinkite struktūros šabloną --</option>
+                    <optgroup label="Paruošti pamokų šablonai">
+                      {DEFAULT_TEMPLATES.map(t => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </optgroup>
+                    {customTemplates.length > 0 && (
+                      <optgroup label="Mano išsaugoti šablonai">
+                        {customTemplates.map(t => (
+                          <option key={t.id} value={t.id}>{t.name}</option>
+                        ))}
+                      </optgroup>
+                    )}
+                  </select>
+                  
+                  {selectedTemplateId && customTemplates.some(t => t.id === selectedTemplateId) && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteTemplate(selectedTemplateId, e)}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        color: 'var(--error-color)',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem'
+                      }}
+                      title="Ištrinti šį šabloną"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+                
+                {selectedTemplateId && (
+                  <p className="helper-text" style={{margin: '0', fontSize: '0.75rem', color: 'var(--secondary-color)'}}>
+                    ✓ Sėkmingai užkrauta šablono struktūra, laiko rėžiai ir metodai!
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="form-group">
               <label>Dalykas *</label>
               <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Pvz. Lietuvių kalba ir literatūra" required />
@@ -1395,6 +1730,44 @@ Struktūra:
                 <button onClick={() => { setSavedPlans(savedPlans.filter(p => p.id !== deletingPlanId)); setDeletingPlanId(null); if (activePlanId === deletingPlanId) setLessonPlan(null); }} className="modal-btn delete">Trinti</button>
                 <button onClick={() => setDeletingPlanId(null)} className="modal-btn cancel">Atšaukti</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showSaveTemplateModal && (
+        <div className="modal-overlay" onClick={() => setShowSaveTemplateModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Išsaugoti kaip šabloną</h2>
+            </div>
+            <form onSubmit={handleSaveCustomTemplate}>
+              <p className="modal-body-text" style={{color: 'var(--text-color)', marginBottom: '15px'}}>
+                Įveskite šablono pavadinimą. Šis šablonas išsaugos dabartinius formos laukus (dalyką, klasę, pamokos tipą, tikslą, veiklas, vertinimo kriterijus bei nustatytus laiko rėžius) kaip greitai pasirinktiną struktūrą.
+              </p>
+              <div className="edit-group" style={{marginBottom: '20px'}}>
+                <label style={{display: 'block', color: 'var(--text-color-light)', marginBottom: '6px', fontSize: '0.9rem'}}>Šablono pavadinimas *</label>
+                <input 
+                  type="text" 
+                  value={newTemplateName} 
+                  onChange={e => setNewTemplateName(e.target.value)} 
+                  placeholder="pvz., Mano 8 kl. praktinė struktūra" 
+                  required 
+                  style={{
+                    width: '100%', 
+                    padding: '10px', 
+                    background: 'var(--background-color)', 
+                    border: '1px solid var(--border-color)', 
+                    color: 'white', 
+                    borderRadius: '8px', 
+                    fontSize: '0.95rem'
+                  }}
+                />
+              </div>
+              <div className="modal-actions">
+                  <button type="submit" className="modal-btn confirm">Išsaugoti šabloną</button>
+                  <button type="button" onClick={() => setShowSaveTemplateModal(false)} className="modal-btn cancel">Atšaukti</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
