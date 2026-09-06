@@ -267,22 +267,24 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
 
 const formatGeminiError = (err: any): string => {
   if (!err) return 'Nežinoma klaida.';
+  console.error('DI Klaidos detalės:', err);
   const str = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
-  if (str.includes('404') || str.includes('not found')) {
-    return 'Klaida (404): Nurodytas Gemini modelis nepasiekiamas jūsų API raktui. Patikrinkite API rakto prieigą Google AI Studio.';
-  }
-  if (str.includes('400') || str.includes('403') || str.includes('API_KEY_INVALID') || str.includes('API key not valid')) {
-    return 'Klaida (403/400): Neteisingas arba neaktyvus Gemini API raktas. Spauskite viršuje „Įvesti API raktą“ ir įveskite galiojantį raktą.';
+  
+  if (str.includes('API_KEY_INVALID') || str.includes('API key not valid') || str.includes('400') || str.includes('403')) {
+    return 'Klaida: Neteisingas arba neaktyvus Gemini API raktas. Įsitikinkite, kad Netlify nustatymuose įvestas galiojantis Google AI Studio API raktas.';
   }
   if (str.includes('429') || str.includes('RESOURCE_EXHAUSTED')) {
-    return 'Klaida (429): Viršytas Gemini API užklausų limitas (Rate limit). Palaukite minutę ir bandykite vėl.';
+    return 'Klaida: Viršytas Gemini API užklausų limitas (Rate limit). Palaukite kelias sekundes ir bandykite vėl.';
+  }
+  if (str.includes('404') || str.includes('not found') || str.includes('NOT_FOUND')) {
+    return `Klaida (404): Gemini API modelis nepasiekiamas jūsų projektui. Įsitikinkite, kad API raktas sukurtas per https://aistudio.google.com/app/apikey. Detalės: ${err.message || str}`;
   }
   return `Klaida: ${err.message || str}`;
 };
 
 const callGeminiWithFallback = async (ai: GoogleGenAI, params: { contents: any; config?: any }) => {
-  // Try available models in order of performance and availability
-  const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-pro'];
+  // Try verified available models in order of performance and availability
+  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
   let lastError: any = null;
 
   for (const model of models) {
@@ -295,10 +297,10 @@ const callGeminiWithFallback = async (ai: GoogleGenAI, params: { contents: any; 
       return response;
     } catch (err: any) {
       lastError = err;
+      console.warn(`Modelis ${model} grąžino klaidą:`, err);
       const msg = err?.message || JSON.stringify(err);
       // If 404 (model not found for this account/version), try the next candidate model
-      if (msg.includes('404') || msg.includes('not found')) {
-        console.warn(`Model ${model} returned 404, attempting fallback model...`);
+      if (msg.includes('404') || msg.includes('not found') || msg.includes('NOT_FOUND')) {
         continue;
       }
       // For authentication or other non-404 errors, throw immediately

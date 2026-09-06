@@ -4,7 +4,19 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || env.GEMINI_API_KEY || env.API_KEY || process.env.VITE_GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || '';
+    const rawKey = 
+      process.env.GEMINI_API_KEY || 
+      process.env.API_KEY || 
+      process.env.VITE_GEMINI_API_KEY || 
+      process.env.VITE_API_KEY || 
+      process.env.GOOGLE_API_KEY || 
+      env.GEMINI_API_KEY || 
+      env.API_KEY || 
+      env.VITE_GEMINI_API_KEY || 
+      env.VITE_API_KEY || 
+      env.GOOGLE_API_KEY || 
+      '';
+    const apiKey = rawKey.trim().replace(/^["']|["']$/g, '');
 
     return {
       server: {
