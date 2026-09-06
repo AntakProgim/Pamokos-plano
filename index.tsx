@@ -248,7 +248,29 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
   motivation: "Kiekvienas mokinys yra kūrėjas. Šiandien jūs ne tik vartotojai, bet ir tie, kurie supranta žodžio galią. Sėkmės kūryboje."
 };
 
+const getStoredApiKey = (): string => {
+  const envKey = 
+    process.env.API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
+    (typeof import.meta !== 'undefined' && (import.meta as any).env?.GEMINI_API_KEY) ||
+    '';
+  if (envKey && typeof envKey === 'string' && envKey.trim().length > 0 && envKey !== 'undefined') {
+    return envKey.trim();
+  }
+  try {
+    const local = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
+    if (local && local.trim().length > 0) return local.trim();
+  } catch (e) {}
+  return '';
+};
+
 const App = () => {
+  const [apiKey, setApiKey] = useState<string>(() => getStoredApiKey());
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [tempApiKeyInput, setTempApiKeyInput] = useState('');
+  const [apiKeySavedSuccess, setApiKeySavedSuccess] = useState(false);
+
   const [grade, setGrade] = useState('');
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
@@ -625,10 +647,19 @@ Struktūra:
       6. El. dienyne (eDiaryEntry) NERAŠYK "Tema." ir "Namų darbas." žodžių, pateik tik turinį.
     `;
 
+    const activeKey = apiKey || getStoredApiKey();
+    if (!activeKey) {
+      setError('Gemini API raktas nenustatytas. Spauskite viršuje „Įvesti Gemini API raktą“ arba įveskite jį nustatymuose.');
+      setTempApiKeyInput('');
+      setShowApiKeyModal(true);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: activeKey });
       const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+        model: 'gemini-3.5-flash',
         contents: prompt,
         config: { systemInstruction, responseMimeType: "application/json" },
       });
@@ -746,6 +777,20 @@ Struktūra:
     setEditedPlan(newPlan);
   };
 
+  const handleSaveApiKey = (newKey: string) => {
+    const trimmed = newKey.trim();
+    if (trimmed) {
+      localStorage.setItem('CUSTOM_GEMINI_API_KEY', trimmed);
+      setApiKey(trimmed);
+      setError(null);
+    } else {
+      localStorage.removeItem('CUSTOM_GEMINI_API_KEY');
+      setApiKey(getStoredApiKey());
+    }
+    setApiKeySavedSuccess(true);
+    setTimeout(() => setApiKeySavedSuccess(false), 3000);
+  };
+
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -755,8 +800,16 @@ Struktūra:
     setChatInput('');
     setIsChatLoading(true);
 
+    const activeKey = apiKey || getStoredApiKey();
+    if (!activeKey) {
+      setChatMessages(prev => [...prev, { role: 'model', text: 'Klaida: Nėra nustatyto Gemini API rakto. Spauskite viršuje esantį mygtuką „Įvesti Gemini API raktą“.' }]);
+      setShowApiKeyModal(true);
+      setIsChatLoading(false);
+      return;
+    }
+
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: activeKey });
       
       let context = "Tu esi ekspertas pedagogas, asistentas, padedantis mokytojams. Atsakyk trumpai, aiškiai ir lietuviškai.";
       if (lessonPlan) {
@@ -965,6 +1018,18 @@ Struktūra:
 
             <div className="tool-links">
               <h3>🛠️ Įrankiai</h3>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setTempApiKeyInput(apiKey || '');
+                  setShowApiKeyModal(true);
+                }} 
+                className={`tool-button ${apiKey ? 'miro' : 'classroom'}`}
+                style={{cursor: 'pointer', border: apiKey ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)'}}
+                title={apiKey ? "Gemini API raktas nustatytas. Spauskite, jei norite pakeisti." : "Nėra Gemini API rakto. Spauskite čia, kad įvestumėte."}
+              >
+                {apiKey ? '🔑 API Raktas: Aktyvus' : '⚠️ Įvesti API raktą'}
+              </button>
               <a href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" className="tool-button classroom">Classroom</a>
               <a href="https://miro.com" target="_blank" rel="noopener noreferrer" className="tool-button miro">Miro</a>
               <a href="https://canva.com" target="_blank" rel="noopener noreferrer" className="tool-button canva">Canva</a>
@@ -1212,7 +1277,32 @@ Struktūra:
               <p>DI kuria jūsų pamokos planą...</p>
             </div>
           )}
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <div className="error-message" style={{display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start'}}>
+              <div>{error}</div>
+              {(!apiKey || error.toLowerCase().includes('api') || error.toLowerCase().includes('key') || error.toLowerCase().includes('rakt')) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempApiKeyInput(apiKey || '');
+                    setShowApiKeyModal(true);
+                  }}
+                  className="mini-link"
+                  style={{
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: 'white',
+                    color: '#b91c1c',
+                    fontWeight: 700,
+                    padding: '4px 10px',
+                    borderRadius: '4px'
+                  }}
+                >
+                  🔑 Atidaryti Gemini API rakto nustatymus
+                </button>
+              )}
+            </div>
+          )}
           
           {!isLoading && !lessonPlan && (
             <div className="welcome-message">
@@ -1768,6 +1858,92 @@ Struktūra:
                   <button type="button" onClick={() => setShowSaveTemplateModal(false)} className="modal-btn cancel">Atšaukti</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showApiKeyModal && (
+        <div className="modal-overlay" onClick={() => setShowApiKeyModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '560px'}}>
+            <div className="modal-header">
+              <h2>🔑 Gemini API rakto nustatymai</h2>
+            </div>
+            <div>
+              <p className="modal-body-text" style={{color: 'var(--text-color)', marginBottom: '12px', fontSize: '0.9rem', lineHeight: '1.5'}}>
+                Plano generavimui ir DI pagalbininkui reikalingas <strong>Google Gemini API raktas</strong>.
+              </p>
+              
+              <div style={{background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '12px', marginBottom: '16px'}}>
+                <h4 style={{margin: '0 0 6px 0', fontSize: '0.85rem', color: 'var(--primary-color)'}}>💡 Kaip gauti raktą nemokamai?</h4>
+                <p style={{margin: '0 0 6px 0', fontSize: '0.8rem', color: 'var(--text-color)'}}>
+                  1. Apsilankykite <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{color: 'var(--primary-color)', textDecoration: 'underline'}}>Google AI Studio (Get API Key)</a>.
+                </p>
+                <p style={{margin: '0', fontSize: '0.8rem', color: 'var(--text-color)'}}>
+                  2. Paspauskite <em>Create API key</em>, nukopijuokite jį ir įklijuokite žemiau.
+                </p>
+              </div>
+
+              <div className="edit-group" style={{marginBottom: '16px'}}>
+                <label style={{display: 'block', color: 'var(--text-color-light)', marginBottom: '6px', fontSize: '0.9rem', fontWeight: 600}}>
+                  Jūsų Gemini API raktas:
+                </label>
+                <input 
+                  type="password" 
+                  value={tempApiKeyInput} 
+                  onChange={e => setTempApiKeyInput(e.target.value)} 
+                  placeholder="AIzaSy..." 
+                  style={{
+                    width: '100%', 
+                    padding: '10px 12px', 
+                    background: 'var(--background-color)', 
+                    border: '1px solid var(--border-color)', 
+                    color: 'white', 
+                    borderRadius: '8px', 
+                    fontSize: '0.95rem',
+                    fontFamily: 'monospace'
+                  }}
+                />
+                <p className="helper-text" style={{marginTop: '6px', fontSize: '0.75rem'}}>
+                  Raktas saugomas tik jūsų naršyklės saugykloje (Local Storage).
+                </p>
+              </div>
+
+              {apiKeySavedSuccess && (
+                <div style={{background: 'rgba(16, 185, 129, 0.15)', border: '1px solid rgba(16, 185, 129, 0.3)', color: 'var(--secondary-color)', padding: '8px 12px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.85rem'}}>
+                  ✓ API raktas sėkmingai išsaugotas!
+                </div>
+              )}
+
+              <div className="modal-actions" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <div>
+                  {apiKey && (
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        handleSaveApiKey('');
+                        setTempApiKeyInput('');
+                      }} 
+                      style={{background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '0.85rem', textDecoration: 'underline'}}
+                    >
+                      Išvalyti raktą
+                    </button>
+                  )}
+                </div>
+                <div style={{display: 'flex', gap: '8px'}}>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      handleSaveApiKey(tempApiKeyInput);
+                      setShowApiKeyModal(false);
+                    }} 
+                    className="modal-btn confirm"
+                  >
+                    Išsaugoti
+                  </button>
+                  <button type="button" onClick={() => setShowApiKeyModal(false)} className="modal-btn cancel">Uždaryti</button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
