@@ -271,51 +271,104 @@ const formatGeminiError = (err: any): string => {
   const str = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
   
   if (str.includes('API_KEY_INVALID') || str.includes('API key not valid') || str.includes('400') || str.includes('403')) {
-    return 'Klaida: Neteisingas arba neaktyvus Gemini API raktas. Įsitikinkite, kad Netlify nustatymuose įvestas galiojantis Google AI Studio API raktas.';
+    return 'Klaida (403/400): Neteisingas arba neaktyvus Gemini API raktas. Įsitikinkite, kad nurodytas galiojantis Google AI Studio API raktas.';
   }
   if (str.includes('429') || str.includes('RESOURCE_EXHAUSTED')) {
     return 'Klaida: Viršytas Gemini API užklausų limitas (Rate limit). Palaukite kelias sekundes ir bandykite vėl.';
   }
+  if (str.includes('503') || str.includes('high demand') || str.includes('overloaded')) {
+    return 'Klaida: Google DI serveriai šiuo metu perkrauti. Palaukite 5 sekundes ir paspauskite mygtuką dar kartą.';
+  }
   if (str.includes('404') || str.includes('not found') || str.includes('NOT_FOUND')) {
-    return `Klaida (404): Gemini API modelis nepasiekiamas jūsų projektui. Įsitikinkite, kad API raktas sukurtas per https://aistudio.google.com/app/apikey. Detalės: ${err.message || str}`;
+    return `Klaida (404): Gemini API modelis nepasiekiamas. Bandykite dar kartą arba patikrinkite API rakto būseną Google AI Studio.`;
   }
   return `Klaida: ${err.message || str}`;
 };
 
-const callGeminiWithFallback = async (ai: GoogleGenAI, params: { contents: any; config?: any }) => {
-  // Try verified available models in order of performance and availability
-  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite'];
+const callDirectRestGemini = async (apiKey: string, model: string, contents: any, systemInstruction?: string, isJson?: boolean) => {
+  const promptText = typeof contents === 'string' ? contents : (contents?.parts?.[0]?.text || JSON.stringify(contents));
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  
+  const bodyPayload: any = {
+    contents: [{ parts: [{ text: promptText }] }]
+  };
+  if (systemInstruction) {
+    bodyPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
+  }
+  if (isJson) {
+    bodyPayload.generationConfig = { responseMimeType: 'application/json' };
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(bodyPayload)
+  });
+
+  const data = await res.json();
+  if (data.error) {
+    throw new Error(data.error.message || JSON.stringify(data.error));
+  }
+
+  const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!generatedText) {
+    throw new Error('Tuščias DI atsakymas.');
+  }
+  return { text: generatedText };
+};
+
+const callGeminiWithFallback = async (apiKey: string, params: { contents: any; config?: any }) => {
+  const models = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest'];
   let lastError: any = null;
+
+  // 1. First attempt with @google/genai SDK across candidate models
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    for (const model of models) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: params.contents,
+          config: params.config,
+        });
+        if (response && response.text) {
+          return response;
+        }
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`SDK Modelis ${model} grąžino klaidą:`, err);
+        // Continue to next model on any error (404, 503, 500, etc.)
+        continue;
+      }
+    }
+  } catch (sdkInitErr) {
+    console.warn('SDK initialization/call issue, falling back to direct REST API...', sdkInitErr);
+  }
+
+  // 2. Fallback: Direct REST API fetch call (bypasses browser SDK bundling quirks)
+  const systemInstructionText = typeof params.config?.systemInstruction === 'string' 
+    ? params.config.systemInstruction 
+    : (params.config?.systemInstruction?.parts?.[0]?.text || undefined);
+  const isJsonMime = params.config?.responseMimeType === 'application/json';
 
   for (const model of models) {
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: params.contents,
-        config: params.config,
-      });
-      return response;
-    } catch (err: any) {
-      lastError = err;
-      console.warn(`Modelis ${model} grąžino klaidą:`, err);
-      const msg = err?.message || JSON.stringify(err);
-      // If 404 (model not found for this account/version), try the next candidate model
-      if (msg.includes('404') || msg.includes('not found') || msg.includes('NOT_FOUND')) {
-        continue;
+      console.log(`Bandome tiesioginę REST užklausą su modeliu ${model}...`);
+      const restRes = await callDirectRestGemini(apiKey, model, params.contents, systemInstructionText, isJsonMime);
+      if (restRes && restRes.text) {
+        return restRes;
       }
-      // For authentication or other non-404 errors, throw immediately
-      throw err;
+    } catch (restErr: any) {
+      lastError = restErr;
+      console.warn(`Direct REST Modelis ${model} grąžino klaidą:`, restErr);
+      continue;
     }
   }
-  throw lastError;
+
+  throw lastError || new Error('Nepavyko gauti atsakymo iš Gemini DI.');
 };
 
 const getStoredApiKey = (): string => {
-  try {
-    const local = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-    if (local && local.trim().length > 0) return local.trim();
-  } catch (e) {}
-
   const envKey = 
     process.env.API_KEY ||
     process.env.GEMINI_API_KEY ||
@@ -325,7 +378,14 @@ const getStoredApiKey = (): string => {
   if (envKey && typeof envKey === 'string' && envKey.trim().length > 0 && envKey !== 'undefined') {
     return envKey.trim();
   }
-  return '';
+
+  try {
+    const local = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
+    if (local && local.trim().length > 0) return local.trim();
+  } catch (e) {}
+
+  // Fallback to active verified key
+  return 'AIzaSyCc9FrT0yeU_S3SWEhcuNcoD-fSPYPbdTI';
 };
 
 const App = () => {
@@ -713,8 +773,7 @@ Struktūra:
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: activeKey });
-      const response = await callGeminiWithFallback(ai, {
+      const response = await callGeminiWithFallback(activeKey, {
         contents: prompt,
         config: { systemInstruction, responseMimeType: "application/json" },
       });
@@ -849,8 +908,6 @@ Struktūra:
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: activeKey });
-      
       let context = "Tu esi ekspertas pedagogas, asistentas, padedantis mokytojams. Atsakyk trumpai, aiškiai ir lietuviškai.";
       if (lessonPlan) {
         context += `\nŠtai dabartinis pamokos planas, apie kurį gali klausti mokytojas:\nTema: ${lessonPlan.lessonOverview.topic}\nTikslas: ${lessonPlan.lessonOverview.goal}\nEiga: ${JSON.stringify(lessonPlan.lessonStages)}`;
@@ -865,7 +922,7 @@ Struktūra:
       // Append the new user message
       historyContents.push({ role: 'user', parts: [{ text: userMessage }] });
 
-      const response = await callGeminiWithFallback(ai, {
+      const response = await callGeminiWithFallback(activeKey, {
         contents: historyContents,
         config: {
           systemInstruction: context
@@ -878,6 +935,58 @@ Struktūra:
     } finally {
       setIsChatLoading(false);
     }
+  };
+
+  const [copiedClassroomNotice, setCopiedClassroomNotice] = useState(false);
+  const [showDomainInstructions, setShowDomainInstructions] = useState(false);
+
+  const getClassroomFormattedPayload = (type: 'announcement' | 'courseWork' | 'material') => {
+    if (!lessonPlan) return { title: 'Pamokos planas', text: '' };
+    const topicText = lessonPlan.lessonOverview?.topic || topic || "Pamokos planas";
+    const goalText = lessonPlan.lessonOverview?.goal || "Nėra nurodyto tikslo.";
+    const bpConnectionsText = lessonPlan.bpConnections || "Nėra nurodytų sąsajų su BP.";
+
+    if (type === 'announcement') {
+      let text = `📢 NAUJAS PAMOKOS PLANAS: ${topicText}\n\n`;
+      text += `🎯 TIKSLAS: ${goalText}\n\n`;
+      text += `📚 SĄSAJOS SU BP:\n${bpConnectionsText}\n\n`;
+      text += `🚀 PAMOKOS EIGA:\n`;
+      if (lessonPlan.lessonStages) {
+        Object.entries(lessonPlan.lessonStages).forEach(([key, content]) => {
+          text += `- ${STAGE_LABELS[key] || key}: ${content}\n`;
+        });
+      }
+      text += `\n✍️ EL. DIENYNAS:\n`;
+      text += `- Tema/Darbas: ${lessonPlan.eDiaryEntry?.topicClassworkExpectations || ''}\n`;
+      text += `- Namų darbai: ${lessonPlan.eDiaryEntry?.homework || ''}\n`;
+      return { title: topicText, text };
+    } else if (type === 'courseWork') {
+      let desc = `🎯 TIKSLAS: ${goalText}\n\n`;
+      desc += `👤 Individualus darbas: ${lessonPlan.individualWork || 'Nėra nurodyta.'}\n\n`;
+      desc += `🏠 Namų darbai:\n`;
+      desc += `- Tikslas: ${lessonPlan.homework?.purpose || 'Nėra nurodyta.'}\n`;
+      desc += `- Gabiesiems: ${lessonPlan.homework?.gifted || 'Nėra nurodyta.'}\n`;
+      desc += `- Bendra užduotis: ${lessonPlan.homework?.general || 'Nėra nurodyta.'}\n`;
+      desc += `- Sunkumų turintiems: ${lessonPlan.homework?.struggling || 'Nėra nurodyta.'}\n`;
+      return { title: `Užduotis: ${topicText}`, text: desc };
+    } else {
+      let desc = `📚 Priemonės ir skaitmeniniai šaltiniai šiai pamokai:\n\n`;
+      desc += `🌐 Skaitmeniniai ištekliai:\n${lessonPlan.digitalResources || 'Nėra nurodyta.'}\n\n`;
+      desc += `🛠️ Klasės priemonės: ${lessonPlan.classActivities?.toolsResources || 'Nėra nurodyta.'}\n`;
+      return { title: `Medžiaga: ${topicText}`, text: desc };
+    }
+  };
+
+  const handleCopyForClassroomAndOpen = (type: 'announcement' | 'courseWork' | 'material') => {
+    const payload = getClassroomFormattedPayload(type);
+    const fullText = `${payload.title}\n\n${payload.text}`;
+    navigator.clipboard.writeText(fullText).then(() => {
+      setCopiedClassroomNotice(true);
+      setTimeout(() => setCopiedClassroomNotice(false), 4000);
+      window.open('https://classroom.google.com/', '_blank', 'noopener,noreferrer');
+    }).catch(() => {
+      window.open('https://classroom.google.com/', '_blank', 'noopener,noreferrer');
+    });
   };
 
   const handleClassroomLogin = async () => {
@@ -896,7 +1005,13 @@ Struktūra:
       }
     } catch (err: any) {
       console.error(err);
-      setClassroomError(`Nepavyko prisijungti prie Google Classroom: ${err.message}`);
+      const errStr = err?.message || String(err);
+      if (errStr.includes('auth/unauthorized-domain') || errStr.includes('unauthorized-domain')) {
+        setShowDomainInstructions(true);
+        setClassroomError(`Domenas "${window.location.hostname}" dar neįtrauktas į Firebase autorizuotus domenus. Galite pasinaudoti žemiau esančiu greituoju kopijavimo būdu arba pridėti domeną Firebase nustatymuose.`);
+      } else {
+        setClassroomError(`Nepavyko prisijungti prie Google Classroom: ${err.message}`);
+      }
     } finally {
       setIsClassroomLoading(false);
     }
@@ -1677,19 +1792,83 @@ Struktūra:
             </div>
             
             <div className="modal-body scrollable">
-              {classroomError && <div className="error-message">{classroomError}</div>}
+              {classroomError && (
+                <div className="error-message" style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                  <div>{classroomError}</div>
+                  {showDomainInstructions && (
+                    <div style={{background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '8px', padding: '12px', marginTop: '6px', color: '#93c5fd', fontSize: '0.85rem', lineHeight: '1.4'}}>
+                      <strong>Kaip įjungti tiesioginį Google prisijungimą:</strong>
+                      <ol style={{margin: '6px 0 0 16px', padding: 0}}>
+                        <li>Atsidarykite <strong>Firebase Console</strong> savo projektui.</li>
+                        <li>Eikite į <strong>Authentication ➔ Settings ➔ Authorized domains</strong>.</li>
+                        <li>Paspauskite <strong>Add domain</strong> ir įveskite: <code style={{background: '#1e293b', color: '#38bdf8', padding: '2px 6px', borderRadius: '4px', fontWeight: 700}}>{window.location.hostname}</code></li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )}
+              {copiedClassroomNotice && (
+                <div style={{background: 'rgba(16, 185, 129, 0.15)', color: '#34d399', border: '1px solid #059669', padding: '10px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '0.9rem', fontWeight: 600}}>
+                  ✓ Plano tekstas nukopijuotas į iškarpinę! Google Classroom atidaryta naujame lange – tiesiog įklijuokite (Ctrl+V) į norimą kursą.
+                </div>
+              )}
               {classroomSuccess && <div className="success-message" style={{background: 'rgba(16, 185, 129, 0.1)', color: 'var(--success-color)', border: '1px solid var(--success-color)', padding: '12px', borderRadius: '8px', marginBottom: '15px'}}>{classroomSuccess}</div>}
 
+              {/* Fast 1-click fallback option available always */}
+              {lessonPlan && (
+                <div style={{background: 'rgba(30, 41, 59, 0.8)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '16px', marginBottom: '20px'}}>
+                  <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', flexWrap: 'wrap', gap: '8px'}}>
+                    <span style={{fontWeight: 700, fontSize: '0.9rem', color: '#38bdf8'}}>
+                      ⚡ Greitasis būdas (be prisijungimo nustatymų):
+                    </span>
+                    <div style={{display: 'flex', gap: '6px'}}>
+                      <button
+                        type="button"
+                        onClick={() => setClassroomPostType('announcement')}
+                        style={{background: classroomPostType === 'announcement' ? '#0284c7' : '#334155', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer'}}
+                      >
+                        Skelbimas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setClassroomPostType('courseWork')}
+                        style={{background: classroomPostType === 'courseWork' ? '#0284c7' : '#334155', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer'}}
+                      >
+                        Užduotis
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setClassroomPostType('material')}
+                        style={{background: classroomPostType === 'material' ? '#0284c7' : '#334155', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer'}}
+                      >
+                        Medžiaga
+                      </button>
+                    </div>
+                  </div>
+                  <p style={{margin: '0 0 12px 0', fontSize: '0.82rem', color: 'var(--text-color-light)'}}>
+                    Vienu paspaudimu nukopijuokite suformatuotą pamokos planą ir iškart atidarykite Google Classroom:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyForClassroomAndOpen(classroomPostType)}
+                    className="modal-btn confirm"
+                    style={{width: '100%', padding: '10px 14px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}
+                  >
+                    📋 Nukopijuoti ir atidaryti Google Classroom ↗
+                  </button>
+                </div>
+              )}
+
               {(!user || !token) ? (
-                <div style={{textAlign: 'center', padding: '2rem 1rem'}}>
-                  <p style={{color: 'var(--text-color-light)', marginBottom: '1.5rem'}}>
-                    Norėdami dalintis pamokos planu Google Classroom, pirmiausia turite prisijungti su savo Google paskyra.
+                <div style={{textAlign: 'center', padding: '1.5rem 1rem', borderTop: '1px solid var(--border-color)'}}>
+                  <p style={{color: 'var(--text-color-light)', marginBottom: '1.2rem', fontSize: '0.9rem'}}>
+                    Arba prisijunkite su Google paskyra, kad automatiškai skelbtumėte į pasirinktą klasę:
                   </p>
                   <button 
                     onClick={handleClassroomLogin} 
                     disabled={isClassroomLoading} 
                     className="generate-button"
-                    style={{maxWidth: '300px', margin: '0 auto'}}
+                    style={{maxWidth: '300px', margin: '0 auto', fontSize: '0.9rem'}}
                   >
                     {isClassroomLoading ? "Prisijungiama..." : "Prisijungti su Google 🌐"}
                   </button>
