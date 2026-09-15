@@ -384,8 +384,7 @@ const getStoredApiKey = (): string => {
     if (local && local.trim().length > 0) return local.trim();
   } catch (e) {}
 
-  // Fallback to active verified key
-  return 'AIzaSyCc9FrT0yeU_S3SWEhcuNcoD-fSPYPbdTI';
+  return '';
 };
 
 const App = () => {
