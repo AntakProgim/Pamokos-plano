@@ -59,6 +59,17 @@ interface LessonPlan {
     general: string;
     struggling: string;
   };
+  differentiatedTasks?: {
+    advanced: string;
+    average: string;
+    struggling: string;
+  };
+  differentiatedAssessment?: {
+    advanced: string;
+    average: string;
+    struggling: string;
+  };
+  targetLevels?: string[];
   homework: {
     purpose: string;
     gifted: string;
@@ -182,6 +193,30 @@ const STAGE_LABELS: Record<string, string> = {
   summary: 'Apibendrinimas. Pabaiga'
 };
 
+const STUDENT_LEVEL_OPTIONS = [
+  {
+    id: 'pažengę',
+    label: 'Pažengę (Gabūs) 🌟',
+    badge: 'Aukštesnysis lygis',
+    bloom: 'Kūrimas, vertinimas, analizė',
+    desc: 'Nestandartinės probleminės situacijos, atviri tyrimo iššūkiai, ekspertinis bendradarbiavimas.'
+  },
+  {
+    id: 'vidutiniai',
+    label: 'Vidutiniai mokiniai ✅',
+    badge: 'Pagrindinis lygis',
+    bloom: 'Supratimas, taikymas, analizė',
+    desc: 'Standartiniai BP pratimai, kontekstinis taikymas, darbas porose, savikontrolė su etalonu.'
+  },
+  {
+    id: 'turintys sunkumų',
+    label: 'Turintys sunkumų (SUP) 🛡️',
+    badge: 'Slenkstinis lygis',
+    bloom: 'Žinojimas, atpažinimas, pradinis taikymas',
+    desc: 'Struktūruotos bazinės užduotys, atraminė medžiaga, žingsnis po žingsnio su pagalba.'
+  }
+];
+
 const EXAMPLE_PLAN_DATA: LessonPlan = {
   generalNotes: "Pamoka orientuota į kritinį mąstymą ir medijų raštingumą.",
   lessonType: "Įtvirtinimo",
@@ -219,6 +254,17 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
     general: "Atpažinti ir įvardinti tiesiogines įtaigos priemones (epitetus, palyginimus).",
     struggling: "Naudotis pateiktu pagalbinu frazių žodynėliu. Atlikti tik vieną analizės dalį (tik apie spalvas arba tik apie tekstą)."
   },
+  differentiatedTasks: {
+    advanced: "• Gilinamasis iššūkis (Bloom. Kūrimas ir sintezė). Sukurti ironišką antireklamą arba atlikti mini tyrimą apie socialinių tinklų reklaminius algoritmus ir manipuliacinius mechanizmus.\n• Kūrybinė veikla. Suformuluoti 3 probleminius klausimus bendraklasiams apie paslėptą įtaigą reklamoje.\n• Eksperto vaidmuo. Atlikti kitų mokinių sukurtų reklaminių tekstų recenziją (Peer Review).",
+    average: "• Standartinis pritaikymas (Bloom. Supratimas ir taikymas). Išanalizuoti pateiktus reklaminius skelbimus, atpažinti bent 3 kalbinės įtaigos priemones ir perrašyti neutralų tekstą į įtaigų reklaminį tekstą.\n• Darbas poroje. Metodu „Pagalvok – Pasitark – Pasidalink“ sukurti 50 žodžių reklaminį tekstą pasirinktai prekei.\n• Savikontrolė. Pasitikrinti pagal pateiktą vertinimo rubriką.",
+    struggling: "• Struktūruota bazinė užduotis (Bloom. Žinojimas ir atpažinimas). Atlikti 2 bazines užduotis pagal pateiktą pavyzdinį šabloną su atraminiais žodžiais.\n• Atraminės priemonės. Naudotis įtaigos priemonių atmintine ir pavyzdžių kortele.\n• Pagalba. Darbas tandeme su bendraklasiu arba mokytojo konsultacija."
+  },
+  differentiatedAssessment: {
+    advanced: "• Vertinimo metodas. Kriterinis vertinimas pagal aukštesniojo lygio pasiekimų deskriptorius (kritinis mąstymas, analizės gilumas, originalumas).\n• Įsivertinimas. Savirefleksijos klausimas „Kokias manipuliacijas atpažinau ir kaip tai keičia mano požiūrį į medijų turinį?“.\n• Grįžtamasis ryšys. Mokytojo skatinamasis komentaras tolimesniam savarankiškam tyrimui.",
+    average: "• Vertinimo metodas. Formuojamasis vertinimas pagal sėkmės kriterijus („Aš gebu atpažinti bent dvi įtaigos priemones“).\n• Įsivertinimas. Šviesoforo metodas ir trumpas pasitikrinimas poroje.\n• Grįžtamasis ryšys. Konkretūs patarimai, kaip sustiprinti teksto įtaigumą.",
+    struggling: "• Vertinimo metodas. Padrąsinamasis vertinimas už pastangas ir bazinių terminų supratimą be streso dėl klaidų.\n• Įsivertinimas. Kontrolinis sąrašas (Checklist). 3 trumpi punktai apie atliktus žingsnius.\n• Grįžtamasis ryšys. Momentinis palaikymas žodžiu už kiekvieną atliktą dalį."
+  },
+  targetLevels: ['pažengę', 'vidutiniai', 'turintys sunkumų'],
   digitalResources: "Eduka klasė (skaitmeninis vadovėlis), Youtube kanalas 'Mokslo sriuba' (video apie psichologiją), Canva (plakatų kūrimui), Mentimeter (apklausoms).",
   homework: {
     purpose: "Įtvirtinti žinias stebint realią aplinką.",
@@ -414,6 +460,18 @@ const App = () => {
   const [evaluationCriteria, setEvaluationCriteria] = useState('');
   const [selectedEvaluations, setSelectedEvaluations] = useState<string[]>([]);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
+  const [selectedStudentLevels, setSelectedStudentLevels] = useState<string[]>(['pažengę', 'vidutiniai', 'turintys sunkumų']);
+
+  const handleStudentLevelToggle = (levelId: string) => {
+    setSelectedStudentLevels(prev => {
+      if (prev.includes(levelId)) {
+        if (prev.length === 1) return prev; // Visada paliekame bent vieną lygį
+        return prev.filter(l => l !== levelId);
+      } else {
+        return [...prev, levelId];
+      }
+    });
+  };
   
   const [isIntegratedInput, setIsIntegratedInput] = useState(false);
   const [integrationDetails, setIntegrationDetails] = useState('');
@@ -527,6 +585,9 @@ const App = () => {
         if (draft.evaluationCriteria !== undefined) setEvaluationCriteria(draft.evaluationCriteria);
         if (draft.selectedEvaluations !== undefined) setSelectedEvaluations(draft.selectedEvaluations);
         if (draft.selectedResources !== undefined) setSelectedResources(draft.selectedResources);
+        if (draft.selectedStudentLevels !== undefined && Array.isArray(draft.selectedStudentLevels) && draft.selectedStudentLevels.length > 0) {
+          setSelectedStudentLevels(draft.selectedStudentLevels);
+        }
         if (draft.isIntegratedInput !== undefined) setIsIntegratedInput(draft.isIntegratedInput);
         if (draft.integrationDetails !== undefined) setIntegrationDetails(draft.integrationDetails);
         if (draft.isOutsideInput !== undefined) setIsOutsideInput(draft.isOutsideInput);
@@ -560,6 +621,7 @@ const App = () => {
           evaluationCriteria,
           selectedEvaluations,
           selectedResources,
+          selectedStudentLevels,
           isIntegratedInput,
           integrationDetails,
           isOutsideInput,
@@ -590,6 +652,7 @@ const App = () => {
     evaluationCriteria,
     selectedEvaluations,
     selectedResources,
+    selectedStudentLevels,
     isIntegratedInput,
     integrationDetails,
     isOutsideInput,
@@ -661,6 +724,7 @@ const App = () => {
     setTopic(EXAMPLE_PLAN_DATA.lessonOverview.topic);
     setLessonType(EXAMPLE_PLAN_DATA.lessonType || 'Įtvirtinimo');
     setGoal(EXAMPLE_PLAN_DATA.lessonOverview.goal);
+    setSelectedStudentLevels(['pažengę', 'vidutiniai', 'turintys sunkumų']);
     setSelectedEvaluations(EXAMPLE_PLAN_DATA.lessonOverview.evaluation.methods);
     setEvaluationCriteria(EXAMPLE_PLAN_DATA.lessonOverview.evaluation.criteria);
     setLessonPlan(EXAMPLE_PLAN_DATA);
@@ -695,6 +759,8 @@ Struktūra:
   "individualWork": "...", 
   "lessonStages": { "introduction": "...", "theory": "...", "practice": "...", "consolidation": "...", "summary": "..." },
   "differentiation": { "gifted": "...", "general": "...", "struggling": "..." },
+  "differentiatedTasks": { "advanced": "...", "average": "...", "struggling": "..." },
+  "differentiatedAssessment": { "advanced": "...", "average": "...", "struggling": "..." },
   "digitalResources": "...",
   "homework": { "purpose": "...", "gifted": "...", "general": "...", "struggling": "..." },
   "eDiaryEntry": { "topicClassworkExpectations": "...", "homework": "...", "individualHomework": "...", "notes": "...", "isIntegrated": false, "isOutside": false, "eDiaryLessonType": "..." },
@@ -752,7 +818,8 @@ Struktūra:
         isOutsideInput,
         outsideLocation,
         outsideGoal,
-        stageDurations
+        stageDurations,
+        selectedStudentLevels
       });
 
       const sanitizedPlan: LessonPlan = {
@@ -796,6 +863,7 @@ Struktūra:
       Sukurk išsamų ir struktūrizuotą pamokos planą.
       - Dalykas. ${subject}, Klasė. ${grade}, Tema. ${topic}
       - Tipas. ${lessonType}, Tikslas. ${goal}, Veiklos. ${activities}
+      - Mokinių pasiekimų lygiai klasėje. ${selectedStudentLevels.join(', ')}
       - Naudojamos priemonės. ${selectedResources.join(', ')}
       - Vertinimo metodai. ${selectedEvaluations.join(', ')}
       - Vertinimo kriterijai. ${evaluationCriteria}
@@ -805,10 +873,11 @@ Struktūra:
       GRIEŽTAI. 
       1. Būtinai remkis oficialiomis Lietuvos Bendrosiomis programomis (BP) iš https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos.
       2. Pateik labai konkrečias diferencijavimo strategijas trims mokinių grupėms (Gabūs, Vidutiniai, Sunkumų turintys). 
-      3. NENAUDOK DVITAŠKIŲ TEKSTUOSE.
-      4. Būtinai užpildyk 'classActivities' objektą pasiūlydamas IŠSAMIAS veiklas individualiai, porose ir grupėse. Kiekviena veikla turi turėti aiškų VEIKLOS BŪDĄ ir nurodytus įrankius.
-      5. Pasiūlyk 'individualWork' (individualų darbą) atskirai bei 'digitalResources' (skaitmeninius išteklius - nuorodas, programėles) geriausiai tinkančius šiai temai.
-      6. El. dienyne (eDiaryEntry) NERAŠYK "Tema." ir "Namų darbas." žodžių, pateik tik turinį.
+      3. Sugeneruok konkrečias diferencijuotas užduotis ('differentiatedTasks') ir vertinimo būdus ('differentiatedAssessment') kiekvienai pasirinktai mokinių grupei (advanced, average, struggling) pagal Bloom taksonomiją.
+      4. NENAUDOK DVITAŠKIŲ TEKSTUOSE.
+      5. Būtinai užpildyk 'classActivities' objektą pasiūlydamas IŠSAMIAS veiklas individualiai, porose ir grupėse. Kiekviena veikla turi turėti aiškų VEIKLOS BŪDĄ ir nurodytus įrankius.
+      6. Pasiūlyk 'individualWork' (individualų darbą) atskirai bei 'digitalResources' (skaitmeninius išteklius - nuorodas, programėles) geriausiai tinkančius šiai temai.
+      7. El. dienyne (eDiaryEntry) NERAŠYK "Tema." ir "Namų darbas." žodžių, pateik tik turinį.
     `;
 
     try {
@@ -820,8 +889,30 @@ Struktūra:
       const parsedPlan = tryParseJSON(response.text || '');
       if (!parsedPlan) throw new Error("Nepavyko sugeneruoti plano formatu. Bandykite iš naujo.");
 
+      const fallbackPedagogical = buildPedagogicalPlan({
+        subject,
+        grade,
+        topic,
+        lessonType,
+        goal,
+        activities,
+        selectedResources,
+        selectedEvaluations,
+        evaluationCriteria,
+        isIntegratedInput,
+        integrationDetails,
+        isOutsideInput,
+        outsideLocation,
+        outsideGoal,
+        stageDurations,
+        selectedStudentLevels
+      });
+
       const sanitizedPlan: LessonPlan = {
         ...parsedPlan,
+        targetLevels: selectedStudentLevels,
+        differentiatedTasks: parsedPlan.differentiatedTasks || fallbackPedagogical.differentiatedTasks,
+        differentiatedAssessment: parsedPlan.differentiatedAssessment || fallbackPedagogical.differentiatedAssessment,
         lessonOverview: parsedPlan.lessonOverview || { topic: topic || '', goal: goal || '', competencies: '', evaluation: { methods: [], criteria: '' } },
         lessonStages: parsedPlan.lessonStages || { introduction: '', theory: '', practice: '', consolidation: '', summary: '' },
         differentiation: parsedPlan.differentiation || { gifted: '', general: '', struggling: '' },
@@ -1010,6 +1101,9 @@ Struktūra:
 
             <div className="tool-links">
               <h3>🛠️ Įrankiai</h3>
+              <a href="https://www.manodienynas.lt" target="_blank" rel="noopener noreferrer" className="tool-button" style={{background: 'rgba(234, 88, 12, 0.18)', color: '#fb923c', border: '1px solid rgba(234, 88, 12, 0.4)', fontWeight: 600}}>
+                📖 Mano Dienynas ↗
+              </a>
               <a href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" className="tool-button classroom">Classroom</a>
               <a href="https://miro.com" target="_blank" rel="noopener noreferrer" className="tool-button miro">Miro</a>
               <a href="https://canva.com" target="_blank" rel="noopener noreferrer" className="tool-button canva">Canva</a>
@@ -1145,13 +1239,80 @@ Struktūra:
               <textarea value={goal} onChange={e => setGoal(e.target.value)} placeholder="pvz., atpažinti..." rows={3} />
             </div>
 
-            <div className="differentiation-guide">
-              <h4>💡 Diferencijavimo gidas</h4>
-              <ul>
-                <li><strong>Gabūs.</strong> Analizė, kūryba, sintezė.</li>
-                <li><strong>Vidutiniai.</strong> Suvokimas, taikymas pagal pavyzdį.</li>
-                <li><strong>Sunkumų turintys.</strong> Vizualizacija, skaidymas, parama.</li>
-              </ul>
+            {/* Mokinių lygio pasirinkimas ir diferencijavimo nustatymai */}
+            <div className="student-levels-container">
+              <div className="student-levels-header">
+                <div>
+                  <h4 style={{margin: 0, display: 'flex', alignItems: 'center', gap: '8px'}}>
+                    <span>👥 Mokinių pasiekimų lygiai klasėje</span>
+                    <span style={{fontSize: '0.75rem', fontWeight: 'normal', color: 'var(--text-color-light)', background: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: '4px'}}>
+                      Pasirinkti lygiai. {selectedStudentLevels.length} iš 3
+                    </span>
+                  </h4>
+                  <p style={{margin: '4px 0 0 0', fontSize: '0.78rem', color: 'var(--text-color-light)'}}>
+                    Pasirinkite, kokioms mokinių grupėms sugeneruoti konkrečias diferencijuotas užduotis ir vertinimo būdus pagal atnaujintas BP.
+                  </p>
+                </div>
+              </div>
+
+              {/* Greitieji pasirinkimai */}
+              <div className="level-presets-bar">
+                <button
+                  type="button"
+                  className="level-preset-btn"
+                  onClick={() => setSelectedStudentLevels(['pažengę', 'vidutiniai', 'turintys sunkumų'])}
+                >
+                  ⚡ Visi lygiai (Heterogeninė klasė)
+                </button>
+                <button
+                  type="button"
+                  className="level-preset-btn"
+                  onClick={() => setSelectedStudentLevels(['vidutiniai', 'turintys sunkumų'])}
+                >
+                  🎯 Standartinis + Pagalba (SUP)
+                </button>
+                <button
+                  type="button"
+                  className="level-preset-btn"
+                  onClick={() => setSelectedStudentLevels(['pažengę', 'vidutiniai'])}
+                >
+                  🌟 Pažengę + Vidutiniai
+                </button>
+              </div>
+
+              {/* Kortelės kiekvienam lygiui */}
+              <div className="student-levels-grid">
+                {STUDENT_LEVEL_OPTIONS.map(opt => {
+                  const isChecked = selectedStudentLevels.includes(opt.id);
+                  const levelClass = opt.id === 'pažengę' ? 'advanced' : opt.id === 'vidutiniai' ? 'average' : 'struggling';
+                  return (
+                    <div
+                      key={opt.id}
+                      className={`student-level-card ${levelClass} ${isChecked ? 'selected' : ''}`}
+                      onClick={() => handleStudentLevelToggle(opt.id)}
+                    >
+                      <div className="level-checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleStudentLevelToggle(opt.id)}
+                          onClick={e => e.stopPropagation()}
+                        />
+                        <div style={{display: 'flex', flexDirection: 'column', gap: '2px'}}>
+                          <span className="level-title">{opt.label}</span>
+                          <span className={`level-badge ${levelClass}`}>{opt.badge}</span>
+                        </div>
+                      </div>
+                      <div className="level-bloom-tag">
+                        Bloom. {opt.bloom}
+                      </div>
+                      <div className="level-desc">
+                        {opt.desc}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="form-group">
@@ -1228,33 +1389,14 @@ Struktūra:
               )}
             </div>
 
-            <div style={{display: 'flex', gap: '10px', marginTop: '1rem', flexWrap: 'wrap'}}>
+            <div style={{marginTop: '1.25rem'}}>
               <button 
                 type="submit" 
                 disabled={isLoading} 
                 className="generate-button"
-                style={{flex: '1', minWidth: '160px'}}
+                style={{width: '100%', padding: '14px', fontSize: '1rem', fontWeight: 700}}
               >
-                {isLoading ? "Rengiama..." : "Generuoti planą 🚀"}
-              </button>
-              <button 
-                type="button" 
-                onClick={handleGenerateFromTemplate}
-                disabled={isLoading} 
-                className="modal-btn confirm"
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  background: 'rgba(59, 130, 246, 0.2)',
-                  color: '#93c5fd',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.9rem'
-                }}
-                title="Generuoti pagal paruoštą pedagoginį šabloną (veikia iškart be jokių DI ar raktų)"
-              >
-                📋 Šabloninis planas (be raktų)
+                {isLoading ? "Rengiamas išsamus planas..." : "Sukurti pamokos planą 🚀"}
               </button>
             </div>
           </form>
@@ -1280,7 +1422,7 @@ Struktūra:
           {isLoading && (
             <div className="loading-overlay">
               <div className="spinner-large"></div>
-              <p>DI kuria jūsų pamokos planą...</p>
+              <p>Rengiamas išsamus pamokos planas...</p>
             </div>
           )}
           {error && (
@@ -1292,9 +1434,9 @@ Struktūra:
           {!isLoading && !lessonPlan && (
             <div className="welcome-message">
               <h2>Sveiki! 👋</h2>
-              <p>Užpildykite duomenis kairėje ir spauskite <strong>„Generuoti planą 🚀“</strong> arba <strong>„📋 Šabloninis planas (be raktų)“</strong>.</p>
-              <p style={{marginTop: '15px', opacity: 0.85, fontSize: '0.9rem', lineHeight: '1.5'}}>
-                ✓ <strong>100% veikia be jokių API raktų:</strong> sistema automatiškai suformuoja pilnavertį pamokos planą pagal atnaujintą Lietuvos Bendrųjų programų (BP) struktūrą, sugeneruoja laiko etapus, diferencijavimą trims lygiams ir paruošia įrašą el. dienynui (TAMO/Eduka/Mano Dienynas).
+              <p>Kairėje pasirinkite dalyką, klasę, įrašykite pamokos temą ir paspauskite <strong>„Sukurti pamokos planą 🚀“</strong>.</p>
+              <p style={{marginTop: '15px', opacity: 0.9, fontSize: '0.92rem', lineHeight: '1.6'}}>
+                ✓ Programa akimirksniu parengs <strong>išsamų, praktišką pamokos planą su konkrečiomis veiklomis</strong>, dideliu metodų pasirinkimu, diferencijuotomis užduotimis (Gabūs, Vidutiniai, Sunkumų patiriantys) bei paruoštais įrašais sistemai <strong>„Mano dienynas“</strong> (nukopijuosite vienu paspaudimu).
               </p>
             </div>
           )}
@@ -1484,8 +1626,99 @@ Struktūra:
                 <p style={{whiteSpace: 'pre-wrap'}}>{lessonPlan.digitalResources}</p>
               </div>
 
+              {/* 🎯 Diferencijuotos užduotys pagal mokinių lygius */}
+              <div className="card results-diff-section" style={{borderLeftColor: '#38bdf8'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px'}}>
+                  <h3 style={{margin: 0}}>🎯 Diferencijuotos užduotys pagal mokinių lygius</h3>
+                  <span style={{fontSize: '0.75rem', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.12)', padding: '3px 8px', borderRadius: '6px'}}>
+                    Atnaujintos BP pasiekimų lygiai ir Bloom taksonomija
+                  </span>
+                </div>
+                <p style={{fontSize: '0.82rem', color: 'var(--text-color-light)', marginTop: 0, marginBottom: '14px'}}>
+                  Kiekvienai mokinių grupei paruoštos konkrečios veiklos, atitinkančios jų pasiekimų lygį, mąstymo gylį bei individualius poreikius.
+                </p>
+                <div className="diff-grid">
+                  <div className={`diff-item gifted ${selectedStudentLevels.includes('pažengę') ? 'highlight-active' : ''}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                      <span className="diff-header" style={{color: '#38bdf8', margin: 0}}>Pažengę (Gabūs) 🌟</span>
+                      <span className="level-badge advanced">Aukštesnysis lygis</span>
+                    </div>
+                    <span className="level-bloom-tag">Bloom. Kūrimas, analizė ir sintezė</span>
+                    <p className="diff-text" style={{whiteSpace: 'pre-line', marginTop: '6px'}}>
+                      {lessonPlan.differentiatedTasks?.advanced || lessonPlan.differentiation?.gifted}
+                    </p>
+                  </div>
+
+                  <div className={`diff-item average ${selectedStudentLevels.includes('vidutiniai') ? 'highlight-active' : ''}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                      <span className="diff-header" style={{color: '#60a5fa', margin: 0}}>Vidutiniai mokiniai ✅</span>
+                      <span className="level-badge average">Pagrindinis lygis</span>
+                    </div>
+                    <span className="level-bloom-tag">Bloom. Supratimas ir taikymas</span>
+                    <p className="diff-text" style={{whiteSpace: 'pre-line', marginTop: '6px'}}>
+                      {lessonPlan.differentiatedTasks?.average || lessonPlan.differentiation?.general}
+                    </p>
+                  </div>
+
+                  <div className={`diff-item struggling ${selectedStudentLevels.includes('turintys sunkumų') ? 'highlight-active' : ''}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                      <span className="diff-header" style={{color: '#f87171', margin: 0}}>Mokiniai su sunkumais (SUP) 🛡️</span>
+                      <span className="level-badge struggling">Slenkstinis lygis</span>
+                    </div>
+                    <span className="level-bloom-tag">Bloom. Žinojimas ir bazinis taikymas</span>
+                    <p className="diff-text" style={{whiteSpace: 'pre-line', marginTop: '6px'}}>
+                      {lessonPlan.differentiatedTasks?.struggling || lessonPlan.differentiation?.struggling}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 📊 Diferencijuoti vertinimo ir įsivertinimo būdai */}
+              <div className="card" style={{borderLeftColor: '#a855f7'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '6px'}}>
+                  <h3 style={{margin: 0}}>📊 Diferencijuoti vertinimo ir įsivertinimo būdai</h3>
+                  <span style={{fontSize: '0.75rem', color: '#c084fc', background: 'rgba(168, 85, 247, 0.12)', padding: '3px 8px', borderRadius: '6px'}}>
+                    Kriterinis ir formuojamasis vertinimas
+                  </span>
+                </div>
+                <p style={{fontSize: '0.82rem', color: 'var(--text-color-light)', marginTop: 0, marginBottom: '14px'}}>
+                  Tiksliniai vertinimo metodai, įsivertinimo klausimai bei grįžtamojo ryšio strategijos kiekvienai mokinių grupei.
+                </p>
+                <div className="diff-grid">
+                  <div className={`diff-item gifted ${selectedStudentLevels.includes('pažengę') ? 'highlight-active' : ''}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                      <span className="diff-header" style={{color: '#38bdf8', margin: 0}}>Pažengusiųjų vertinimas 🌟</span>
+                      <span className="level-badge advanced">Aukštesnysis lygis</span>
+                    </div>
+                    <p className="diff-text" style={{whiteSpace: 'pre-line', marginTop: '6px'}}>
+                      {lessonPlan.differentiatedAssessment?.advanced || "• Kriterinis vertinimas pagal aukštesniojo lygio deskriptorius.\n• Savirefleksija apie platesnį pritaikymą.\n• Tarpusavio vertinimas (Peer Review)."}
+                    </p>
+                  </div>
+
+                  <div className={`diff-item average ${selectedStudentLevels.includes('vidutiniai') ? 'highlight-active' : ''}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                      <span className="diff-header" style={{color: '#60a5fa', margin: 0}}>Vidutinių mokinių vertinimas ✅</span>
+                      <span className="level-badge average">Pagrindinis lygis</span>
+                    </div>
+                    <p className="diff-text" style={{whiteSpace: 'pre-line', marginTop: '6px'}}>
+                      {lessonPlan.differentiatedAssessment?.average || "• Formuojamasis vertinimas pagal sėkmės kriterijus („Aš gebu...“).\n• Šviesoforo metodas ir greita mini viktorina.\n• Pasitikrinimas porose su etalonu."}
+                    </p>
+                  </div>
+
+                  <div className={`diff-item struggling ${selectedStudentLevels.includes('turintys sunkumų') ? 'highlight-active' : ''}`}>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
+                      <span className="diff-header" style={{color: '#f87171', margin: 0}}>Turinčių sunkumų vertinimas 🛡️</span>
+                      <span className="level-badge struggling">Slenkstinis lygis</span>
+                    </div>
+                    <p className="diff-text" style={{whiteSpace: 'pre-line', marginTop: '6px'}}>
+                      {lessonPlan.differentiatedAssessment?.struggling || "• Padrąsinamasis vertinimas už individualią pažangą ir pastangas.\n• Žingsninis kontrolinis sąrašas (Checklist).\n• Momentinis palaikymas žodžiu be baimės klysti."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="card results-diff-section">
-                <h3>📝 Diferencijavimas ir individualizavimas</h3>
+                <h3>📝 Bendrosios diferencijavimo ir pagalbos strategijos</h3>
                 <div className="diff-grid">
                   <div className="diff-item gifted">
                     <span className="diff-header">Gabūs mokiniai 🌟</span>
@@ -1502,14 +1735,44 @@ Struktūra:
                 </div>
               </div>
 
-              <div className="card">
-                <h3>✍️ El. dienyno įrašai</h3>
-                {['topicClassworkExpectations', 'homework', 'notes'].map(key => (
+              <div className="card" style={{borderLeftColor: '#f97316'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px'}}>
+                  <h3 style={{margin: 0}}>📖 „Mano dienynas“ įrašai (paruošta nukopijavimui)</h3>
+                  <a 
+                    href="https://www.manodienynas.lt" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="mini-link"
+                    style={{color: '#fb923c', textDecoration: 'none', border: '1px solid rgba(251, 146, 60, 0.4)', padding: '4px 8px', borderRadius: '6px'}}
+                  >
+                    Atverti Mano Dienyną ↗
+                  </a>
+                </div>
+                <p style={{fontSize: '0.82rem', color: 'var(--text-color-light)', marginBottom: '14px', marginTop: 0}}>
+                  Šie laukai suformatuoti pagal „Mano dienynas“ reikalavimus (tema be perteklinių žodžių, aiški klasės veikla, namų darbai ir pastabos). Spustelėkite „Kopijuoti“ prie reikiamo laukelio.
+                </p>
+                {[
+                  { key: 'topicClassworkExpectations', label: 'Pamokos tema ir klasės darbas', hint: 'Įklijuokite į „Tema / Klasės darbas“ lauką' },
+                  { key: 'homework', label: 'Namų darbai', hint: 'Įklijuokite į „Namų darbai“ lauką' },
+                  { key: 'notes', label: 'Pamokos pastaba / Vertinimas', hint: 'Įklijuokite į „Pastaba / Refleksija“ lauką' }
+                ].map(({ key, label, hint }) => (
                   <div key={key} className="diary-field-wrapper">
-                    <label className="diary-label">{key === 'topicClassworkExpectations' ? 'Tema ir darbas' : key === 'homework' ? 'Namų darbai' : 'Pastabos'}</label>
+                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+                      <label className="diary-label" style={{margin: 0, color: '#fb923c'}}>{label}</label>
+                      <span style={{fontSize: '0.75rem', color: 'var(--text-color-light)', opacity: 0.7}}>{hint}</span>
+                    </div>
                     <div className="diary-field">
                       <span className="diary-text">{lessonPlan.eDiaryEntry ? (lessonPlan.eDiaryEntry as any)[key] : ''}</span>
-                      <button onClick={() => lessonPlan.eDiaryEntry && handleCopy((lessonPlan.eDiaryEntry as any)[key], key)} className="copy-button">Kopijuoti</button>
+                      <button 
+                        onClick={() => lessonPlan.eDiaryEntry && handleCopy((lessonPlan.eDiaryEntry as any)[key], key)} 
+                        className="copy-button"
+                        style={{
+                          background: copiedField === key ? 'var(--success-color)' : '#ea580c',
+                          minWidth: '90px'
+                        }}
+                      >
+                        {copiedField === key ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -1611,7 +1874,59 @@ Struktūra:
                 <textarea value={editedPlan.homework?.general || ''} onChange={e => updateEditedField('homework.general', e.target.value)} rows={1} />
               </div>
 
-              <div className="edit-divider">Diferencijavimas</div>
+              <div className="edit-divider">🎯 Diferencijuotos užduotys pagal lygius</div>
+              <div className="edit-group">
+                <label>Užduotys pažengusiems (Aukštesnysis lygis)</label>
+                <textarea 
+                  value={editedPlan.differentiatedTasks?.advanced || ''} 
+                  onChange={e => updateEditedField('differentiatedTasks.advanced', e.target.value)} 
+                  rows={2} 
+                />
+              </div>
+              <div className="edit-group">
+                <label>Užduotys vidutiniams (Pagrindinis lygis)</label>
+                <textarea 
+                  value={editedPlan.differentiatedTasks?.average || ''} 
+                  onChange={e => updateEditedField('differentiatedTasks.average', e.target.value)} 
+                  rows={2} 
+                />
+              </div>
+              <div className="edit-group">
+                <label>Užduotys turintiems sunkumų (Slenkstinis lygis)</label>
+                <textarea 
+                  value={editedPlan.differentiatedTasks?.struggling || ''} 
+                  onChange={e => updateEditedField('differentiatedTasks.struggling', e.target.value)} 
+                  rows={2} 
+                />
+              </div>
+
+              <div className="edit-divider">📊 Diferencijuotas vertinimas</div>
+              <div className="edit-group">
+                <label>Vertinimas pažengusiems</label>
+                <textarea 
+                  value={editedPlan.differentiatedAssessment?.advanced || ''} 
+                  onChange={e => updateEditedField('differentiatedAssessment.advanced', e.target.value)} 
+                  rows={2} 
+                />
+              </div>
+              <div className="edit-group">
+                <label>Vertinimas vidutiniams</label>
+                <textarea 
+                  value={editedPlan.differentiatedAssessment?.average || ''} 
+                  onChange={e => updateEditedField('differentiatedAssessment.average', e.target.value)} 
+                  rows={2} 
+                />
+              </div>
+              <div className="edit-group">
+                <label>Vertinimas turintiems sunkumų</label>
+                <textarea 
+                  value={editedPlan.differentiatedAssessment?.struggling || ''} 
+                  onChange={e => updateEditedField('differentiatedAssessment.struggling', e.target.value)} 
+                  rows={2} 
+                />
+              </div>
+
+              <div className="edit-divider">Bendrasis diferencijavimas</div>
               <div className="edit-group">
                 <label>Gabūs mokiniai</label>
                 <textarea value={editedPlan.differentiation.gifted} onChange={e => updateEditedField('differentiation.gifted', e.target.value)} rows={2} />
@@ -1625,17 +1940,17 @@ Struktūra:
                 <textarea value={editedPlan.differentiation.struggling} onChange={e => updateEditedField('differentiation.struggling', e.target.value)} rows={2} />
               </div>
 
-              <div className="edit-divider">El. dienynas</div>
+              <div className="edit-divider">📖 „Mano dienynas“ įrašai</div>
               <div className="edit-group">
-                <label>Tema ir darbas</label>
+                <label>Pamokos tema ir klasės darbas</label>
                 <textarea value={editedPlan.eDiaryEntry.topicClassworkExpectations} onChange={e => updateEditedField('eDiaryEntry.topicClassworkExpectations', e.target.value)} rows={2} />
               </div>
               <div className="edit-group">
-                <label>Namų darbai (įrašas)</label>
+                <label>Namų darbai</label>
                 <textarea value={editedPlan.eDiaryEntry.homework} onChange={e => updateEditedField('eDiaryEntry.homework', e.target.value)} rows={1} />
               </div>
                <div className="edit-group">
-                <label>Pastabos</label>
+                <label>Pamokos pastabos / Vertinimas</label>
                 <textarea value={editedPlan.eDiaryEntry.notes} onChange={e => updateEditedField('eDiaryEntry.notes', e.target.value)} rows={2} />
               </div>
               

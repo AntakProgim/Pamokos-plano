@@ -285,6 +285,132 @@ body {
   color: var(--text-color-light);
 }
 
+/* Student Levels Selector Styles */
+.student-levels-container {
+  background: #0f172a;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 1.2rem;
+}
+
+.level-presets-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.level-preset-chip {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  color: var(--text-color-light);
+  padding: 5px 9px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.level-preset-chip:hover {
+  background: #334155;
+  color: white;
+}
+
+.level-preset-chip.active {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--primary-color);
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.student-level-card {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.student-level-card:last-child {
+  margin-bottom: 0;
+}
+
+.student-level-card:hover {
+  border-color: #475569;
+  background: #243047;
+}
+
+.student-level-card.selected {
+  border-color: var(--primary-color);
+  background: rgba(30, 41, 59, 0.95);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+.student-level-card.selected.level-gifted {
+  border-left: 4px solid var(--info-color);
+}
+
+.student-level-card.selected.level-average {
+  border-left: 4px solid var(--primary-color);
+}
+
+.student-level-card.selected.level-struggling {
+  border-left: 4px solid var(--error-color);
+}
+
+.level-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.level-badge {
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.level-badge.advanced {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.level-badge.average {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.level-badge.struggling {
+  background: rgba(248, 113, 113, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.level-bloom-tag {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  font-style: italic;
+}
+
+.level-card-desc {
+  font-size: 0.78rem;
+  color: var(--text-color);
+  margin: 0;
+  line-height: 1.35;
+  opacity: 0.85;
+}
+
 /* Modals */
 .modal-overlay {
   position: fixed;
