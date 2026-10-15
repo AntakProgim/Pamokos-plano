@@ -39,6 +39,7 @@ export interface GenerateTemplateParams {
   lessonType: string;
   goal?: string;
   activities?: string;
+  homeworkPurpose?: string;
   selectedResources?: string[];
   selectedEvaluations?: string[];
   evaluationCriteria?: string;
@@ -59,6 +60,7 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
     lessonType,
     goal,
     activities,
+    homeworkPurpose = 'Įtvirtinti įgūdžius ir žinias',
     selectedResources = [],
     selectedEvaluations = [],
     evaluationCriteria,
@@ -74,104 +76,125 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
   const currentTopic = topic.trim();
   const currentSubject = subject.trim();
   const currentGrade = grade.trim();
+  const hwPurpose = homeworkPurpose.trim() || 'Įtvirtinti įgūdžius ir žinias';
 
-  // 1. Išsamus SMART pamokos uždavinys su kriterijais
+  // 1. Išsamus SMART pamokos uždavinys su kriterijais ir Bloom taksonomija
   const smartGoal = goal && goal.trim().length > 0 
     ? goal.trim()
     : `Išnagrinėję temą „${currentTopic}“, mokiniai gebės:
-1. Teisingai paaiškinti ir vartoti pagrindines sąvokas bei taisykles kontekste.
-2. Savarankiškai bei porose išspręsti/išanalizuoti bent 3 praktines užduotis.
-3. Įsivertinti savo pasiekimus pagal pateiktus sėkmės kriterijus (bent 70% tikslumu).`;
+1. Žinoti ir paaiškinti: taisyklingai įvardinti ir apibrėžti pagrindines sąvokas, dėsningumus bei taisykles (bent 80% tikslumu).
+2. Praktiškai taikyti: savarankiškai bei porose išanalizuoti ir išspręsti bent 3 diferencijuotas praktines užduotis, pagrindžiant pasirinktą sprendimo kelią.
+3. Analizuoti ir įsivertinti: identifikuoti tipines klaidas, paaiškinti sprendimą bendraklasiui (Peer Review) ir įsivertinti pasiekimus pagal pateiktus sėkmės kriterijus.`;
 
-  // 2. Kompetencijos su konkrečiomis raiškos galimybėmis
-  const competencies = `• Pažinimo kompetencija: kritinis mąstymas, priežasties-pasekmės ryšių paieška, duomenų lyginimas ir problemų sprendimas.
-• Komunikavimo kompetencija: argumentuotas savo sprendimo paaiškinimas poroje (Peer Review), terminų taisyklingumas.
-• Skaitmeninė kompetencija: interaktyvių įrankių (Quizizz/Kahoot/Canva/Padlet) naudojimas žinių pasitikrinimui ar idėjų vizualizavimui.
-• Pilietiškumo ir socialinė-emocinė: pagarbus bendradarbiavimas, atsakomybės pasidalijimas komandoje.`;
+  // 2. Kompetencijos su konkrečia raiška pagal atnaujintas BP
+  const competencies = `• Pažinimo kompetencija: kritinis mąstymas, priežasties ir pasekmės ryšių paieška, informacijos analizė, hipotezių kėlimas ir problemų sprendimas.
+• Komunikavimo kompetencija: argumentuotas savo minčių ir sprendimo eigos dėstymas, taisyklingas dalykinių terminų vartojimas, aktyvus klausymasis ir grįžtamasis ryšys poroje.
+• Skaitmeninė kompetencija: skaitmeninių mokymosi platformų (Eduka, Quizizz, Wordwall, Canva) tikslingas panaudojimas žinių įtvirtinimui ir rezultatų vizualizavimui.
+• Pilietiškumo ir socialinė-emocinė kompetencija: pagarbus bendradarbiavimas komandoje, pagalba sunkiau suprantančiam draugui, asmeninė atsakomybė už bendrą rezultatą.
+• Kūrybiškumo kompetencija: originalių pavyzdžių kūrimas, alternatyvių sprendimo kelių paieška.`;
 
   // 3. Sąsajos su atnaujintomis BP (Lietuvos Bendrosiomis programomis)
-  const bpConnections = `Pamoka orientuota į atnaujintos ${currentSubject} ${currentGrade} bendrosios programos pasiekimų sritį:
-- Žinios ir supratimas: esminių temos „${currentTopic}“ dėsningumų bei struktūros įsisavinimas.
-- Praktinis taikymas: gebėjimas panaudoti teorines žinias sprendžiant standartines ir kontekstines užduotis.
-- Aukštesnieji mąstymo gebėjimai: analizė, vertinimas ir kūrybinis žinių pritaikymas (Bloom taksonomija).
-- Mokėjimas mokytis: refleksija „3-2-1“ ir savo mokymosi spragų identifikavimas.`;
+  const bpConnections = `Pamoka parengta remiantis atnaujintos ${currentSubject} (${currentGrade}) bendrosios programos pasiekimų sritimis:
+- Žinios ir supratimas: temos „${currentTopic}“ esminių sąvokų, dėsningumų, loginių ryšių ir taisyklių įsisavinimas.
+- Praktinis pritaikymas: gebėjimas teorines žinias perkelti į naujas, standartines bei problemines situacijas.
+- Aukštesnieji mąstymo gebėjimai (Bloom 4–6 lygiai): analizė, lyginimas, vertinimas ir kūrybinis žinių pritaikymas.
+- Mokėjimas mokytis: gebėjimas planuoti savo darbą, fiksuoti mokymosi spragas ir įsivertinti pažangą pagal sėkmės kriterijus.`;
 
   // 4. Vertinimo kriterijai ir galimybės
   const criteriaText = evaluationCriteria && evaluationCriteria.trim().length > 0
     ? evaluationCriteria.trim()
     : `Sėkmės kriterijai mokiniui („Aš gebėsiu“):
-✔ Slenkstinis lygis: žinau esminę taisyklę/apibrėžimą ir atlieku bazinį pavyzdį su pagalba.
-✔ Pagrindinis lygis: savarankiškai atlieku užduotis, randu dėsningumus, paaiškinu atsakymą bendraklasiui.
-✔ Aukštesnysis lygis: gebu išspręsti nestandartinę probleminę situaciją, pagrįsti argumentais ir pakonsultuoti kitus.`;
+✔ Slenkstinis lygis (4–5 balai): Atpažįstu pagrindines sąvokas ir taisykles, atlieku bazinį pavyzdį su pagalba ar atmintine.
+✔ Pagrindinis lygis (6–8 balai): Savarankiškai atlieku standartines užduotis temai „${currentTopic}“, paaiškinu atsakymo logiką bendraklasiui.
+✔ Aukštesnysis lygis (9–10 balų): Išsprendžiu nestandartinę probleminę situaciją, randu alternatyvų sprendimą, argumentuotai pakonsultuoju kitus.`;
 
   const evaluationMethods = selectedEvaluations.length > 0 
     ? selectedEvaluations 
     : ["Formuojamasis vertinimas pamokos eigoje", "Tarpusavio vertinimas (Peer Review) porose", "Greitasis įsivertinimas (šviesoforo / mini testuko metodas)"];
 
-  // 5. Išsamūs pamokos eigos etapai su didelėmis pasirinkimo galimybėmis
-  const introduction = `1. Temos „${currentTopic}“ ir laukiamo rezultato pristatymas („Ko išmoksime šiandien?“).
-2. Dėmesio sužadinimas / intriga (galimybės mokytojui pasirinkti):
-   • A variantas: Probleminis klausimas iš kasdienio gyvenimo ar netikėtas faktas.
-   • B variantas: Trumpas vaizdo intarpas (1–2 min.) arba provokuojantis teiginys „Tiesa ar mitas?“.
-   • C variantas: „Mintžių lietus“ (Brainstorming) ant lentos arba Mentimeter/Padlet lentoje.
-3. Ankstesnių žinių aktyvinimas: greita 3 klausimų blitz-apklausa.`;
+  // 5. Išsamūs pamokos eigos etapai su gausiomis alternatyvomis ir konkrečiais veiksmais
+  const introduction = `1. Pamokos pradžia ir tikslo suformulavimas (1–2 min.):
+   • Kartu su mokiniais perskaitomas ir paaiškinamas pamokos uždavinys bei sėkmės kriterijai („Ką šiandien gebėsiu atlikti?“).
+2. Dėmesio sužadinimas / Didaktinė intriga (pasirinktinai mokytojui):
+   • A variantas (Gyvenimiškas paradoksas): Probleminis klausimas iš kasdienybės: „Kaip tema „${currentTopic}“ kasdien veikia mus, nors to net nepastebime? Kas nutiktų, jei jos nebūtų?“
+   • B variantas („Tiesa ar mitas?“): Mokytojas ekrane pateikia 3 teiginius apie „${currentTopic}“ (du teisingi, vienas mitas). Mokiniai balsuoja pirštais ar kortelėmis.
+   • C variantas (Vaizdinė mįslė): Trumpas vizualinis intarpas, nuotrauka ar infografikas, kviečiantis pastebėti dėsningumus.
+   • D variantas (Minčių debesis): Greitas mentimeter/lentos klausimas: „Kokius 2 žodžius jums primena ši tema?“
+3. Ankstesnių žinių aktyvinimas (2 min.):
+   • 3 klausimų blitz-apklausa ryšiui su ankstesne medžiaga užmegzti.`;
 
-  const theory = `Naujos medžiagos tyrinėjimas ir modeliavimas:
-1. Pagrindinės sąvokos, taisyklės ir schemos demonstravimas ekrane/lentoje.
-2. Mokytojo atliekamas pavyzdžio demonstravimas balsu mąstant (Think-Aloud metodas) – parodomas sėkmingas žingsnis po žingsnio algoritmas.
-3. Įtraukiantis tikrinimas: mokiniai pirštais arba signalinėmis kortelėmis parodo savo pritarimą/atsakymą, kad visi būtų įtraukti.`;
+  const theory = `1. Naujos medžiagos tyrinėjimas ir konceptualus modeliavimas:
+   • Mokytojas pristato esminius temos „${currentTopic}“ principus, schemas ar taisykles lentoje/skaidrėse.
+   • Metodas „Mąstymas garsiai“ (Think-Aloud): mokytojas demonstruoja tipinį pavyzdį žingsnis po žingsnio garsiai komentuodamas kiekvieną savo mintį ir sprendimo logiką.
+2. Interaktyvus sąvokų įtvirtinimas:
+   • Pildomas „Frayer sąvokų modelis“ arba struktūruotas konspektas sąsiuviniuose.
+3. Tarpinis supratimo patikrinimas (Check for Understanding):
+   • Mokiniai pirštais (1–5 balų skalė) arba signalinėmis kortelėmis parodo savo supratimo lygį prieš pradedant praktinį darbą.
+   • Aptariamas dažniausiai pasitaikantis mokinių klaidingas stereotipas šioje temoje.`;
 
   const practice = activities && activities.trim().length > 0 
-    ? `${activities.trim()}\n\nPraktinės eigos galimybės:\n• Darbas stotelėmis (Station Rotation) arba diferencijuoti užduočių paketai.\n• Mokiniai renkasi užduoties atlikimo formatą: skaitmeniniu būdu, sąsiuvinyje arba ant mini lentelių.\n• Mokytojas atlieka konsultanto vaidmenį, teikia greitą grįžtamąjį ryšį (Micro-feedback).`
-    : `Diferencijuotas praktinis žinių taikymas (3 etapais):
-1. Treniravimasis su pagalba: 1–2 užduotys atliekamos kartu su suolo draugu arba pagal paruoštą pavyzdį.
-2. Savarankiška praktika: mokiniai atlieka bazinius pratimus pagal savo tempą.
-3. Gilinamoji / kūrybinė veikla: mokiniai, atlikę greičiau, sprendžia probleminį iššūkį arba kuria savo užduotį draugui.`;
+    ? `${activities.trim()}
+
+Diferencijuotos praktikos eiga:
+• 1 etapas (Bendradarbiavimas): Užduočių sprendimas porose metodu „Pagalvok – Pasitark – Pasidalink“.
+• 2 etapas (Savarankiškumas): Individualus darbas pagal pasiekimų lygius (Aukštesnysis, Pagrindinis, Slenkstinis).
+• 3 etapas (Konsultavimas): Mokytojas teikia operatyvų mikrogrįžtamąjį ryšį (Micro-feedback), konsultuoja sunkumų patiriančius mokinius.`
+    : `Diferencijuotas praktinis žinių taikymas (3 lygiais ir etapais):
+1. Treniravimasis su atrama (porose):
+   • Mokiniai atlieka 2 bazines užduotis kartu su suolo draugu, naudodamiesi pamokoje pateiktu algoritmu.
+2. Savarankiška diferencijuota praktika:
+   • Slenkstinis lygis: baziniai pratimai su atraminiais žodžiais ir pavyzdžiu.
+   • Pagrindinis lygis: standartinės užduotys, reikalaujančios sprendimo pagrindimo.
+   • Pažengusiųjų lygis: probleminis / nestandartinis iššūkis arba „Eksperto / Asistento“ vaidmuo padedant draugui.
+3. Mokytojo vaidmuo: periodinis stebėjimas, individualus pastiprinimas, klaidų fiksavimas.`;
 
   const consolidation = `Žinių įtvirtinimas ir operatyvus patikrinimas:
-• Galimybė A: 5 min. interaktyvi viktorina (Kahoot / Quizizz / Wordwall) su momentiniais rezultatais.
-• Galimybė B: „Vieno sakinio apibendrinimas“ – mokinys parašo pagrindinę pamokos mintį ant lipnaus lapelio.
-• Galimybė C: Tipinių klaidų analizė – mokytojas lentoje parodo sąmoningai padarytą klaidą, mokiniai ją suranda ir pataiso.`;
+• A galimybė (Interaktyvus testas): 5 min. mini viktorina (Kahoot / Quizizz / Wordwall) su greita klaidų analize.
+• B galimybė („Klaidų medžioklė“): Mokytojas lentoje pateikia užduotį su sąmoningai padarytomis 2 klaidomis – mokiniai porose jas suranda, ištaiso ir paaiškina taisymo taisyklę.
+• C galimybė (Tarpusavio vertinimas porose): Mokiniai apsikeičia sąsiuviniais ir pagal sėkmės kriterijus įvertina vienas kito darbą („2 pagyrimai ir 1 pasiūlymas“).`;
 
-  const summary = `Refleksija ir asmeninis įsivertinimas:
-• Metodas „3-2-1“: 3 svarbiausi dalykai, kuriuos sužinojau apie „${currentTopic}“, 2 klausimai, kurie dar kilo, 1 idėja, kaip tai panaudosiu.
-• Įsivertinimas šviesoforo principu (žalia – viską supratau, geltona – dar reikia pasikartoti, raudona – buvo sunku).
-• Kitų žingsnių ir namų darbų gairių aptarimas.`;
+  const summary = `Pamokos apibendrinimas, refleksija ir įsivertinimas:
+• Refleksijos metodas „3-2-1“:
+   - 3 svarbiausi dalykai, kuriuos sužinojau apie „${currentTopic}“;
+   - 2 klausimai ar situacijos, kur dar norisi pasitreniruoti;
+   - 1 praktinis būdas, kaip šias žinias panaudosiu gyvenime ar kitose pamokose.
+• Įsivertinimas: Mokiniai įsivertina savo pažangą pagal pamokos pradžioje iškeltus sėkmės kriterijus (Šviesoforo metodas: žalia / geltona / raudona).
+• Namų darbų tikslingumo ir atlikimo gairių aptarimas (Tikslingumas: ${hwPurpose}).`;
 
   // 6. Veiklos klasėje su gausiomis galimybėmis
   const classActivities = {
-    individual: `• Savarankiškas užduočių atlikimas pasirinktu tempu (galimybė rinktis iš A lygio - bazinio arba B lygio - pažangesnio).
-• Savikontrolės lapo pildymas (atsakymų pasitikrinimas pagal kontrolinį etaloną).
-• Konspekto ar vaizdinės schemos (Mind Map) pildymas.`,
+    individual: `• Savarankiškas diferencijuotų užduočių atlikimas pasirinktu tempu.
+• Asmeninio konspekto, Frayer sąvokų modelio ar schemos pildymas.
+• Savikontrolės atlikimas pagal pateiktą etaloninį atsakymų lapą.`,
     pairs: `• Metodas „Pagalvok – Pasitark su porininku – Pasidalink su klase“ (Think-Pair-Share).
-• Tarpusavio vertinimas (Peer Review): mokiniai apsikeičia darbais ir pagal 2 kriterijus parašo vieną pagyrimą ir vieną patarimą.
-• Bendras problemos sprendimas diskutuojant apie skirtingus požiūrio taškus.`,
-    group: `• 3–4 mokinių komandinis projektas: sukurti mini plakatą (popieriuje arba Canva), suklasifikuoti pavyzdžius ar išspręsti situacinį uždavinį.
-• Rolinis darbas: kiekvienas narys turi atsakomybę (tyrėjas, raštininkas, laiko prižiūrėtojas, pranešėjas).
-• „Idėjų mugė“: grupių atstovai pereina prie kitų komandų susipažinti su jų sprendimais.`,
+• Tarpusavio vertinimas (Peer Review): mokiniai tikrina vienas kito užduotį ir komentuoja pagal sėkmės kriterijus.
+• Bendras probleminio uždavinio sprendimas ir argumentų formulavimas.`,
+    group: `• Komandinis 3–4 mokinių iššūkis: sukurti mini plakatą, suklasifikuoti pavyzdžius ar išspręsti situacinį uždavinį.
+• „Ekspertų mozaika“ (Jigsaw): kiekvienas mokinys tampa atskiros temos dalies žinovu ir paaiškina savo komandai.
+• „Idėjų mugė“: grupių atstovai pristato savo išvadas kitoms komandoms.`,
     toolsResources: selectedResources.length > 0 
       ? selectedResources.join(', ') + ' | Vadovėliai, pratybų lapai, interaktyvi lenta, skaitmeniniai įrenginiai.'
-      : "Vadovėliai, užduočių lapai, interaktyvus ekranas, moksleivių išmanieji telefonai arba planšetės (Kahoot / Quizizz / Canva)."
+      : "Vadovėliai, užduočių lapai, interaktyvus ekranas, mokinių išmanieji įrenginiai (Kahoot / Quizizz / Wordwall / Canva)."
   };
 
-  const individualWork = `1. Bazinis lygis: 3 esminės užduotys taisyklei ar algoritmui įtvirtinti (su užuominomis).
-2. Standartinis lygis: 4–5 pratimai, reikalaujantys savarankiško kontekstinio sprendimo.
-3. Kūrybinis / Tyrimo lygis: alternatyvi užduotis – sukurti savo pavyzdį, situacinį klausimą arba trumpą vizualią instrukciją kitiems.`;
+  const individualWork = `1. Bazinio lygio užduotys: 3 esminiai pratimai taisyklei ar algoritmui įtvirtinti (su užuominomis ir atraminiais žodžiais).
+2. Pagrindinio lygio užduotys: 4–5 pratimai, reikalaujantys savarankiško sprendimo ir paaiškinimo.
+3. Aukštesniojo lygio užduotys: kūrybinis iššūkis – sukurti savo pavyzdį, probleminį klausimą ar situacinį testą bendraklasiams.`;
 
   // 7. Diferencijavimas trims lygiams su praktiniais patarimais
   const differentiation = {
-    gifted: `• Galimybė atlikti „Eksperto / Asistento“ vaidmenį: padėti bendraklasiams arba atsakyti į probleminius klausimus.
-• Kūrybinės užduotys (Bloom taksonomijos viršūnė): kurti analogijas, ieškoti klaidų sudėtinguose pavyzdžiuose, atlikti mini tyrimą.
-• Alternatyva: nestandartinis uždavinys, olimpiadinis klausimas arba tarpdalykinis ryšys.`,
-    general: `• Pilnas BP reikalavimų pasiekimas: standartinės užduotys su palaipsniui didėjančiu sudėtingumu.
-• Porinis darbas sprendžiant kilusius neaiškumus.
-• Praktiniai pavyzdžiai, siejantys teoriją su realiu gyvenimu ir praktine nauda.`,
-    struggling: `• Užduočių skaidymas mažais žingsneliais (Step-by-step).
-• Pagalbinės priemonės: atraminių žodžių / taisyklių kortelės, sąvokų žodynėlis, išspręstas pavyzdinis algoritmas.
+    gifted: `• Kūrybinės ir tyrimo užduotys (Bloom: Analizė, Vertinimas, Kūrimas): ieškoti sąsajų su kitais mokslais, analizuoti nestandartinius atvejus.
+• „Eksperto / Konsultanto“ vaidmuo: pagalba bendraklasiams porose, argumentuotas atsakymų komentavimas.
+• Alternatyva: kurti savo uždavinius, taisyklių schemas ar vizualias instrukcijas.`,
+    general: `• Pilnas Bendrosios programos reikalavimų pasiekimas: standartinės užduotys su nuosekliai didėjančiu kompleksiškumu.
+• Darbas porose aptariant sprendimus ir taisant pastebėtas klaidas.
+• Praktiniai pavyzdžiai, siejantys teoriją su mokinio kasdiene aplinka.`,
+    struggling: `• Užduočių skaidymas nedideliais žingsniais (Step-by-step metodas).
+• Pagalbinės priemonės: atraminių žodžių kortelės, taisyklių atmintinės, išspręstas pavyzdinis algoritmas.
 • Mokytojo palaikymas: periodinis priėjimas, padrąsinimas ir nukreipiamieji klausimai (scaffolding).`
   };
 
-  // 7a. Konkrečios diferencijuotos užduotys trims grupėms (pagal BP ir Bloom taksonomiją)
+  // 7a. Konkrečios diferencijuotos užduotys trims grupėms
   const differentiatedTasks = {
     advanced: `• Gilinamasis iššūkis (Bloom: Kūrimas ir sintezė): Išanalizuoti nestandartinę probleminę temos „${currentTopic}“ situaciją, rasti priežastinius ryšius bei galimas išimtis iš taisyklių.
 • Kūrybinė veikla: Parengti originalų praktinį uždavinį, situacinį testą ar vaizdinį algoritmą bendraklasiams.
@@ -197,12 +220,19 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
 • Grįžtamasis ryšys: Momentinis žodinis mokytojo palaikymas realiu laiku už kiekvieną atliktą žingsnį.`
   };
 
-  // 8. Namų darbai su pasirinkimo galimybe
+  // 8. Namų darbai su aiškiu tikslingumu pagal vartotojo pageidavimą
+  const isNoHomework = hwPurpose === 'Be namų darbų';
   const homework = {
-    purpose: `Įtvirtinti pamokoje „${currentTopic}“ įgytus gebėjimus, ugdant savarankiškumą ir asmeninę atsakomybę.`,
-    gifted: `Pasirinktinai: parengti 3 probleminius klausimus kitos pamokos viktorinai arba rasti realų pavyzdį žiniasklaidoje / aplinkoje.`,
-    general: `Atlikti 2–3 pratimus iš vadovėlio ar darbo lapo, pakartoti pagrindines sąvokas.`,
-    struggling: `Užbaigti klasėje pradėtą bazinę užduotį naudojantis pamokoje pateiktu pavyzdžiu ar atmintine.`
+    purpose: hwPurpose,
+    gifted: isNoHomework 
+      ? 'Namų darbai neužduodami (mokiniai viską atliko pamokoje).'
+      : `Tikslingumas: ${hwPurpose}. Savarankiškai parengti kūrybinį pavyzdį arba 3 probleminius klausimus kitos pamokos viktorinai.`,
+    general: isNoHomework
+      ? 'Namų darbai neužduodami (mokiniai viską atliko pamokoje).'
+      : `Tikslingumas: ${hwPurpose}. Atlikti 2–3 įtvirtinimo pratimus iš temos „${currentTopic}“, pasikartoti esmines sąvokas.`,
+    struggling: isNoHomework
+      ? 'Namų darbai neužduodami (mokiniai viską atliko pamokoje).'
+      : `Tikslingumas: ${hwPurpose}. Užbaigti klasėje pradėtą bazinį pratimą naudojantis pamokoje gauta atmintine ar pavyzdžiu.`
   };
 
   // 9. Skaitmeniniai resursai su konkrečiomis nuorodomis
@@ -213,34 +243,54 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
 • Bendradarbiavimo ir vizualizavimo priemonės: Canva plakatams, Miro / Padlet lentos.
 • Edukaciniai vaizdo įrašai: LRT mediateka, Youtube edukaciniai kanalai.`;
 
-  // 10. El. dienyno įrašas (optimizuota „Mano dienynas“, TAMO ir Eduka sistemoms)
+  // 10. El. dienyno įrašas (optimizuota „Mano dienynas“ ir TAMO sistemoms)
+  // Reikalavimas: nurodyti pamokos temą, ką mokiniai turėtų gebėti, žinoti ir galėtų taikyti.
+  // Namų darbų tikslingumas: pabaigti klasės darbą, pasirengti kitai pamokai, įtvirtinti įgūdžius ar žinias, prisiminti ir pan.
+  // Vertinimas: palikti TIK JEI pats mokytojas paprašė (pasirinko vertinimo metodus arba įvedė kriterijus).
+  const teacherRequestedEvaluation = (selectedEvaluations && selectedEvaluations.length > 0) || (evaluationCriteria && evaluationCriteria.trim().length > 0);
+  
+  const diaryEvaluationNote = teacherRequestedEvaluation 
+    ? `Vertinimas: ${selectedEvaluations.length > 0 ? selectedEvaluations.join(', ') : 'Formuojamasis vertinimas'}${evaluationCriteria ? `. Kriterijai: ${evaluationCriteria}` : ''}.`
+    : '';
+
+  const eDiaryTopicClasswork = `${currentTopic}. Žinoti: esmines sąvokas, dėsningumus ir taisykles. Gebėti: atlikti diferencijuotas praktines užduotis, analizuoti pavyzdžius, pagrįsti atsakymus. Taikyti: spręsti praktines ir kontekstines problemas, įsivertinti pasiekimus.`;
+
+  const eDiaryHomework = isNoHomework
+    ? 'Namų darbai neužduoti.'
+    : `Tikslingumas: ${hwPurpose}. Užduotis: atlikti nurodytus įtvirtinimo pratimus iš temos „${currentTopic}“ (arba pasirinktą diferencijuotą užduotį).`;
+
   const eDiaryEntry = {
-    topicClassworkExpectations: `${currentTopic}. Sąvokų ir taisyklių nagrinėjimas, diferencijuotos praktinės užduotys, darbas porose ir pasiekimų įsivertinimas.`,
-    homework: `Pakartoti temą „${currentTopic}“ ir atlikti nurodytus pratimus (arba pasirinktą diferencijuotą užduotį).`,
-    individualHomework: `Individualios pagalbinės arba gilinamosios užduotys pagal mokinio poreikius.`,
-    notes: isIntegratedInput ? `Integruota pamoka (${integrationDetails || 'su kitu dalyku'}).` : 'Mokiniai aktyviai įsitraukė į praktines veiklas, atliko refleksiją.',
+    topicClassworkExpectations: eDiaryTopicClasswork,
+    homework: eDiaryHomework,
+    individualHomework: isNoHomework ? '' : `Tikslingumas: ${hwPurpose}. Individualios pagalbinės arba gilinamosios užduotys.`,
+    notes: diaryEvaluationNote,
     isIntegrated: !!isIntegratedInput,
     isOutside: !!isOutsideInput,
     eDiaryLessonType: lessonType || 'Dalykinė pamoka'
   };
 
-  // 11. Metodų ir kūrybinių idėjų bankas
+  // 11. Gausus didaktinis metodų ir kūrybinių idėjų bankas
   const methodologyBank: MethodologyBank = {
     icebreakers: [
       {
         option: "A variantas",
-        title: "Gyvenimiška intriga ir provokuojantis klausimas",
-        prompt: `„Kaip elgtumėtės, jei reikėtų išspręsti problemą, susijusią su tema „${currentTopic}“, bet neturėtumėte vadovėlio ar interneto? Ką pastebite pirmiausia?“`
+        title: "Gyvenimiškas paradoksas ir provokuojantis klausimas",
+        prompt: `„Įsivaizduokite situaciją: jums reikia priimti svarbų sprendimą, susijusį su tema „${currentTopic}“, bet neturite interneto. Kaip mąstytumėte? Ką pastebėtumėte pirmiausia?“`
       },
       {
         option: "B variantas",
-        title: "„Tiesa ar mitas?“ / Vaizdinė mįslė",
-        prompt: `Mokytojas lentoje demonstruoja 3 teiginius arba vaizdus apie „${currentTopic}“ (du teisingi, vienas klaidingas). Mokiniai balsuoja signalinėmis kortelėmis arba pirštais.`
+        title: "„Tiesa ar mitas?“ / Klaidų provokacija",
+        prompt: `Mokytojas lentoje demonstruoja 3 teiginius apie „${currentTopic}“ (du teisingi, vienas klaidingas). Mokiniai balsuoja signalinėmis kortelėmis arba pirštais.`
       },
       {
         option: "C variantas",
         title: "Asociacijų žemėlapis ir minčių lietus (Mentimeter / lenta)",
-        prompt: `„Kokius 3 pirmuosius žodžius ar praktines situacijas jums primena tema „${currentTopic}“?“ Sukuriamas bendras klasės minčių debesis.`
+        prompt: `„Kokius 3 pirmuosius žodžius, daiktus ar praktines situacijas jums primena tema „${currentTopic}“?“ Sukuriamas bendras klasės minčių debesis.`
+      },
+      {
+        option: "D variantas",
+        title: "Vaizdinė mįslė / Artefaktas",
+        prompt: `Mokytojas parodo nuotrauką ar trumpą vaizdo iškarpą (30 sek.) be garso: „Kaip šis vaizdas tiesiogiai susijęs su šiandienos tema „${currentTopic}“?“`
       }
     ],
     activeMethods: [
@@ -257,15 +307,25 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
       {
         name: "„Frayer sąvokų modelis“",
         description: `Lapelyje pildomi 4 langai apie pagrindinę sąvoką: 1) Apibrėžimas savais žodžiais, 2) Esminės savybės, 3) Pavyzdžiai, 4) Nepavyzdžiai ar dažnos klaidos.`,
-        practicalTip: "Apsaugo nuo paviršutiniško taisyklių „iškubimo“ ir ugdo konceptualų mąstymą."
+        practicalTip: "Apsaugo nuo paviršutiniško taisyklių iškalimo ir ugdo gilų konceptualų mąstymą."
       },
       {
-        name: "„Klaidų detektyvas / Klaidų medžioklė“",
+        name: "„Klaidų detektyvas / Klaidų laboratorija“",
         description: `Mokytojas pateikia atliktą užduotį ar tekstą su 3 sąmoningai padarytomis klaidomis. Mokiniai porose randa netikslumus ir pateikia teisingą paaiškinimą.`,
         practicalTip: "Ugdo kritinį vertinimą, analizę (Bloom 4–5 lygiai) ir padeda suprasti tipinius klaidų šaltinius."
+      },
+      {
+        name: "„Sniego gniūžtė“ (Snowballing)",
+        description: `Mokinys atsako individualiai (1), tada suderina atsakymą poroje (2), vėliau susijungia dvi poros į grupę (4) ir suformuluoja bendrą išvadą.`,
+        practicalTip: "Ugdo kompromiso paiešką ir argumentavimo gebėjimus."
+      },
+      {
+        name: "„Užduočių stotelės ir rotacija“ (Station Rotation)",
+        description: `Klasėje įrengiamos 3 stotelės: 1) Teorinis analizės centras, 2) Praktinių pratimų stotelė, 3) Kūrybinis / Skaitmeninis iššūkis. Grupės rotuoja kas 7–8 min.`,
+        practicalTip: "Užtikrina judėjimą klasėje, dinamiką ir padeda išlaikyti aukštą mokinių koncentraciją."
       }
     ],
-    realWorldContext: `Tema „${currentTopic}“ yra glaudžiai susijusi su praktinėmis gyvenimo situacijomis: analitiniu sprendimų priėmimu, technologijomis, šiuolaikinėmis profesijomis (duomenų analitikai, inžinieriai, tekstų kūrėjai, dizaineriai) bei kasdiene komunikacija. Mokiniams svarbu parodyti, kur šios žinios padeda išvengti klaidų, sutaupyti laiko ar sukurti vertę realiame pasaulyje.`,
+    realWorldContext: `Tema „${currentTopic}“ yra glaudžiai susijusi su praktinėmis gyvenimo situacijomis: analitiniu sprendimų priėmimu, technologijomis, šiuolaikinėmis profesijomis (duomenų analitikai, inžinieriai, tekstų kūrėjai, dizaineriai, tyrėjai) bei kasdiene komunikacija. Mokiniams svarbu parodyti, kur šios žinios padeda išvengti klaidų, sutaupyti laiko ar sukurti vertę realiame pasaulyje.`,
     digitalAndGamified: [
       {
         tool: "Quizizz / Kahoot",
@@ -282,6 +342,10 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
       {
         tool: "Wordwall / LearningApps",
         idea: `Interaktyvus kortelių rūšiavimo arba sąvokų ir pavyzdžių sujungimo žaidimas.`
+      },
+      {
+        tool: "Mentimeter",
+        idea: `Žodžių debesis pamokos pradžioje arba momentinė apklausa sugrįžimui prie pagrindinės minties.`
       }
     ],
     reflectionIdeas: [
@@ -296,12 +360,16 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
       {
         method: "„Šviesoforas ir viena mintis“",
         description: "Žalia: supratau puikiai, gebu paaiškinti draugui; Geltona: supratau esmę, bet reikia papildomos praktikos; Raudona: kilo neaiškumų, reikia mokytojo konsultacijos."
+      },
+      {
+        method: "„Mokymosi kopėčios“",
+        description: "Mokinys įvardija: kur buvau pamokos pradžioje (ant kokio laiptelio), kur esu dabar ir ko trūksta iki kito laiptelio."
       }
     ]
   };
 
   return {
-    generalNotes: `Išsamus pamokos planas su pedagoginėmis alternatyvomis (${currentSubject}, ${currentGrade}).`,
+    generalNotes: `Išsamus pamokos planas su gausiomis pedagoginėmis alternatyvomis (${currentSubject}, ${currentGrade}).`,
     lessonType: lessonType || 'Įtvirtinimo',
     bpConnections,
     lessonOverview: {
@@ -314,8 +382,8 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
       }
     },
     tasks: {
-      general: `Pagrindinės diferencijuotos užduotys temai „${currentTopic}“ įsisavinti.`,
-      highLevel: `Probleminiai ir analitiniai iššūkiai aukštesniajam lygiui.`,
+      general: `Pagrindinės diferencijuotos praktinės užduotys temai „${currentTopic}“ įsisavinti.`,
+      highLevel: `Probleminiai ir analitiniai iššūkiai aukštesniajam pasiekimų lygiui.`,
       mainLevel: `Bazinės praktinės užduotys pagal atnaujintų BP pasiekimų lygius.`
     },
     classActivities,
@@ -335,7 +403,7 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
     digitalResources,
     homework,
     eDiaryEntry,
-    specialAdvice: "Pasiūlykite mokiniams rinktis užduoties atlikimo lygį ar būdą (poroje ar savarankiškai) – tai didina motyvaciją ir atsakomybę.",
+    specialAdvice: "Pasiūlykite mokiniams rinktis užduoties atlikimo lygį ar būdą (poroje ar savarankiškai) – tai pastebimai didina motyvaciją ir asmeninę atsakomybę.",
     consultationAdvice: "Mokiniams, kuriems kilo klausimų praktikos metu, organizuoti 3 min. mini konsultaciją prie atskiros lentos.",
     motivation: `„Kiekvienas šiandien žengtas žingsnis temoje „${currentTopic}“ ugdo pasitikėjimą savo gebėjimais!“`,
     stageDurations

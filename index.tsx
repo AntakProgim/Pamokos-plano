@@ -282,10 +282,10 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
     struggling: "Nurašyti vieną šūkį iš matytos reklamos ir nupiešti jai iliustraciją."
   },
   eDiaryEntry: {
-    topicClassworkExpectations: "Reklamos kalba ir įtaigos priemonės. Klasės darbas. Reklaminių tekstų analizė, įtaigos priemonių atpažinimas, kūrybinis prekės aprašymas.",
-    homework: "Rasti namų aplinkoje vieną reklamos pavyzdį ir įvardinti tikslinę grupę.",
-    individualHomework: "Analizuoti manipuliacijos būdus pasirinktoje reklamoje.",
-    notes: "Mokiniai dirbo aktyviai, ypač kūrybinėje dalyje.",
+    topicClassworkExpectations: "Reklamos kalba ir įtaigos priemonės. Žinoti: pagrindines įtaigos priemones, retorines figūras ir manipuliacinius šūkius. Gebėti: atpažinti reklaminio teksto tikslinę grupę, analizuoti argumentus. Taikyti: kurti etišką prekės aprašymą ir pagrįsti savo kūrybinius pasirinkimus.",
+    homework: "Tikslingumas: Įtvirtinti įgūdžius ir žinias. Užduotis: Rasti namų aplinkoje ar medijose vieną reklamos pavyzdį ir įvardinti tikslinę auditoriją.",
+    individualHomework: "Tikslingumas: Įtvirtinti įgūdžius ir žinias. Analizuoti manipuliacijos būdus pasirinktoje reklamoje.",
+    notes: "",
     isIntegrated: false,
     isOutside: false,
     eDiaryLessonType: "Įtvirtinimo"
@@ -366,6 +366,15 @@ const formatApiError = (err: any): string => {
   return `Klaida: ${err.message || str}`;
 };
 
+const HOMEWORK_PURPOSES = [
+  'Įtvirtinti įgūdžius ir žinias',
+  'Pabaigti klasės darbą',
+  'Pasirengti kitai pamokai',
+  'Prisiminti ir pakartoti taisykles',
+  'Kūrybinis / Tyrimo projektas',
+  'Be namų darbų'
+];
+
 const App = () => {
   const [grade, setGrade] = useState('');
   const [subject, setSubject] = useState('');
@@ -373,6 +382,7 @@ const App = () => {
   const [lessonType, setLessonType] = useState<LessonCategory>('');
   const [goal, setGoal] = useState('');
   const [activities, setActivities] = useState('');
+  const [homeworkPurpose, setHomeworkPurpose] = useState('Įtvirtinti įgūdžius ir žinias');
   const [evaluationCriteria, setEvaluationCriteria] = useState('');
   const [selectedEvaluations, setSelectedEvaluations] = useState<string[]>([]);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
@@ -564,6 +574,7 @@ const App = () => {
         if (draft.lessonType !== undefined) setLessonType(draft.lessonType);
         if (draft.goal !== undefined) setGoal(draft.goal);
         if (draft.activities !== undefined) setActivities(draft.activities);
+        if (draft.homeworkPurpose !== undefined) setHomeworkPurpose(draft.homeworkPurpose);
         if (draft.evaluationCriteria !== undefined) setEvaluationCriteria(draft.evaluationCriteria);
         if (draft.selectedEvaluations !== undefined) setSelectedEvaluations(draft.selectedEvaluations);
         if (draft.selectedResources !== undefined) setSelectedResources(draft.selectedResources);
@@ -600,6 +611,7 @@ const App = () => {
           lessonType,
           goal,
           activities,
+          homeworkPurpose,
           evaluationCriteria,
           selectedEvaluations,
           selectedResources,
@@ -631,6 +643,7 @@ const App = () => {
     lessonType,
     goal,
     activities,
+    homeworkPurpose,
     evaluationCriteria,
     selectedEvaluations,
     selectedResources,
@@ -813,6 +826,7 @@ Struktūra:
         lessonType,
         goal,
         activities,
+        homeworkPurpose,
         selectedResources,
         selectedEvaluations,
         evaluationCriteria,
@@ -866,6 +880,7 @@ Struktūra:
           lessonType,
           goal,
           activities,
+          homeworkPurpose,
           evaluationCriteria,
           selectedEvaluations,
           selectedResources,
@@ -890,6 +905,7 @@ Struktūra:
             lessonType,
             goal,
             activities,
+            homeworkPurpose,
             selectedResources,
             selectedEvaluations,
             evaluationCriteria,
@@ -903,23 +919,24 @@ Struktūra:
           });
 
           const sanitizedPlan: LessonPlan = {
+            ...fallbackPedagogical,
             ...parsedPlan,
             targetLevels: selectedStudentLevels,
             methodologyBank: parsedPlan.methodologyBank || fallbackPedagogical.methodologyBank,
             differentiatedTasks: parsedPlan.differentiatedTasks || fallbackPedagogical.differentiatedTasks,
             differentiatedAssessment: parsedPlan.differentiatedAssessment || fallbackPedagogical.differentiatedAssessment,
-            lessonOverview: parsedPlan.lessonOverview || { topic: topic || '', goal: goal || '', competencies: '', evaluation: { methods: [], criteria: '' } },
-            lessonStages: parsedPlan.lessonStages || { introduction: '', theory: '', practice: '', consolidation: '', summary: '' },
-            differentiation: parsedPlan.differentiation || { gifted: '', general: '', struggling: '' },
-            homework: parsedPlan.homework || { purpose: '', gifted: '', general: '', struggling: '' },
-            classActivities: parsedPlan.classActivities || { individual: '', pairs: '', group: '', toolsResources: '' },
-            individualWork: parsedPlan.individualWork || '',
-            digitalResources: parsedPlan.digitalResources || '',
+            lessonOverview: parsedPlan.lessonOverview || fallbackPedagogical.lessonOverview,
+            lessonStages: parsedPlan.lessonStages || fallbackPedagogical.lessonStages,
+            differentiation: parsedPlan.differentiation || fallbackPedagogical.differentiation,
+            homework: parsedPlan.homework || fallbackPedagogical.homework,
+            classActivities: parsedPlan.classActivities || fallbackPedagogical.classActivities,
+            individualWork: parsedPlan.individualWork || fallbackPedagogical.individualWork,
+            digitalResources: parsedPlan.digitalResources || fallbackPedagogical.digitalResources,
             eDiaryEntry: {
-              topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || '',
-              homework: parsedPlan.eDiaryEntry?.homework || '',
-              individualHomework: parsedPlan.eDiaryEntry?.individualHomework || '',
-              notes: parsedPlan.eDiaryEntry?.notes || '',
+              topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || fallbackPedagogical.eDiaryEntry.topicClassworkExpectations,
+              homework: parsedPlan.eDiaryEntry?.homework || fallbackPedagogical.eDiaryEntry.homework,
+              individualHomework: parsedPlan.eDiaryEntry?.individualHomework || fallbackPedagogical.eDiaryEntry.individualHomework,
+              notes: parsedPlan.eDiaryEntry?.notes !== undefined ? parsedPlan.eDiaryEntry.notes : fallbackPedagogical.eDiaryEntry.notes,
               isIntegrated: isIntegratedInput,
               isOutside: isOutsideInput,
               eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || '',
@@ -1362,7 +1379,36 @@ Struktūra:
             </div>
             
             <div className="form-group">
-              <label>Vertinimo metodai (pasirinkite kelis)</label>
+              <label>🎯 Namų darbų tikslingumas</label>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginTop: '-4px', marginBottom: '8px'}}>
+                Nurodykite namų darbų paskirtį (pagal BP ir „Mano dienynas“ metodiką):
+              </p>
+              <select
+                value={homeworkPurpose}
+                onChange={e => setHomeworkPurpose(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #334155',
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-color)',
+                  fontSize: '0.9rem'
+                }}
+              >
+                {HOMEWORK_PURPOSES.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+                <label style={{margin: 0}}>Vertinimo metodai (pasirinkite, jei planuojate vertinimą)</label>
+              </div>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginTop: '2px', marginBottom: '8px'}}>
+                💡 <em>Į „Mano dienynas“ pastabas vertinimas įtraukiamas tik tuo atveju, jei čia pažymėsite vertinimo metodus arba nurodysite kriterijus.</em>
+              </p>
               <div className="evaluation-tags-grid">
                 {EVALUATION_TAGS.map(tag => (
                   <label key={tag} className={`tag-checkbox ${selectedEvaluations.includes(tag) ? 'checked' : ''}`}>
@@ -1374,8 +1420,8 @@ Struktūra:
             </div>
 
             <div className="form-group">
-              <label>Vertinimo kriterijai</label>
-              <textarea value={evaluationCriteria} onChange={e => setEvaluationCriteria(e.target.value)} placeholder="Aprašykite vertinimo kriterijus..." rows={3} />
+              <label>Vertinimo kriterijai (pasirinktinai)</label>
+              <textarea value={evaluationCriteria} onChange={e => setEvaluationCriteria(e.target.value)} placeholder="Aprašykite vertinimo kriterijus (jei taikote)..." rows={2} />
             </div>
 
             <div className="form-group">
@@ -1980,33 +2026,41 @@ Struktūra:
                   </a>
                 </div>
                 <p style={{fontSize: '0.82rem', color: 'var(--text-color-light)', marginBottom: '14px', marginTop: 0}}>
-                  Šie laukai suformatuoti pagal „Mano dienynas“ reikalavimus (tema be perteklinių žodžių, aiški klasės veikla, namų darbai ir pastabos). Spustelėkite „Kopijuoti“ prie reikiamo laukelio.
+                  Šie laukai suformatuoti pagal atnaujintus „Mano dienynas“ ir TAMO reikalavimus: motyvuota tema su laukiamais rezultatais (ką žinoti, gebėti, taikyti), namų darbai su aiškiu tikslingumu, o vertinimas rodomas tik tuo atveju, jei mokytojas jį numatė. Spustelėkite „Kopijuoti“ prie reikiamo laukelio.
                 </p>
                 {[
-                  { key: 'topicClassworkExpectations', label: 'Pamokos tema ir klasės darbas', hint: 'Įklijuokite į „Tema / Klasės darbas“ lauką' },
-                  { key: 'homework', label: 'Namų darbai', hint: 'Įklijuokite į „Namų darbai“ lauką' },
-                  { key: 'notes', label: 'Pamokos pastaba / Vertinimas', hint: 'Įklijuokite į „Pastaba / Refleksija“ lauką' }
-                ].map(({ key, label, hint }) => (
-                  <div key={key} className="diary-field-wrapper">
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
-                      <label className="diary-label" style={{margin: 0, color: '#fb923c'}}>{label}</label>
-                      <span style={{fontSize: '0.75rem', color: 'var(--text-color-light)', opacity: 0.7}}>{hint}</span>
+                  { key: 'topicClassworkExpectations', label: '📌 Pamokos tema ir motyvuotas klasės darbas (Žinoti, Gebėti, Taikyti)', hint: 'Įklijuokite į „Tema / Klasės darbas“' },
+                  { key: 'homework', label: '🎯 Namų darbai (su tikslingumu)', hint: 'Įklijuokite į „Namų darbai“' },
+                  { key: 'notes', label: '📝 Vertinimas / Pamokos pastaba', hint: 'Įklijuokite į „Pastaba / Vertinimas“ (tik jei planuotas)' }
+                ].map(({ key, label, hint }) => {
+                  const val = lessonPlan.eDiaryEntry ? (lessonPlan.eDiaryEntry as any)[key] : '';
+                  const isEmptyNote = key === 'notes' && (!val || !val.trim());
+                  return (
+                    <div key={key} className="diary-field-wrapper">
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+                        <label className="diary-label" style={{margin: 0, color: '#fb923c'}}>{label}</label>
+                        <span style={{fontSize: '0.75rem', color: 'var(--text-color-light)', opacity: 0.7}}>{hint}</span>
+                      </div>
+                      <div className="diary-field">
+                        <span className="diary-text" style={isEmptyNote ? {fontStyle: 'italic', opacity: 0.65} : {}}>
+                          {isEmptyNote ? 'Vertinimas nenurodytas (mokytojas nepasirinko vertinimo šiai pamokai).' : (val || '—')}
+                        </span>
+                        {!isEmptyNote && (
+                          <button 
+                            onClick={() => handleCopy(val, key)} 
+                            className="copy-button"
+                            style={{
+                              background: copiedField === key ? 'var(--success-color)' : '#ea580c',
+                              minWidth: '90px'
+                            }}
+                          >
+                            {copiedField === key ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="diary-field">
-                      <span className="diary-text">{lessonPlan.eDiaryEntry ? (lessonPlan.eDiaryEntry as any)[key] : ''}</span>
-                      <button 
-                        onClick={() => lessonPlan.eDiaryEntry && handleCopy((lessonPlan.eDiaryEntry as any)[key], key)} 
-                        className="copy-button"
-                        style={{
-                          background: copiedField === key ? 'var(--success-color)' : '#ea580c',
-                          minWidth: '90px'
-                        }}
-                      >
-                        {copiedField === key ? 'Nukopijuota! ✓' : 'Kopijuoti'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="card" style={{borderLeftColor: 'var(--secondary-color)'}}>
@@ -2173,16 +2227,16 @@ Struktūra:
 
               <div className="edit-divider">📖 „Mano dienynas“ įrašai</div>
               <div className="edit-group">
-                <label>Pamokos tema ir klasės darbas</label>
-                <textarea value={editedPlan.eDiaryEntry.topicClassworkExpectations} onChange={e => updateEditedField('eDiaryEntry.topicClassworkExpectations', e.target.value)} rows={2} />
+                <label>📌 Pamokos tema ir motyvuotas klasės darbas (Žinoti, Gebėti, Taikyti)</label>
+                <textarea value={editedPlan.eDiaryEntry.topicClassworkExpectations} onChange={e => updateEditedField('eDiaryEntry.topicClassworkExpectations', e.target.value)} rows={3} />
               </div>
               <div className="edit-group">
-                <label>Namų darbai</label>
-                <textarea value={editedPlan.eDiaryEntry.homework} onChange={e => updateEditedField('eDiaryEntry.homework', e.target.value)} rows={1} />
+                <label>🎯 Namų darbai (su tikslingumu)</label>
+                <textarea value={editedPlan.eDiaryEntry.homework} onChange={e => updateEditedField('eDiaryEntry.homework', e.target.value)} rows={2} />
               </div>
                <div className="edit-group">
-                <label>Pamokos pastabos / Vertinimas</label>
-                <textarea value={editedPlan.eDiaryEntry.notes} onChange={e => updateEditedField('eDiaryEntry.notes', e.target.value)} rows={2} />
+                <label>📝 Vertinimas / Pamokos pastaba (palikite tuščią, jei vertinimo neplanuojate)</label>
+                <textarea value={editedPlan.eDiaryEntry.notes} onChange={e => updateEditedField('eDiaryEntry.notes', e.target.value)} rows={2} placeholder="Palikite tuščią, jei vertinimo neplanuojate..." />
               </div>
               
               <div className="edit-divider">Motyvacija</div>

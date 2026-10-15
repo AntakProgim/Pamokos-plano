@@ -59,6 +59,7 @@ app.post('/api/generate-plan', async (req, res) => {
     lessonType = '',
     activities = '',
     goal = '',
+    homeworkPurpose = 'Įtvirtinti įgūdžius ir žinias',
     evaluationCriteria = '',
     selectedEvaluations = [],
     selectedResources = [],
@@ -78,12 +79,20 @@ app.post('/api/generate-plan', async (req, res) => {
 
   if (ai) {
     try {
+      const hasTeacherRequestedEvaluation = (selectedEvaluations && selectedEvaluations.length > 0) || (evaluationCriteria && evaluationCriteria.trim().length > 0);
       const systemInstruction = `
 Tu esi aukščiausio lygio Lietuvos bendrojo ugdymo didaktikos ekspertas ir metodininkas.
-Tavo tikslas – parengti nepriekaištingą, išsamų, gausų praktinių idėjų ir metodų pamokos planą pagal atnaujintas Lietuvos Bendrąsias programas (BP).
-Planas turi būti gilus, konkretus, praktiškas ir jokiu būdu NE sausas! Pateik tikslias užduočių formuluotes, klausimus mokiniams, diferencijavimą trims lygiams ir gausų metodų banką.
+Tavo tikslas – parengti nepriekaištingą, gilų, išsamų, gausų praktinių idėjų ir metodų pamokos planą pagal atnaujintas Lietuvos Bendrąsias programas (BP).
+Planas turi būti gyvas, konkretus, praktiškas ir jokiu būdu NE sausas! Pateik tikslias užduočių formuluotes, klausimus mokiniams, diferencijavimą trims lygiams ir gausų metodų bei alternatyvų banką.
 GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE (vietoj jų naudok taškus arba brūkšnelius).
-El. dienyne (eDiaryEntry) NERAŠYK žodžių "Tema." ar "Namų darbas.", pateik tik turinį.
+
+GRIEŽTI REIKALAVIMAI „MANO DIENYNAS“ ĮRAŠAMS (eDiaryEntry):
+1. topicClassworkExpectations: Labai motyvuotas įrašas. Nurodyk pamokos temą, ką mokiniai turėtų ŽINOTI, ką GEBĖTI ir ką galėtų TAIKYTI.
+   Pvz.: ${topic}. Žinoti: pagrindines sąvokas ir dėsningumus. Gebėti: atlikti diferencijuotus pratimus, paaiškinti sprendimą. Taikyti: spręsti praktinius kontekstinius uždavinius.
+2. homework: Namų darbų tikslingumas: aiškiai nurodyk paskirtį (${homeworkPurpose} - pabaigti klasės darbą, pasirengti kitai pamokai, įtvirtinti įgūdžius ar žinias, prisiminti ir pan.) bei konkrečią užduotį. Jei pasirinkta 'Be namų darbų', nurodyk 'Namų darbai neužduoti'.
+3. notes: ČIA PALIK TIK VERTINIMĄ, JEI PATS MOKYTOJAS PAPRAŠĖ.
+   ${hasTeacherRequestedEvaluation ? `Mokytojas paprašė vertinimo: įrašyk pasirinktus vertinimo metodus (${selectedEvaluations.join(', ')}) ir kriterijus.` : 'Mokytojas vertinimo NEPAPRAŠĖ: lauką notes palik VISIŠKAI TUŠČIĄ ("")! Jokio savaiminio vertinimo neįrašinėk.'}
+
 Atsakymą pateik griežtai JSON formatu pagal nurodytą struktūrą.
       `;
 
@@ -95,8 +104,9 @@ Sukurk išsamų, gilų ir idėjomis turtingą pamokos planą pagal šiuos parame
 - Pamokos tipas. ${lessonType || 'Standartinė / Mišri'}
 - Mokytojo numatytas tikslas. ${goal || 'Parengti pagal Bloom taksonomiją ir SMART principus'}
 - Mokytojo numatytos veiklos. ${activities || 'Pasiūlyti interaktyvias, aktyvaus ugdymo veiklas'}
+- Namų darbų tikslingumas. ${homeworkPurpose}
 - Vertinimo kriterijai. ${evaluationCriteria || 'Pagal BP pasiekimų lygius'}
-- Pasirinkti vertinimo būdai. ${selectedEvaluations.join(', ') || 'Formuojamasis vertinimas, įsivertinimas 3-2-1'}
+- Pasirinkti vertinimo būdai. ${selectedEvaluations.join(', ') || 'Nenurodyta'}
 - Pasirinktos priemonės. ${selectedResources.join(', ') || 'Vadovėlis, interaktyvus ekranas, skaitmeniniai įrankiai'}
 - Mokinių pasiekimų lygiai klasėje. ${selectedStudentLevels.join(', ')}
 - Integruota pamoka. ${isIntegratedInput ? `Taip. Integruojama su. ${integrationDetails}.` : 'Ne'}
@@ -104,23 +114,26 @@ Sukurk išsamų, gilų ir idėjomis turtingą pamokos planą pagal šiuos parame
 
 REIKALAVIMAI TURINIO GAUSUMUI IR METODIKAI:
 1. PAMOKOS EIGA (lessonStages) - kiekvienas etapas turi turėti konkrečius žingsnius, mokytojo klausimus ir alternatyvas:
-   - introduction: bent 3 intriguojantys sužadinimo būdai (klausimas-provokacija, medijų/vizualinė mįslė, asociacijų debesis).
-   - theory: supratimo patikrinimas (Check for Understanding), demonstracija, mąstymo garsiai (Think-aloud) metodas.
+   - introduction: bent 3-4 intriguojantys sužadinimo būdai (klausimas-provokacija, medijų/vizualinė mįslė, asociacijų debesis, Tiesa ar mitas).
+   - theory: supratimo patikrinimas (Check for Understanding), demonstracija, mąstymo garsiai (Think-aloud) metodas, dažniausių klaidų aptarimas.
    - practice: diferencijuotas darbas stotelėmis arba lygiais, darbas porose (Think-Pair-Share), aiškios užduočių formuluotės.
-   - consolidation: greitas patikrinimas (Kahoot/Quizizz mini viktorina), klaidų taisymo iššūkis.
-   - summary: refleksijos metodas (3-2-1, išėjimo bilietas, šviesoforas).
+   - consolidation: greitas patikrinimas (Kahoot/Quizizz mini viktorina), klaidų taisymo iššūkis („Klaidų medžioklė“).
+   - summary: refleksijos metodas (3-2-1, išėjimo bilietas, šviesoforas, sėkmės kriterijų įsivertinimas).
 2. METODŲ IR KŪRYBINIŲ IDĖJŲ BANKAS (methodologyBank):
-   - activeMethods: 4 konkretūs metodai (objektai su "name", "description", "practicalTip").
-   - icebreakers: 3 alternatyvūs sužadinimai (objektai su "option", "title", "prompt").
+   - activeMethods: 4-6 konkretūs metodai (objektai su "name", "description", "practicalTip").
+   - icebreakers: 3-4 alternatyvūs sužadinimai (objektai su "option", "title", "prompt").
    - realWorldContext: temos ryšys su gyvenimu, profesijomis ir STEAM.
-   - digitalAndGamified: 3-4 skaitmeniniai įrankiai (objektai su "tool", "idea").
-   - reflectionIdeas: 3 refleksijos formatai (objektai su "method", "description").
+   - digitalAndGamified: 4 skaitmeniniai įrankiai (objektai su "tool", "idea").
+   - reflectionIdeas: 3-4 refleksijos formatai (objektai su "method", "description").
 3. DIFERENCIJAVIMAS TRIMIS LYGIAIS:
    - Gabūs: kūrybinis iššūkis, nestandartinė problema.
    - Vidutiniai: aiškus algoritmas, kontekstinė praktika porose.
    - Sunkumų turintys: žingsninė atrama (scaffolding), vizualinės užuominos.
 4. GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE.
-5. El. dienyne (eDiaryEntry) NERAŠYK žodžių "Tema." ir "Namų darbas.", pateik tik gryną turinį.
+5. El. dienyne (eDiaryEntry):
+   - topicClassworkExpectations: motyvuotas įrašas su tema, ką mokiniai turi žinoti, gebėti ir taikyti.
+   - homework: nurodytas tikslingumas (${homeworkPurpose}) ir konkreti užduotis.
+   - notes: ${hasTeacherRequestedEvaluation ? 'Vertinimas (nes mokytojas paprašė)' : 'PALIK TUŠČIĄ (""), nes mokytojas neprašė vertinimo.'}
       `;
 
       const response = await ai.models.generateContent({
