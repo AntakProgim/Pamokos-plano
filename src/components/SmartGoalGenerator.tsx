@@ -70,40 +70,47 @@ export const SmartGoalGenerator: React.FC<SmartGoalGeneratorProps> = ({
 
     setIsLoading(true);
     try {
-      if (useAi && apiKey && geminiCaller) {
-        const res = await generateSmartGoalWithAI(
-          apiKey,
-          {
+      if (useAi) {
+        const response = await fetch('/api/generate-smart-goal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
             subject: subject.trim() || 'Bendrasis ugdymas',
             topic: topic.trim(),
             grade: grade.trim(),
             bloomLevelId: selectedBloomLevel === 'all' ? undefined : selectedBloomLevel,
-            focusMethod: focusMethod.trim()
-          },
-          geminiCaller
-        );
-        setResult(res);
-        onShowToast('✨ SMART pamokos tikslas sėkmingai sugeneruotas su DI.');
-      } else {
-        const res = generateSmartGoalPedagogical({
-          subject: subject.trim() || 'Bendrasis ugdymas',
-          topic: topic.trim(),
-          grade: grade.trim(),
-          bloomLevelId: selectedBloomLevel === 'all' ? 'applying' : selectedBloomLevel,
-          focusMethod: focusMethod.trim()
+            focusMethod: focusMethod.trim(),
+          }),
         });
-        setResult(res);
-        onShowToast('⚡ SMART pamokos tikslas sugeneruotas pagal pedagoginį šabloną.');
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.result) {
+            setResult(data.result);
+            onShowToast(data.mode === 'ai' ? '✨ SMART pamokos tikslas sėkmingai sugeneruotas su DI.' : '⚡ SMART pamokos tikslas parengtas pagal pedagoginę metodiką.');
+            return;
+          }
+        }
       }
+
+      // Pedagoginis šablonas
+      const res = generateSmartGoalPedagogical({
+        subject: subject.trim() || 'Bendrasis ugdymas',
+        topic: topic.trim(),
+        grade: grade.trim(),
+        bloomLevelId: selectedBloomLevel === 'all' ? 'applying' : selectedBloomLevel,
+        focusMethod: focusMethod.trim(),
+      });
+      setResult(res);
+      onShowToast('⚡ SMART pamokos tikslas sugeneruotas pagal pedagoginį šabloną.');
     } catch (err) {
       console.error(err);
-      // Atsarginis variantas garantuoja, kad vartotojas visada gaus rezultatą
       const fallback = generateSmartGoalPedagogical({
         subject: subject.trim() || 'Bendrasis ugdymas',
         topic: topic.trim(),
         grade: grade.trim(),
         bloomLevelId: selectedBloomLevel === 'all' ? 'applying' : selectedBloomLevel,
-        focusMethod: focusMethod.trim()
+        focusMethod: focusMethod.trim(),
       });
       setResult(fallback);
       onShowToast('⚡ Pritaikytas pedagoginis SMART šablonas.');

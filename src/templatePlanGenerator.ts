@@ -1,6 +1,37 @@
 // Išsamus pedagoginis generatorius su gausiomis galimybėmis ir praktinėmis alternatyvomis
 // Pagal Lietuvos Bendrąsias programas (BP)
 
+export interface ActiveMethodItem {
+  name: string;
+  description: string;
+  practicalTip: string;
+}
+
+export interface IcebreakerItem {
+  option: string;
+  title: string;
+  prompt: string;
+}
+
+export interface DigitalIdeaItem {
+  tool: string;
+  idea: string;
+}
+
+export interface ReflectionIdeaItem {
+  method: string;
+  description: string;
+}
+
+export interface MethodologyBank {
+  activeMethods: ActiveMethodItem[];
+  icebreakers: IcebreakerItem[];
+  realWorldContext: string;
+  digitalAndGamified: DigitalIdeaItem[];
+  reflectionIdeas: ReflectionIdeaItem[];
+  creativePrompts?: string[];
+}
+
 export interface GenerateTemplateParams {
   subject: string;
   grade: string;
@@ -193,6 +224,82 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
     eDiaryLessonType: lessonType || 'Dalykinė pamoka'
   };
 
+  // 11. Metodų ir kūrybinių idėjų bankas
+  const methodologyBank: MethodologyBank = {
+    icebreakers: [
+      {
+        option: "A variantas",
+        title: "Gyvenimiška intriga ir provokuojantis klausimas",
+        prompt: `„Kaip elgtumėtės, jei reikėtų išspręsti problemą, susijusią su tema „${currentTopic}“, bet neturėtumėte vadovėlio ar interneto? Ką pastebite pirmiausia?“`
+      },
+      {
+        option: "B variantas",
+        title: "„Tiesa ar mitas?“ / Vaizdinė mįslė",
+        prompt: `Mokytojas lentoje demonstruoja 3 teiginius arba vaizdus apie „${currentTopic}“ (du teisingi, vienas klaidingas). Mokiniai balsuoja signalinėmis kortelėmis arba pirštais.`
+      },
+      {
+        option: "C variantas",
+        title: "Asociacijų žemėlapis ir minčių lietus (Mentimeter / lenta)",
+        prompt: `„Kokius 3 pirmuosius žodžius ar praktines situacijas jums primena tema „${currentTopic}“?“ Sukuriamas bendras klasės minčių debesis.`
+      }
+    ],
+    activeMethods: [
+      {
+        name: "„Pagalvok – Pasitark poroje – Pasidalink“ (Think-Pair-Share)",
+        description: `Mokiniai 1 min. individualiai apmąsto temos „${currentTopic}“ klausimą, 2 min. diskutuoja su suolo draugu ir suformuluoja bendrą atsakymą klasei.`,
+        practicalTip: "Puikiai tinka įtraukti tylesnius mokinius ir sukurti saugią erdvę pasitikrinti savo mintis prieš kalbant visai klasei."
+      },
+      {
+        name: "„Ekspertų mozaika“ (Jigsaw)",
+        description: `Klasė suskirstoma į 4 ekspertų grupes. Kiekviena grupė gilinasi į atskirą temos „${currentTopic}“ dalį ar taisyklę, o vėliau grįžta į savo pradinę komandą ir išmoko kitus.`,
+        practicalTip: "Skatina tarpusavio atsakomybę – kiekvienas mokinys tampa atsakingas už savo komandos sėkmę."
+      },
+      {
+        name: "„Frayer sąvokų modelis“",
+        description: `Lapelyje pildomi 4 langai apie pagrindinę sąvoką: 1) Apibrėžimas savais žodžiais, 2) Esminės savybės, 3) Pavyzdžiai, 4) Nepavyzdžiai ar dažnos klaidos.`,
+        practicalTip: "Apsaugo nuo paviršutiniško taisyklių „iškubimo“ ir ugdo konceptualų mąstymą."
+      },
+      {
+        name: "„Klaidų detektyvas / Klaidų medžioklė“",
+        description: `Mokytojas pateikia atliktą užduotį ar tekstą su 3 sąmoningai padarytomis klaidomis. Mokiniai porose randa netikslumus ir pateikia teisingą paaiškinimą.`,
+        practicalTip: "Ugdo kritinį vertinimą, analizę (Bloom 4–5 lygiai) ir padeda suprasti tipinius klaidų šaltinius."
+      }
+    ],
+    realWorldContext: `Tema „${currentTopic}“ yra glaudžiai susijusi su praktinėmis gyvenimo situacijomis: analitiniu sprendimų priėmimu, technologijomis, šiuolaikinėmis profesijomis (duomenų analitikai, inžinieriai, tekstų kūrėjai, dizaineriai) bei kasdiene komunikacija. Mokiniams svarbu parodyti, kur šios žinios padeda išvengti klaidų, sutaupyti laiko ar sukurti vertę realiame pasaulyje.`,
+    digitalAndGamified: [
+      {
+        tool: "Quizizz / Kahoot",
+        idea: `5–7 klausimų greitasis žinių mūšis temos „${currentTopic}“ įtvirtinimui su momentine klaidų analize.`
+      },
+      {
+        tool: "Canva / Miro",
+        idea: `Skaitmeninis mini plakatas arba schematiškas taisyklių / algoritmų žemėlapis bendradarbiaujant porose.`
+      },
+      {
+        tool: "Padlet lenta",
+        idea: `„Klausimų ir atradimų siena“: mokiniai kelia savo praktinius klausimus arba geriausius rastus pavyzdžius.`
+      },
+      {
+        tool: "Wordwall / LearningApps",
+        idea: `Interaktyvus kortelių rūšiavimo arba sąvokų ir pavyzdžių sujungimo žaidimas.`
+      }
+    ],
+    reflectionIdeas: [
+      {
+        method: "Metodas „3-2-1“",
+        description: "3 svarbiausi dalykai, kuriuos sužinojau šiandien; 2 klausimai, apie kuriuos noriu pasidomėti; 1 idėja, kaip tai pritaikysiu praktiškai."
+      },
+      {
+        method: "„Išėjimo bilietas“ (Exit Ticket)",
+        description: "Paskutinėmis 3 pamokos minutėmis kiekvienas mokinys ant lapelio arba programėlėje atsako į vieną esminį probleminį klausimą ir atiduoda mokytojui."
+      },
+      {
+        method: "„Šviesoforas ir viena mintis“",
+        description: "Žalia: supratau puikiai, gebu paaiškinti draugui; Geltona: supratau esmę, bet reikia papildomos praktikos; Raudona: kilo neaiškumų, reikia mokytojo konsultacijos."
+      }
+    ]
+  };
+
   return {
     generalNotes: `Išsamus pamokos planas su pedagoginėmis alternatyvomis (${currentSubject}, ${currentGrade}).`,
     lessonType: lessonType || 'Įtvirtinimo',
@@ -220,6 +327,7 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
       consolidation,
       summary
     },
+    methodologyBank,
     differentiation,
     differentiatedTasks,
     differentiatedAssessment,

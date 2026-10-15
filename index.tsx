@@ -1,8 +1,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI, Chat, Type } from '@google/genai';
-import { buildPedagogicalPlan } from './src/templatePlanGenerator';
+import { 
+  buildPedagogicalPlan, 
+  MethodologyBank, 
+  ActiveMethodItem, 
+  IcebreakerItem, 
+  DigitalIdeaItem, 
+  ReflectionIdeaItem 
+} from './src/templatePlanGenerator';
 import { BloomSidebar } from './src/components/BloomSidebar';
 
 type LessonCategory = 'Įvadinė' | 'Įtvirtinimo' | 'Apibendrinamoji' | 'Vertinamoji' | '';
@@ -83,6 +89,8 @@ interface LessonPlan {
   specialAdvice?: string; 
   motivation: string;
   stageDurations?: Record<string, number>;
+  methodologyBank?: MethodologyBank;
+  extraCreativeIdeas?: string[];
 }
 
 interface SavedPlan {
@@ -282,173 +290,80 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
     isOutside: false,
     eDiaryLessonType: "Įtvirtinimo"
   },
-  motivation: "Kiekvienas mokinys yra kūrėjas. Šiandien jūs ne tik vartotojai, bet ir tie, kurie supranta žodžio galią. Sėkmės kūryboje."
+  motivation: "Kiekvienas mokinys yra kūrėjas. Šiandien jūs ne tik vartotojai, bet ir tie, kurie supranta žodžio galią. Sėkmės kūryboje.",
+  methodologyBank: {
+    icebreakers: [
+      {
+        option: "A variantas",
+        title: "Intriga iš kasdienybės",
+        prompt: "Mokytojas parodo dvi identiškas prekes su skirtingomis pakuotėmis ir šūkiais: viena parduodama už 1 eurą, kita už 10 eurų. Klausimas klasei: „Kodėl žmonės moka 10 kartų daugiau? Kas čia parduodama – prekė ar emocija?“"
+      },
+      {
+        option: "B variantas",
+        title: "„Tiesa ar manipuliacija?“",
+        prompt: "Demonstruojami 3 garsūs reklaminiai šūkiai. Mokiniai turi nuspręsti, kurie teiginiai yra faktai, o kurie – kalbinė manipuliacija."
+      },
+      {
+        option: "C variantas",
+        title: "Mentimeter žodžių debesis",
+        prompt: "Mokiniai per telefonus įrašo 3 žodžius, kurie jiems asocijuojasi su gera reklama: ekrane išryškėja bendras klasės požiūris."
+      }
+    ],
+    activeMethods: [
+      {
+        name: "„Pagalvok – Pasitark poroje – Pasidalink“ (Think-Pair-Share)",
+        description: "Mokiniai 1 min. individualiai analizuoja reklamą, 2 min. poroje ieško slaptos potekstės ir pristato 1 argumentą klasei.",
+        practicalTip: "Leidžia kiekvienam mokiniui drąsiai išbandyti savo kritinio mąstymo hipotezę prieš kalbant garsiai."
+      },
+      {
+        name: "„Klaidų detektyvas / Reklamos demaskavimas“",
+        description: "Mokiniai gauna reklamą su paslėptais loginiais klaidinimais (pvz. '9 iš 10 odontologų rekomenduoja') ir turi rasti manipuliacijos techniką.",
+        practicalTip: "Ugdo medijų raštingumą ir analitinį mąstymą."
+      },
+      {
+        name: "„Frayer modelis sąvokai „Įtaiga“",
+        description: "Lapelyje pildomi 4 langai: Apibrėžimas, Esminės savybės, Gyvenimiški pavyzdžiai, Nepavyzdžiai (kas nėra įtaiga).",
+        practicalTip: "Apsaugo nuo mechaninio taisyklių kartojimo."
+      },
+      {
+        name: "„Kūrybinė laboratorija – Reklamos agentūra“",
+        description: "Klasė virsta kūrybinėmis agentūromis, kurios gauna visiškai nenaudingą daiktą (pvz. sugedusį skėtį) ir turi sukurti jam patrauklų aprašymą.",
+        practicalTip: "Maksimalus kūrybiškumas ir kalbos priemonių praktinis panaudojimas."
+      }
+    ],
+    realWorldContext: "Reklamos kalbos išmanymas saugo asmeninius finansus, padeda nepasiduoti internetinėms apgavystėms socialiniuose tinkluose (TikTok, Instagram) ir ugdo profesionalius komunikacijos įgūdžius, būtinus bet kurioje šiuolaikinėje profesijoje.",
+    digitalAndGamified: [
+      {
+        tool: "Canva",
+        idea: "Sukurti reklaminį banerį arba socialinių tinklų skelbimą su parinktu šūkiu."
+      },
+      {
+        tool: "Quizizz / Mentimeter",
+        idea: "5 klausimų blitz-viktorina: atpažinti hiperbolizaciją, personifikaciją ir retorinius klausimus."
+      },
+      {
+        tool: "Padlet lenta",
+        idea: "„Geriausios ir blogiausios reklamos siena“: mokiniai kelia pavyzdžius ir komentuoja bendraklasių atradimus."
+      }
+    ],
+    reflectionIdeas: [
+      {
+        method: "Metodas „3-2-1“",
+        description: "3 pastebėtos įtaigos priemonės; 2 reklamos, kurias dabar vertinsiu kitaip; 1 taisyklė sau ateičiai."
+      },
+      {
+        method: "„Išėjimo bilietas“",
+        description: "Parašykite vieną įtaigų sakinį, kodėl verta mokytis lietuvių kalbos."
+      }
+    ]
+  }
 };
 
-const formatGeminiError = (err: any): string => {
+const formatApiError = (err: any): string => {
   if (!err) return 'Nežinoma klaida.';
-  console.error('DI Klaidos detalės:', err);
+  console.error('Klaidos detalės:', err);
   const str = typeof err === 'string' ? err : (err.message || JSON.stringify(err));
-  
-  if (str.includes('API_KEY_LEAKED') || str.includes('leaked') || str.includes('reported as leaked')) {
-    return 'Klaida: Jūsų Gemini API raktas buvo anuliuotas/užblokuotas Google sistemoje (Google automatiškai blokuoja GitHub aptiktus raktus). Prašome susikurti naują raktą per Google AI Studio ir įvesti jį paspaudus „🔑 API Raktas“.';
-  }
-  if (str.includes('API_KEY_INVALID') || str.includes('API key not valid') || str.includes('400') || str.includes('403')) {
-    return 'Klaida (403/400): Neteisingas, neaktyvus arba užblokuotas Gemini API raktas. Įveskite galiojantį Google AI Studio raktą per „🔑 API Raktas“.';
-  }
-  if (str.includes('Unexpected end of JSON input') || str.includes('Failed to execute \'json\'') || str.includes('tuščias atsakymas')) {
-    return 'Klaida: Serveris negavo atsakymo iš Google DI. Dažniausia priežastis – užblokuotas arba nebegaliojantis API raktas. Atnaujinkite raktą per „🔑 API Raktas“.';
-  }
-  if (str.includes('429') || str.includes('RESOURCE_EXHAUSTED')) {
-    return 'Klaida: Viršytas Gemini API užklausų limitas (Rate limit). Palaukite kelias sekundes ir bandykite vėl.';
-  }
-  if (str.includes('503') || str.includes('high demand') || str.includes('overloaded')) {
-    return 'Klaida: Google DI serveriai šiuo metu perkrauti. Palaukite 5 sekundes ir paspauskite mygtuką dar kartą.';
-  }
-  if (str.includes('404') || str.includes('not found') || str.includes('NOT_FOUND')) {
-    return `Klaida (404): Nurodytas Gemini API modelis nepasiekiamas jūsų projektui. Patikrinkite API rakto prieigą Google AI Studio.`;
-  }
   return `Klaida: ${err.message || str}`;
-};
-
-const callDirectRestGemini = async (apiKey: string, model: string, contents: any, systemInstruction?: string, isJson?: boolean) => {
-  const promptText = typeof contents === 'string' ? contents : (contents?.parts?.[0]?.text || JSON.stringify(contents));
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  
-  const bodyPayload: any = {
-    contents: [{ parts: [{ text: promptText }] }]
-  };
-  if (systemInstruction) {
-    bodyPayload.systemInstruction = { parts: [{ text: systemInstruction }] };
-  }
-  if (isJson) {
-    bodyPayload.generationConfig = { responseMimeType: 'application/json' };
-  }
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bodyPayload)
-  });
-
-  const rawText = await res.text();
-  let data: any = null;
-  if (rawText && rawText.trim().length > 0) {
-    try {
-      data = JSON.parse(rawText);
-    } catch (parseErr) {
-      console.warn('REST API atsakymas nebuvo standartinis JSON:', rawText);
-    }
-  }
-
-  if (!res.ok) {
-    if (data?.error) {
-      const errMsg = data.error.message || '';
-      if (errMsg.includes('reported as leaked') || errMsg.includes('leaked')) {
-        throw new Error('API_KEY_LEAKED: Jūsų Google Gemini API raktas buvo anuliuotas/užblokuotas Google sistemoje kaip nutekėjęs.');
-      }
-      throw new Error(errMsg || `Klaida ${res.status}: ${res.statusText}`);
-    }
-    if (rawText && (rawText.includes('leaked') || rawText.includes('reported as leaked'))) {
-      throw new Error('API_KEY_LEAKED: Jūsų Google Gemini API raktas buvo anuliuotas/užblokuotas Google sistemoje kaip nutekėjęs.');
-    }
-    throw new Error(`Klaida (${res.status}): ${rawText || res.statusText || 'Tuščias serverio atsakymas'}`);
-  }
-
-  if (!data) {
-    throw new Error('Gautas tuščias atsakymas iš Google DI serverio.');
-  }
-
-  if (data.error) {
-    throw new Error(data.error.message || JSON.stringify(data.error));
-  }
-
-  const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!generatedText) {
-    throw new Error('Tuščias DI atsakymas.');
-  }
-  return { text: generatedText };
-};
-
-const callGeminiWithFallback = async (apiKey: string, params: { contents: any; config?: any }) => {
-  const models = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-3.8-flash'];
-  let lastError: any = null;
-
-  // 1. First attempt with @google/genai SDK across candidate models
-  try {
-    const ai = new GoogleGenAI({ apiKey });
-    for (const model of models) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents: params.contents,
-          config: params.config,
-        });
-        if (response && response.text) {
-          return response;
-        }
-      } catch (err: any) {
-        lastError = err;
-        const msg = err?.message || String(err);
-        if (msg.includes('leaked') || msg.includes('API_KEY_LEAKED')) {
-          throw err;
-        }
-        console.warn(`SDK Modelis ${model} grąžino klaidą:`, err);
-        continue;
-      }
-    }
-  } catch (sdkInitErr: any) {
-    const msg = sdkInitErr?.message || String(sdkInitErr);
-    if (msg.includes('leaked') || msg.includes('API_KEY_LEAKED')) {
-      throw sdkInitErr;
-    }
-    console.warn('SDK initialization/call issue, falling back to direct REST API...', sdkInitErr);
-  }
-
-  // 2. Fallback: Direct REST API fetch call (bypasses browser SDK bundling quirks)
-  const systemInstructionText = typeof params.config?.systemInstruction === 'string' 
-    ? params.config.systemInstruction 
-    : (params.config?.systemInstruction?.parts?.[0]?.text || undefined);
-  const isJsonMime = params.config?.responseMimeType === 'application/json';
-
-  for (const model of models) {
-    try {
-      console.log(`Bandome tiesioginę REST užklausą su modeliu ${model}...`);
-      const restRes = await callDirectRestGemini(apiKey, model, params.contents, systemInstructionText, isJsonMime);
-      if (restRes && restRes.text) {
-        return restRes;
-      }
-    } catch (restErr: any) {
-      lastError = restErr;
-      const msg = restErr?.message || String(restErr);
-      if (msg.includes('leaked') || msg.includes('API_KEY_LEAKED')) {
-        throw restErr;
-      }
-      console.warn(`Direct REST Modelis ${model} grąžino klaidą:`, restErr);
-      continue;
-    }
-  }
-
-  throw lastError || new Error('Nepavyko gauti atsakymo iš Gemini DI.');
-};
-
-const getStoredApiKey = (): string => {
-  try {
-    const local = localStorage.getItem('CUSTOM_GEMINI_API_KEY');
-    if (local && local.trim().length > 0) return local.trim();
-  } catch (e) {}
-
-  const envKey = 
-    process.env.API_KEY ||
-    process.env.GEMINI_API_KEY ||
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_GEMINI_API_KEY) ||
-    (typeof import.meta !== 'undefined' && (import.meta as any).env?.GEMINI_API_KEY) ||
-    '';
-  if (envKey && typeof envKey === 'string' && envKey.trim().length > 0 && envKey !== 'undefined') {
-    return envKey.trim();
-  }
-
-  return '';
 };
 
 const App = () => {
@@ -523,6 +438,58 @@ const App = () => {
       setGoal(prev => textToInsert + (prev ? ' ' + prev : ''));
     } else {
       setGoal(prev => (prev ? prev.trim() + ' ' : '') + textToInsert);
+    }
+  };
+
+  // Metodų ir idėjų banko būsenos
+  const [methodologyTab, setMethodologyTab] = useState<'all' | 'icebreakers' | 'active' | 'realworld' | 'digital' | 'reflection'>('all');
+  const [isGeneratingExtraIdeas, setIsGeneratingExtraIdeas] = useState(false);
+  const [extraIdeas, setExtraIdeas] = useState<string[]>([]);
+
+  const handleGenerateExtraIdeas = async () => {
+    const currentSubject = subject || lessonPlan?.lessonOverview?.topic || 'Bendrasis ugdymas';
+    const currentTopic = topic || lessonPlan?.lessonOverview?.topic || 'Pamokos tema';
+    const currentGrade = grade || '8 klasė';
+
+    setIsGeneratingExtraIdeas(true);
+    try {
+      const response = await fetch('/api/generate-ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: currentSubject,
+          grade: currentGrade,
+          topic: currentTopic,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && Array.isArray(data.ideas) && data.ideas.length > 0) {
+          setExtraIdeas(prev => [...prev, ...data.ideas]);
+          setMethodologyTab('all');
+          return;
+        }
+      }
+
+      setExtraIdeas(prev => [
+        ...prev,
+        `Kūrybinis iššūkis „Temos detektyvai“. Mokiniai gauna paslaptingą voką su užuominomis apie temą „${currentTopic}“ ir per 5 min. porose turi iššifruoti pagrindinį dėsningumą.`,
+        `STEAM / Tarpdalykinė simuliacija. Sukurti trumpą radijo / tinklalaidės (podcast) interviu (1 min.), kur vienas mokinys kalbina „ekspertą“ apie temos „${currentTopic}“ pritaikymą šiuolaikiniame pasaulyje.`,
+        `Mini žaidimas „Karštoji kėdė“. Vienas savanoris mokinys atsisėda prieš klasę ir per 2 min. turi atsakyti į 5 bendraklasių klausimus apie temą „${currentTopic}“.`
+      ]);
+      setMethodologyTab('all');
+    } catch (e: any) {
+      console.warn('Papildomų idėjų generavimo klaida:', e);
+      setExtraIdeas(prev => [
+        ...prev,
+        `Kūrybinis iššūkis „Temos detektyvai“. Mokiniai gauna paslaptingą voką su užuominomis apie temą „${currentTopic}“ ir per 5 min. porose turi iššifruoti pagrindinį dėsningumą.`,
+        `STEAM / Tarpdalykinė simuliacija. Sukurti trumpą radijo / tinklalaidės (podcast) interviu (1 min.), kur vienas mokinys kalbina „ekspertą“ apie temos „${currentTopic}“ pritaikymą šiuolaikiniame pasaulyje.`,
+        `Mini žaidimas „Karštoji kėdė“. Vienas savanoris mokinys atsisėda prieš klasę ir per 2 min. turi atsakyti į 5 bendraklasių klausimus apie temą „${currentTopic}“.`
+      ]);
+      setMethodologyTab('all');
+    } finally {
+      setIsGeneratingExtraIdeas(false);
     }
   };
 
@@ -746,22 +713,36 @@ const App = () => {
     setEditedPlan(EXAMPLE_PLAN_DATA);
   };
 
-  const systemInstruction = `Tu esi ekspertas pedagogas, puikiai išmanantis Lietuvos Bendrąsias ugdymo programas (BP). 
-SVARBU. Visada remkis oficialiomis programomis, kurias galima rasti čia. https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos.
+  const systemInstruction = `Tu esi aukščiausio lygio kūrybingas ir patyręs pedagogas-didaktas, puikiai išmanantis Lietuvos Bendrąsias ugdymo programas (BP) ir šiuolaikinius aktyvius mokymo metodus. 
+Tavo misija - sukurti GYVĄ, YPAČ IŠSAMŲ, METODIŠKAI ĮVAIRŲ IR ĮKVEPIANTĮ pamokos planą.
+GRIEŽTAS REIKALAVIMAS: Planas NIEKADA neturi būti sausas, lakoniškas ar formalus. Mokytojui turi pateikti didelį metodų, veiklų, sužadinimo būdų ir kūrybinių idėjų pasirinkimą, kad pamoka būtų šiuolaikiška, dinamiška ir įtraukianti!
 
-SVARBU. Tekstuose GRIEŽTAI VENGTI DVITAŠKIŲ. Vietoj jų naudok taškus.
+SVARBU. Tekstuose GRIEŽTAI VENGTI DVITAŠKIŲ. Vietoj jų naudok taškus arba brūkšnelius.
 Pvz. Vietoj "Tema: Veiksmažodis" rašyk "Tema. Veiksmažodis".
 
 El. dienyno įrašuose (eDiaryEntry) NERAŠYK žodžių "Tema." ar "Namų darbai." pradžioje. Pateik tik turinį.
 Pvz. Vietoj "Tema. Veiksmažodis" rašyk tiesiog "Veiksmažodis".
 Nenaudok dvitaškių (:).
 
-Struktūrizuotas diferencijavimas (differentiation) turi apimti.
-- Gifted (Gabūs). Užduotys, kurios skatina analitinį, kritinį ir kūrybinį mąstymą (BLOOM taksonomijos viršūnė). Pateik sudėtingesnius tekstus, atvirus klausimus, projektinę veiklą.
-- General (Vidutiniai). Užduotys, užtikrinančios BP reikalavimų pasiekimą (supratimas, taikymas).
-- Struggling (Sunkumų turintys). Strategijos. vizualizacija, pagalbiniai klausimai, užduočių skaidymas į mažesnius etapus, sąvokų žodynėliai.
+REIKALAVIMAI TURINIO TURTINGUMUI IR METODAMS:
+1. PAMOKOS EIGA (lessonStages) - KIEKVIENAS ETAPAS TURI BŪTI LABAI IŠSAMUS IR SU PASIRINKIMO ALTERNATYVOMIS:
+   - introduction (Sužadinimas): Pateik BENT 3 alternatyvius sužadinimo / intrigos variantus (A variantas - intriguojantis klausimas / paradoksas; B variantas - vaizdinė / medijų provokacija ar „Tiesa ar mitas“; C variantas - praktinė gyvenimiška situacija / Mentimeter minčių debesis). Nurodyk konkrečius klausimus mokiniams.
+   - theory (Teorija / Tyrinėjimas): Išsamus aiškinimo planas, vaizdinis modeliavimas, mąstymo garsiai (Think-aloud) metodas, demonstracija ir tarpinis supratimo patikrinimas (Check for Understanding).
+   - practice (Praktika): Diferencijuotas praktinis darbas, aiškios užduočių formuluotės, darbas porose (Think-Pair-Share), stotelių rotacija arba lygiai.
+   - consolidation (Įtvirtinimas): Greitas patikrinimas (Quizizz / mini testas), klaidų taisymo iššūkis („Klaidų medžioklė“) arba tarpusavio vertinimas.
+   - summary (Apibendrinimas): Refleksijos metodas „3-2-1“, „Išėjimo bilietas“, savirefleksija pagal sėkmės kriterijus.
 
-Būtinai pateik IŠSAMIAS veiklų organizavimo klasėje aprašymus (individualiai, porose, grupėse). Kiekviena veikla turi turėti nurodytą VEIKLOS BŪDĄ (pvz., diskusija, tyrimas, kūrybinis rašymas, simuliacija, debatai ir t.t.) ir konkrečias priemones bei šaltinius (internetines nuorodas, programėles).
+2. METODŲ IR IDĖJŲ BANKAS (methodologyBank) - BŪTINA DETALIAI UŽPILDYTI:
+   - activeMethods: masyvas iš 4 konkrečių aktyvaus ugdymo metodų šiai temai (objektai su { "name": "...", "description": "...", "practicalTip": "..." }). Pvz. Think-Pair-Share, Ekspertų mozaika (Jigsaw), Frayer modelis, Klaidų detektyvas, Akvariumas, Stotelės.
+   - icebreakers: masyvas iš 3 konkrečių sužadinimo idėjų (objektai su { "option": "A variantas", "title": "...", "prompt": "..." }).
+   - realWorldContext: išsamus aprašymas, kaip ši tema siejasi su realiu gyvenimu, šiuolaikinėmis profesijomis, technologijomis ir STEAM.
+   - digitalAndGamified: masyvas iš 3-4 skaitmeninių / žaidybinių veiklų (objektai su { "tool": "Kahoot / Quizizz / Padlet / Canva", "idea": "..." }).
+   - reflectionIdeas: masyvas iš 3 alternatyvių įsivertinimo ir refleksijos būdų (objektai su { "method": "...", "description": "..." }).
+
+3. DIFERENCIJAVIMAS:
+   - Gabūs: kūrybinis iššūkis, nestandartinė problema, mentorystė.
+   - Vidutiniai: aiškus algoritmas, kontekstinė praktika porose.
+   - Sunkumų turintys (SUP): žingsninė atrama (scaffolding), vizualizacijos, užuominos.
 
 Struktūra:
 {
@@ -773,6 +754,13 @@ Struktūra:
   "classActivities": { "individual": "...", "pairs": "...", "group": "...", "toolsResources": "..." },
   "individualWork": "...", 
   "lessonStages": { "introduction": "...", "theory": "...", "practice": "...", "consolidation": "...", "summary": "..." },
+  "methodologyBank": {
+    "activeMethods": [ { "name": "...", "description": "...", "practicalTip": "..." } ],
+    "icebreakers": [ { "option": "A variantas", "title": "...", "prompt": "..." } ],
+    "realWorldContext": "...",
+    "digitalAndGamified": [ { "tool": "...", "idea": "..." } ],
+    "reflectionIdeas": [ { "method": "...", "description": "..." } ]
+  },
   "differentiation": { "gifted": "...", "general": "...", "struggling": "..." },
   "differentiatedTasks": { "advanced": "...", "average": "...", "struggling": "..." },
   "differentiatedAssessment": { "advanced": "...", "average": "...", "struggling": "..." },
@@ -863,99 +851,95 @@ Struktūra:
       return;
     }
 
-    const activeKey = getStoredApiKey();
-    // Jei nėra jokio API rakto arba jis neįvestas, iškart sklandžiai generuojame pagal pedagoginį šabloną (2 variantas)
-    if (!activeKey) {
-      handleGenerateFromTemplate();
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
     setShowEditModal(false);
 
-    const prompt = `
-      Sukurk išsamų ir struktūrizuotą pamokos planą.
-      - Dalykas. ${subject}, Klasė. ${grade}, Tema. ${topic}
-      - Tipas. ${lessonType}, Tikslas. ${goal}, Veiklos. ${activities}
-      - Mokinių pasiekimų lygiai klasėje. ${selectedStudentLevels.join(', ')}
-      - Naudojamos priemonės. ${selectedResources.join(', ')}
-      - Vertinimo metodai. ${selectedEvaluations.join(', ')}
-      - Vertinimo kriterijai. ${evaluationCriteria}
-      - Integracija. ${isIntegratedInput ? integrationDetails : 'Ne'}
-      - Pamoka už mokyklos ribų. ${isOutsideInput ? `Taip. Vieta. ${outsideLocation}, Tikslas. ${outsideGoal}.` : 'Ne'}
-      
-      GRIEŽTAI. 
-      1. Būtinai remkis oficialiomis Lietuvos Bendrosiomis programomis (BP) iš https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos.
-      2. Pateik labai konkrečias diferencijavimo strategijas trims mokinių grupėms (Gabūs, Vidutiniai, Sunkumų turintys). 
-      3. Sugeneruok konkrečias diferencijuotas užduotis ('differentiatedTasks') ir vertinimo būdus ('differentiatedAssessment') kiekvienai pasirinktai mokinių grupei (advanced, average, struggling) pagal Bloom taksonomiją.
-      4. NENAUDOK DVITAŠKIŲ TEKSTUOSE.
-      5. Būtinai užpildyk 'classActivities' objektą pasiūlydamas IŠSAMIAS veiklas individualiai, porose ir grupėse. Kiekviena veikla turi turėti aiškų VEIKLOS BŪDĄ ir nurodytus įrankius.
-      6. Pasiūlyk 'individualWork' (individualų darbą) atskirai bei 'digitalResources' (skaitmeninius išteklius - nuorodas, programėles) geriausiai tinkančius šiai temai.
-      7. El. dienyne (eDiaryEntry) NERAŠYK "Tema." ir "Namų darbas." žodžių, pateik tik turinį.
-    `;
-
     try {
-      const response = await callGeminiWithFallback(activeKey, {
-        contents: prompt,
-        config: { systemInstruction, responseMimeType: "application/json" },
-      });
-      
-      const parsedPlan = tryParseJSON(response.text || '');
-      if (!parsedPlan) throw new Error("Nepavyko sugeneruoti plano formatu. Bandykite iš naujo.");
-
-      const fallbackPedagogical = buildPedagogicalPlan({
-        subject,
-        grade,
-        topic,
-        lessonType,
-        goal,
-        activities,
-        selectedResources,
-        selectedEvaluations,
-        evaluationCriteria,
-        isIntegratedInput,
-        integrationDetails,
-        isOutsideInput,
-        outsideLocation,
-        outsideGoal,
-        stageDurations,
-        selectedStudentLevels
+      const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject,
+          grade,
+          topic,
+          lessonType,
+          goal,
+          activities,
+          evaluationCriteria,
+          selectedEvaluations,
+          selectedResources,
+          selectedStudentLevels,
+          isIntegratedInput,
+          integrationDetails,
+          isOutsideInput,
+          outsideLocation,
+          outsideGoal,
+          stageDurations,
+        }),
       });
 
-      const sanitizedPlan: LessonPlan = {
-        ...parsedPlan,
-        targetLevels: selectedStudentLevels,
-        differentiatedTasks: parsedPlan.differentiatedTasks || fallbackPedagogical.differentiatedTasks,
-        differentiatedAssessment: parsedPlan.differentiatedAssessment || fallbackPedagogical.differentiatedAssessment,
-        lessonOverview: parsedPlan.lessonOverview || { topic: topic || '', goal: goal || '', competencies: '', evaluation: { methods: [], criteria: '' } },
-        lessonStages: parsedPlan.lessonStages || { introduction: '', theory: '', practice: '', consolidation: '', summary: '' },
-        differentiation: parsedPlan.differentiation || { gifted: '', general: '', struggling: '' },
-        homework: parsedPlan.homework || { purpose: '', gifted: '', general: '', struggling: '' },
-        classActivities: parsedPlan.classActivities || { individual: "", pairs: "", group: "", toolsResources: "" },
-        individualWork: parsedPlan.individualWork || "",
-        digitalResources: parsedPlan.digitalResources || "",
-        eDiaryEntry: {
-          topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || '',
-          homework: parsedPlan.eDiaryEntry?.homework || '',
-          individualHomework: parsedPlan.eDiaryEntry?.individualHomework || '',
-          notes: parsedPlan.eDiaryEntry?.notes || '',
-          isIntegrated: isIntegratedInput,
-          isOutside: isOutsideInput,
-          eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || ''
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.plan) {
+          const parsedPlan = data.plan;
+          const fallbackPedagogical = buildPedagogicalPlan({
+            subject,
+            grade,
+            topic,
+            lessonType,
+            goal,
+            activities,
+            selectedResources,
+            selectedEvaluations,
+            evaluationCriteria,
+            isIntegratedInput,
+            integrationDetails,
+            isOutsideInput,
+            outsideLocation,
+            outsideGoal,
+            stageDurations,
+            selectedStudentLevels,
+          });
+
+          const sanitizedPlan: LessonPlan = {
+            ...parsedPlan,
+            targetLevels: selectedStudentLevels,
+            methodologyBank: parsedPlan.methodologyBank || fallbackPedagogical.methodologyBank,
+            differentiatedTasks: parsedPlan.differentiatedTasks || fallbackPedagogical.differentiatedTasks,
+            differentiatedAssessment: parsedPlan.differentiatedAssessment || fallbackPedagogical.differentiatedAssessment,
+            lessonOverview: parsedPlan.lessonOverview || { topic: topic || '', goal: goal || '', competencies: '', evaluation: { methods: [], criteria: '' } },
+            lessonStages: parsedPlan.lessonStages || { introduction: '', theory: '', practice: '', consolidation: '', summary: '' },
+            differentiation: parsedPlan.differentiation || { gifted: '', general: '', struggling: '' },
+            homework: parsedPlan.homework || { purpose: '', gifted: '', general: '', struggling: '' },
+            classActivities: parsedPlan.classActivities || { individual: '', pairs: '', group: '', toolsResources: '' },
+            individualWork: parsedPlan.individualWork || '',
+            digitalResources: parsedPlan.digitalResources || '',
+            eDiaryEntry: {
+              topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || '',
+              homework: parsedPlan.eDiaryEntry?.homework || '',
+              individualHomework: parsedPlan.eDiaryEntry?.individualHomework || '',
+              notes: parsedPlan.eDiaryEntry?.notes || '',
+              isIntegrated: isIntegratedInput,
+              isOutside: isOutsideInput,
+              eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || '',
+            },
+          };
+
+          setLessonPlan(sanitizedPlan);
+          setEditedPlan(sanitizedPlan);
+          setActivePlanId(null);
+
+          if (window.innerWidth < 1024) {
+            document.querySelector('.results-container')?.scrollIntoView({ behavior: 'smooth' });
+          }
+          return;
         }
-      };
-      
-      setLessonPlan(sanitizedPlan);
-      setEditedPlan(sanitizedPlan);
-      setActivePlanId(null);
-      
-      if (window.innerWidth < 1024) {
-        document.querySelector('.results-container')?.scrollIntoView({ behavior: 'smooth' });
       }
+
+      handleGenerateFromTemplate();
     } catch (e: any) {
-      console.warn("DI generavimas nepavyko, persijungiama į pedagoginį šabloną:", e);
-      // Atsarginis garantuotas variantas: jei DI raktas užblokuotas ar nepavyko, sugeneruojame pagal patikrintą šabloną
+      console.warn('Užklausos klaida, generuojame pagal pedagoginį šabloną:', e);
       handleGenerateFromTemplate();
     } finally {
       setIsLoading(false);
@@ -1043,50 +1027,52 @@ Struktūra:
     if (!chatInput.trim()) return;
 
     const userMessage = chatInput.trim();
-    setChatMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    const updatedMessages = [...chatMessages, { role: 'user' as const, text: userMessage }];
+    setChatMessages(updatedMessages);
     setChatInput('');
     setIsChatLoading(true);
 
-    const activeKey = getStoredApiKey();
-    if (!activeKey) {
-      setTimeout(() => {
-        let reply = "Esu jūsų pedagoginis pagalbininkas! Kadangi veikiame šabloniniu režimu be DI rakto, štai keletas patarimų:";
-        if (lessonPlan) {
-          reply += `\nPagal jūsų pamoką „${lessonPlan.lessonOverview?.topic}“ rekomenduojama:\n• Užduotis suskirstyti į 3 lygius (pagal poreikį).\n• Aktyvinti mokinius pasitelkiant porinį darbą ir refleksiją „3-2-1“ pamokos pabaigoje.`;
-        } else {
-          reply += "\nPasirinkite dalyką, klasę ir temą kairėje pusėje ir paspauskite „Generuoti planą 🚀“ arba „Šabloninis planas (be raktų)“!";
-        }
-        setChatMessages(prev => [...prev, { role: 'model', text: reply }]);
-        setIsChatLoading(false);
-      }, 500);
-      return;
-    }
-
     try {
-      let context = "Tu esi ekspertas pedagogas, asistentas, padedantis mokytojams. Atsakyk trumpai, aiškiai ir lietuviškai.";
+      let lessonContext = '';
       if (lessonPlan) {
-        context += `\nŠtai dabartinis pamokos planas, apie kurį gali klausti mokytojas:\nTema: ${lessonPlan.lessonOverview.topic}\nTikslas: ${lessonPlan.lessonOverview.goal}\nEiga: ${JSON.stringify(lessonPlan.lessonStages)}`;
+        lessonContext = `Tema: ${lessonPlan.lessonOverview?.topic}, Tikslas: ${lessonPlan.lessonOverview?.goal}`;
       }
 
-      // We format the history for the model.
-      const historyContents = chatMessages.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-      }));
-      
-      // Append the new user message
-      historyContents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-      const response = await callGeminiWithFallback(activeKey, {
-        contents: historyContents,
-        config: {
-          systemInstruction: context
-        }
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages,
+          lessonContext,
+        }),
       });
 
-      setChatMessages(prev => [...prev, { role: 'model', text: response.text || 'Atsiprašau, kažkas nutiko.' }]);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.reply) {
+          setChatMessages(prev => [...prev, { role: 'model', text: data.reply }]);
+          return;
+        }
+      }
+
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: 'model',
+          text: lessonPlan
+            ? `Pagal jūsų pamoką „${lessonPlan.lessonOverview?.topic}“ rekomenduoju aktyvinti mokinius pasitelkiant porinį darbą (Think-Pair-Share), diferencijuoti užduotis 3 lygiais ir atlikti refleksiją „3-2-1“ pamokos pabaigoje.`
+            : 'Rekomenduoju kairėje formoje nurodyti dalyką, klasę bei temą ir sukurti planą, kad galėčiau pateikti tikslingų patarimų jūsų pamokai!',
+        },
+      ]);
     } catch (err: any) {
-      setChatMessages(prev => [...prev, { role: 'model', text: formatGeminiError(err) }]);
+      console.warn('Pokalbio klaida:', err);
+      setChatMessages(prev => [
+        ...prev,
+        {
+          role: 'model',
+          text: 'Esu jūsų pedagoginis pagalbininkas. Rekomenduoju išbandyti aktyvaus ugdymo metodus iš idėjų banko arba diferencijuoti užduotis pagal mokinių pasiekimų lygius.',
+        },
+      ]);
     } finally {
       setIsChatLoading(false);
     }
@@ -1642,11 +1628,212 @@ Struktūra:
                             {STAGE_LABELS[key] || key} ({stageMin} min.)
                           </span>
                         </div>
-                        <p className="timeline-content">{content}</p>
+                        <p className="timeline-content" style={{whiteSpace: 'pre-line'}}>{content}</p>
                       </div>
                     );
                   }) : <p>Nėra informacijos</p>}
                 </div>
+              </div>
+
+              {/* 💡 Pedagoginių metodų, alternatyvų ir kūrybinių idėjų bankas */}
+              <div className="card methodology-bank-card" style={{borderLeftColor: '#f59e0b'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px'}}>
+                  <div style={{display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+                    <h3 style={{margin: 0}}>💡 Pedagoginių metodų, alternatyvų ir kūrybinių idėjų bankas</h3>
+                    <span style={{fontSize: '0.75rem', color: '#fbbf24', background: 'rgba(245, 158, 11, 0.15)', padding: '2px 8px', borderRadius: '6px', fontWeight: 600}}>
+                      Didaktinis arsenalas
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="generate-extra-ideas-btn"
+                    onClick={handleGenerateExtraIdeas}
+                    disabled={isGeneratingExtraIdeas}
+                    title="Sugeneruoti dar 3 netikėtas, žaidybines ar STEAM idėjas šiai pamokai"
+                  >
+                    {isGeneratingExtraIdeas ? (
+                      <>
+                        <span className="smart-spinner" style={{width: '12px', height: '12px'}}></span>
+                        <span>Galvojamos idėjos...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>✨</span>
+                        <span>Generuoti daugiau idėjų su DI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                
+                <p style={{fontSize: '0.82rem', color: 'var(--text-color-light)', marginTop: 0, marginBottom: '14px', lineHeight: 1.5}}>
+                  Šiame banke pateikiamos paruoštos didaktinės alternatyvos, sužadinimo būdai, aktyvaus mokymo metodai, gyvenimiškas kontekstas ir refleksijos idėjos. Pasirinkite labiausiai tinkančius jūsų klasei.
+                </p>
+
+                {/* Subtabs filtras */}
+                <div className="method-subtabs-row">
+                  {[
+                    { id: 'all', label: '🌟 Visi pasiūlymai' },
+                    { id: 'icebreakers', label: '⚡ Sužadinimas (A, B, C)' },
+                    { id: 'active', label: '🧩 Aktyvūs metodai' },
+                    { id: 'realworld', label: '🌍 Gyvenimiškas kontekstas' },
+                    { id: 'digital', label: '🎮 Skaitmeniniai įrankiai' },
+                    { id: 'reflection', label: '🪞 Refleksija' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`method-chip-btn ${methodologyTab === tab.id ? 'active' : ''}`}
+                      onClick={() => setMethodologyTab(tab.id as any)}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 1. Sužadinimo / intrigos idėjos (A, B, C) */}
+                {(methodologyTab === 'all' || methodologyTab === 'icebreakers') && lessonPlan.methodologyBank?.icebreakers && (
+                  <div className="method-section-block">
+                    <div className="method-section-title">
+                      <span>⚡ Sužadinimo ir dėmesio patraukimo alternatyvos (pamokos pradžiai)</span>
+                    </div>
+                    <div className="method-icebreaker-grid">
+                      {lessonPlan.methodologyBank.icebreakers.map((ice, idx) => (
+                        <div key={idx} className="method-ice-card">
+                          <div className="method-ice-header">
+                            <span className="method-ice-badge">{ice.option}</span>
+                            <strong className="method-ice-title">{ice.title}</strong>
+                            <button
+                              type="button"
+                              className="method-copy-mini-btn"
+                              onClick={() => handleCopy(ice.prompt, `ice-${idx}`)}
+                            >
+                              {copiedField === `ice-${idx}` ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                            </button>
+                          </div>
+                          <p className="method-ice-prompt">{ice.prompt}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Aktyvūs ugdymo metodai */}
+                {(methodologyTab === 'all' || methodologyTab === 'active') && lessonPlan.methodologyBank?.activeMethods && (
+                  <div className="method-section-block">
+                    <div className="method-section-title">
+                      <span>🧩 Šiuolaikiniai aktyvaus ugdymo metodai šiai temai</span>
+                    </div>
+                    <div className="method-cards-grid">
+                      {lessonPlan.methodologyBank.activeMethods.map((m, idx) => (
+                        <div key={idx} className="method-active-card">
+                          <div className="method-active-header">
+                            <strong className="method-active-name">{m.name}</strong>
+                            <button
+                              type="button"
+                              className="method-copy-mini-btn"
+                              onClick={() => handleCopy(`${m.name}\n${m.description}\nPatarimas. ${m.practicalTip}`, `method-${idx}`)}
+                            >
+                              {copiedField === `method-${idx}` ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                            </button>
+                          </div>
+                          <p className="method-active-desc">{m.description}</p>
+                          <div className="method-active-tip">
+                            <strong>💡 Metodinis patarimas.</strong> {m.practicalTip}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Gyvenimiškas kontekstas ir STEAM sąsajos */}
+                {(methodologyTab === 'all' || methodologyTab === 'realworld') && lessonPlan.methodologyBank?.realWorldContext && (
+                  <div className="method-section-block">
+                    <div className="method-section-title">
+                      <span>🌍 Gyvenimiškas kontekstas, STEAM ir profesinės sąsajos</span>
+                    </div>
+                    <div className="method-realworld-box">
+                      <p>{lessonPlan.methodologyBank.realWorldContext}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 4. Skaitmeninės ir žaidybinės veiklos */}
+                {(methodologyTab === 'all' || methodologyTab === 'digital') && lessonPlan.methodologyBank?.digitalAndGamified && (
+                  <div className="method-section-block">
+                    <div className="method-section-title">
+                      <span>🎮 Skaitmeniniai įrankiai ir žaidybinės veiklos</span>
+                    </div>
+                    <div className="method-digital-grid">
+                      {lessonPlan.methodologyBank.digitalAndGamified.map((d, idx) => (
+                        <div key={idx} className="method-digital-card">
+                          <div className="method-digital-header">
+                            <span className="method-tool-badge">{d.tool}</span>
+                            <button
+                              type="button"
+                              className="method-copy-mini-btn"
+                              onClick={() => handleCopy(`${d.tool}: ${d.idea}`, `tool-${idx}`)}
+                            >
+                              {copiedField === `tool-${idx}` ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                            </button>
+                          </div>
+                          <p className="method-digital-idea">{d.idea}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. Refleksijos ir įsivertinimo idėjos */}
+                {(methodologyTab === 'all' || methodologyTab === 'reflection') && lessonPlan.methodologyBank?.reflectionIdeas && (
+                  <div className="method-section-block">
+                    <div className="method-section-title">
+                      <span>🪞 Refleksijos ir įsivertinimo idėjos pamokos pabaigai</span>
+                    </div>
+                    <div className="method-reflection-grid">
+                      {lessonPlan.methodologyBank.reflectionIdeas.map((ref, idx) => (
+                        <div key={idx} className="method-reflection-card">
+                          <div className="method-reflection-header">
+                            <strong className="method-ref-title">{ref.method}</strong>
+                            <button
+                              type="button"
+                              className="method-copy-mini-btn"
+                              onClick={() => handleCopy(`${ref.method}: ${ref.description}`, `ref-${idx}`)}
+                            >
+                              {copiedField === `ref-${idx}` ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                            </button>
+                          </div>
+                          <p className="method-ref-desc">{ref.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 6. Papildomai sugeneruotos idėjos su DI */}
+                {extraIdeas.length > 0 && (
+                  <div className="method-section-block extra-ideas-section">
+                    <div className="method-section-title" style={{color: '#c084fc'}}>
+                      <span>✨ Papildomai DI sugeneruotos kūrybinės idėjos šiai pamokai</span>
+                    </div>
+                    <div className="extra-ideas-list">
+                      {extraIdeas.map((extra, idx) => (
+                        <div key={idx} className="extra-idea-item">
+                          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px'}}>
+                            <p style={{margin: 0, fontSize: '0.86rem', color: '#f3e8ff', lineHeight: 1.5}}>{extra}</p>
+                            <button
+                              type="button"
+                              className="method-copy-mini-btn"
+                              onClick={() => handleCopy(extra, `extra-${idx}`)}
+                            >
+                              {copiedField === `extra-${idx}` ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
                <div className="card">
@@ -2130,8 +2317,6 @@ Struktūra:
         currentSubject={subject}
         currentTopic={topic}
         currentGrade={grade}
-        apiKey={getStoredApiKey()}
-        geminiCaller={callGeminiWithFallback}
         initialTab={bloomInitialTab}
       />
 
