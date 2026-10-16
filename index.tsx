@@ -9,7 +9,6 @@ import {
   DigitalIdeaItem, 
   ReflectionIdeaItem 
 } from './src/templatePlanGenerator';
-import { BloomSidebar } from './src/components/BloomSidebar';
 
 type LessonCategory = 'Įvadinė' | 'Įtvirtinimo' | 'Apibendrinamoji' | 'Vertinamoji' | '';
 
@@ -436,20 +435,6 @@ const App = () => {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Bloom Taxonomy Helper State
-  const [isBloomOpen, setIsBloomOpen] = useState(false);
-  const [bloomInitialTab, setBloomInitialTab] = useState<string>('generator');
-
-  const handleInsertIntoGoal = (textToInsert: string, mode: 'replace' | 'append' | 'prepend' = 'append') => {
-    if (mode === 'replace') {
-      setGoal(textToInsert);
-    } else if (mode === 'prepend') {
-      setGoal(prev => textToInsert + (prev ? ' ' + prev : ''));
-    } else {
-      setGoal(prev => (prev ? prev.trim() + ' ' : '') + textToInsert);
-    }
-  };
 
   // Metodų ir idėjų banko būsenos
   const [methodologyTab, setMethodologyTab] = useState<'all' | 'icebreakers' | 'active' | 'realworld' | 'digital' | 'reflection'>('all');
@@ -1253,35 +1238,7 @@ Struktūra:
               </select>
             </div>
             <div className="form-group">
-              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', flexWrap: 'wrap', gap: '6px'}}>
-                <label style={{margin: 0}}>Tikslas (Mokiniai gebės...)</label>
-                <div style={{display: 'flex', gap: '6px', flexWrap: 'wrap'}}>
-                  <button
-                    type="button"
-                    className="bloom-helper-btn smart-sparkle-btn"
-                    onClick={() => {
-                      setBloomInitialTab('generator');
-                      setIsBloomOpen(true);
-                    }}
-                    title="Atverti SMART pamokos tikslų generatorių su DI"
-                  >
-                    <span>✨</span>
-                    <span>SMART tikslų generatorius</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="bloom-helper-btn"
-                    onClick={() => {
-                      setBloomInitialTab('all');
-                      setIsBloomOpen(true);
-                    }}
-                    title="Atverti Bloom taksonomijos veiksmažodžių gidą ir tikslo formulę"
-                  >
-                    <span>🧠</span>
-                    <span>Bloom veiksmažodžiai</span>
-                  </button>
-                </div>
-              </div>
+              <label>Tikslas (Mokiniai gebės...)</label>
               <textarea value={goal} onChange={e => setGoal(e.target.value)} placeholder="pvz., atpažinti..." rows={3} />
             </div>
 
@@ -2344,36 +2301,6 @@ Struktūra:
           </div>
         )}
       </div>
-
-      {/* Bloom taksonomijos ir SMART generatoriaus plaukiojantis mygtukas */}
-      {!isBloomOpen && (
-        <button
-          type="button"
-          className="bloom-floating-trigger"
-          onClick={() => {
-            setBloomInitialTab('generator');
-            setIsBloomOpen(true);
-          }}
-          title="Atverti SMART tikslų generatorių ir Bloom gidą"
-        >
-          <span className="bloom-floating-icon">✨</span>
-          <span className="bloom-floating-label">SMART generatorius</span>
-          <span className="bloom-floating-badge">DI</span>
-        </button>
-      )}
-
-      {/* Bloom taksonomijos ir SMART tikslų šoninis stalčius / skydelis */}
-      <BloomSidebar
-        isOpen={isBloomOpen}
-        onClose={() => setIsBloomOpen(false)}
-        currentGoal={goal}
-        onInsertIntoGoal={handleInsertIntoGoal}
-        currentSubject={subject}
-        currentTopic={topic}
-        currentGrade={grade}
-        initialTab={bloomInitialTab}
-      />
-
     </div>
   );
 };
