@@ -17,6 +17,9 @@ interface EDiaryEntry {
   homework: string;
   individualHomework: string;
   notes: string;
+  realWorldUse?: string;
+  assessmentNote?: string;
+  classLearningNote?: string;
   isIntegrated: boolean;
   isOutside: boolean;
   eDiaryLessonType: string;
@@ -281,10 +284,13 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
     struggling: "Nurašyti vieną šūkį iš matytos reklamos ir nupiešti jai iliustraciją."
   },
   eDiaryEntry: {
-    topicClassworkExpectations: "Reklamos kalba ir įtaigos priemonės. Žinoti: pagrindines įtaigos priemones, retorines figūras ir manipuliacinius šūkius. Gebėti: atpažinti reklaminio teksto tikslinę grupę, analizuoti argumentus. Taikyti: kurti etišką prekės aprašymą ir pagrįsti savo kūrybinius pasirinkimus.",
-    homework: "Tikslingumas: Įtvirtinti įgūdžius ir žinias. Užduotis: Rasti namų aplinkoje ar medijose vieną reklamos pavyzdį ir įvardinti tikslinę auditoriją.",
-    individualHomework: "Tikslingumas: Įtvirtinti įgūdžius ir žinias. Analizuoti manipuliacijos būdus pasirinktoje reklamoje.",
-    notes: "",
+    topicClassworkExpectations: "Lietuvių kalba ir literatūra: Reklamos kalba ir įtaigos priemonės. Mokymosi uždaviniai ir veikla: analizuoti reklamos tekstus, atpažinti manipuliacines kalbos priemones ir kurti etišką prekės aprašymą. Žinoti: retorines figūras, emocinius argumentus ir manipuliacinius šūkius. Gebėti: atpažinti tikslinę auditoriją ir demaskuoti kalbines manipuliacijas. Taikyti: sukurti etišką produkto pristatymą ir pagrįsti pasirinktas įtaigos priemones.",
+    homework: "Tikslas – įtvirtinti reklamos analizės įgūdžius realiame kontekste. Sąsaja su tema: tiesiogiai taikomos klasėje išmoktos įtaigos priemonių schemos. Užduotis: rasti vieną reklamos pavyzdį (internete ar spaudoje) ir įvardyti 2 panaudotas įtaigos priemones (rekomenduojama trukmė: 15 min., neperkraunant mokinių).",
+    individualHomework: "Tikslas – gilinti medijų analizės įgūdžius. Užduotis: išanalizuoti 1 socialinės reklamos kampaniją (iki 15 min.).",
+    notes: "💡 Kuo naudinga realiame gyvenime: Reklamos kalbos ir įtaigos priemonių išmanymas saugo asmeninius finansus nuo neapgalvotų pirkinių, padeda nepasiduoti internetinėms apgavystėms socialiniuose tinkluose ir ugdo kritinį medijų raštingumą.\n\n📊 Planuojamas vertinimas: Formuojamasis vertinimas – tarpusavio vertinimas porose pagal sėkmės kriterijus.\n\n👥 Klasės mokymasis: Mokiniai dirba porose, analizuoja realius pavyzdžius.",
+    realWorldUse: "Reklamos kalbos ir įtaigos priemonių išmanymas saugo asmeninius finansus, padeda nepasiduoti manipuliacijoms ir ugdo kritinį medijų raštingumą.",
+    assessmentNote: "Formuojamasis vertinimas – tarpusavio vertinimas porose pagal sėkmės kriterijus.",
+    classLearningNote: "Mokiniai dirba porose, analizuoja realius pavyzdžius.",
     isIntegrated: false,
     isOutside: false,
     eDiaryLessonType: "Įtvirtinimo"
@@ -386,6 +392,8 @@ const App = () => {
   const [selectedEvaluations, setSelectedEvaluations] = useState<string[]>([]);
   const [selectedResources, setSelectedResources] = useState<string[]>([]);
   const [selectedStudentLevels, setSelectedStudentLevels] = useState<string[]>(['pažengę', 'vidutiniai', 'turintys sunkumų']);
+  const [classLearningNotes, setClassLearningNotes] = useState('');
+  const [realWorldNote, setRealWorldNote] = useState('');
 
   const handleStudentLevelToggle = (levelId: string) => {
     setSelectedStudentLevels(prev => {
@@ -412,6 +420,7 @@ const App = () => {
   // Modal states
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showGuidelinesModal, setShowGuidelinesModal] = useState(false);
   const [editedPlan, setEditedPlan] = useState<LessonPlan | null>(null);
 
   const [savedPlans, setSavedPlans] = useState<SavedPlan[]>([]);
@@ -571,6 +580,8 @@ const App = () => {
         if (draft.isOutsideInput !== undefined) setIsOutsideInput(draft.isOutsideInput);
         if (draft.outsideLocation !== undefined) setOutsideLocation(draft.outsideLocation);
         if (draft.outsideGoal !== undefined) setOutsideGoal(draft.outsideGoal);
+        if (draft.classLearningNotes !== undefined) setClassLearningNotes(draft.classLearningNotes);
+        if (draft.realWorldNote !== undefined) setRealWorldNote(draft.realWorldNote);
         if (draft.lessonPlan !== undefined) setLessonPlan(draft.lessonPlan);
         if (draft.editedPlan !== undefined) setEditedPlan(draft.editedPlan);
         if (draft.stageDurations !== undefined) setStageDurations(draft.stageDurations);
@@ -601,6 +612,8 @@ const App = () => {
           selectedEvaluations,
           selectedResources,
           selectedStudentLevels,
+          classLearningNotes,
+          realWorldNote,
           isIntegratedInput,
           integrationDetails,
           isOutsideInput,
@@ -633,6 +646,8 @@ const App = () => {
     selectedEvaluations,
     selectedResources,
     selectedStudentLevels,
+    classLearningNotes,
+    realWorldNote,
     isIntegratedInput,
     integrationDetails,
     isOutsideInput,
@@ -815,6 +830,8 @@ Struktūra:
         selectedResources,
         selectedEvaluations,
         evaluationCriteria,
+        classLearningNotes,
+        realWorldNote,
         isIntegratedInput,
         integrationDetails,
         isOutsideInput,
@@ -870,6 +887,8 @@ Struktūra:
           selectedEvaluations,
           selectedResources,
           selectedStudentLevels,
+          classLearningNotes,
+          realWorldNote,
           isIntegratedInput,
           integrationDetails,
           isOutsideInput,
@@ -894,6 +913,8 @@ Struktūra:
             selectedResources,
             selectedEvaluations,
             evaluationCriteria,
+            classLearningNotes,
+            realWorldNote,
             isIntegratedInput,
             integrationDetails,
             isOutsideInput,
@@ -922,6 +943,9 @@ Struktūra:
               homework: parsedPlan.eDiaryEntry?.homework || fallbackPedagogical.eDiaryEntry.homework,
               individualHomework: parsedPlan.eDiaryEntry?.individualHomework || fallbackPedagogical.eDiaryEntry.individualHomework,
               notes: parsedPlan.eDiaryEntry?.notes !== undefined ? parsedPlan.eDiaryEntry.notes : fallbackPedagogical.eDiaryEntry.notes,
+              realWorldUse: parsedPlan.eDiaryEntry?.realWorldUse || fallbackPedagogical.eDiaryEntry.realWorldUse,
+              assessmentNote: parsedPlan.eDiaryEntry?.assessmentNote || fallbackPedagogical.eDiaryEntry.assessmentNote,
+              classLearningNote: parsedPlan.eDiaryEntry?.classLearningNote || fallbackPedagogical.eDiaryEntry.classLearningNote,
               isIntegrated: isIntegratedInput,
               isOutside: isOutsideInput,
               eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || '',
@@ -1104,6 +1128,21 @@ Struktūra:
 
             <div className="tool-links">
               <h3>🛠️ Įrankiai</h3>
+              <button
+                type="button"
+                onClick={() => setShowGuidelinesModal(true)}
+                className="tool-button"
+                style={{
+                  background: 'rgba(59, 130, 246, 0.2)',
+                  color: '#60a5fa',
+                  border: '1px solid rgba(59, 130, 246, 0.45)',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Peržiūrėti eMokykla.lt BP ir dienyno pildymo metodines rekomendacijas"
+              >
+                📘 eMokykla.lt & Dienyno gairės
+              </button>
               <a href="https://www.manodienynas.lt/1/lt/public/public/login" target="_blank" rel="noopener noreferrer" className="tool-button" style={{background: 'rgba(234, 88, 12, 0.18)', color: '#fb923c', border: '1px solid rgba(234, 88, 12, 0.4)', fontWeight: 600}} title="Prisijungti prie Mano dienyno">
                 📖 Mano Dienynas ↗
               </a>
@@ -1218,6 +1257,37 @@ Struktūra:
             <div className="form-group">
               <label>Dalykas *</label>
               <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Pvz. Lietuvių kalba ir literatūra" required />
+              <div style={{marginTop: '6px', display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
+                <span style={{fontSize: '0.75rem', color: 'var(--text-color-light)', alignSelf: 'center'}}>Dalyko parinkimas:</span>
+                {[
+                  { label: '⭐ Klasės vadovo veikla', name: 'Klasės vadovo veikla' },
+                  { label: '⭐ Etika', name: 'Etika' },
+                  { label: '⭐ Teatras', name: 'Teatras' },
+                  { label: '⭐ Gyvenimo įgūdžiai', name: 'Gyvenimo įgūdžiai' },
+                  { label: 'Lietuvių kalba', name: 'Lietuvių kalba ir literatūra' },
+                  { label: 'Anglų kalba', name: 'Užsienio kalba (anglų)' },
+                  { label: 'IT (Google Sheets)', name: 'Informacinės technologijos' },
+                  { label: 'Matematika', name: 'Matematika' },
+                  { label: 'Istorija', name: 'Istorija' },
+                ].map(item => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => setSubject(item.name)}
+                    style={{
+                      background: subject === item.name ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255, 255, 255, 0.05)',
+                      border: subject === item.name ? '1px solid #3b82f6' : '1px solid #334155',
+                      color: subject === item.name ? '#60a5fa' : 'var(--text-color)',
+                      borderRadius: '12px',
+                      padding: '3px 8px',
+                      fontSize: '0.72rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="form-group">
               <label>Klasė / Grupė *</label>
@@ -1419,6 +1489,32 @@ Struktūra:
                   <p className="helper-text">Rekomenduojami tikslai. tyrinėjimas, stebėjimas, patirtinis mokymasis.</p>
                 </div>
               )}
+            </div>
+
+            <div className="form-group">
+              <label>👥 Klasės mokymosi ypatumai / pastabos (pasirinktinai)</label>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginTop: '-4px', marginBottom: '8px'}}>
+                💡 <em>Jei nurodysite, ši informacija bus įtraukta į el. dienyno pastabas apie klasės darbą ar konsultacijas.</em>
+              </p>
+              <textarea 
+                value={classLearningNotes} 
+                onChange={e => setClassLearningNotes(e.target.value)} 
+                placeholder="Pvz., Mokiniai dirba porose, klasė dirba sparčiau, atliekamos papildomos praktinės užduotys..." 
+                rows={2} 
+              />
+            </div>
+
+            <div className="form-group">
+              <label>💡 Papildomas gyvenimiškas kontekstas (pasirinktinai)</label>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginTop: '-4px', marginBottom: '8px'}}>
+                Kuo ši tema naudinga realiame gyvenime (jei paliksite tuščią, generatorius paruoš automatiškai pagal eMokyklos standartus):
+              </p>
+              <textarea 
+                value={realWorldNote} 
+                onChange={e => setRealWorldNote(e.target.value)} 
+                placeholder="Pvz., Šios žinios taikomos asmeniniams finansams, verslo skaičiavimams ar kritiniam medijų vertinimui..." 
+                rows={2} 
+              />
             </div>
 
             <div style={{marginTop: '1.25rem'}}>
@@ -1970,49 +2066,89 @@ Struktūra:
 
               <div className="card" style={{borderLeftColor: '#f97316'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px'}}>
-                  <h3 style={{margin: 0}}>📖 „Mano dienynas“ įrašai (paruošta nukopijavimui)</h3>
-                  <a 
-                    href="https://www.manodienynas.lt/1/lt/public/public/login" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="mini-link"
-                    style={{color: '#fb923c', textDecoration: 'none', border: '1px solid rgba(251, 146, 60, 0.4)', padding: '4px 8px', borderRadius: '6px'}}
-                    title="Atverti Mano dienyno prisijungimo puslapį"
-                  >
-                    Atverti Mano Dienyną ↗
-                  </a>
+                  <h3 style={{margin: 0}}>📖 „Mano dienynas“ ir TAMO įrašai (pagal eMokykla.lt BP standartus)</h3>
+                  <div style={{display: 'flex', gap: '8px', alignItems: 'center'}}>
+                    <button
+                      type="button"
+                      onClick={() => setShowGuidelinesModal(true)}
+                      className="mini-link"
+                      style={{color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.4)', background: 'rgba(59, 130, 246, 0.1)', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer'}}
+                      title="Peržiūrėti metodines rekomendacijas"
+                    >
+                      📘 BP Gairės
+                    </button>
+                    <a 
+                      href="https://www.manodienynas.lt/1/lt/public/public/login" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="mini-link"
+                      style={{color: '#fb923c', textDecoration: 'none', border: '1px solid rgba(251, 146, 60, 0.4)', padding: '4px 8px', borderRadius: '6px'}}
+                      title="Atverti Mano dienyno prisijungimo puslapį"
+                    >
+                      Atverti Mano Dienyną ↗
+                    </a>
+                  </div>
                 </div>
-                <p style={{fontSize: '0.82rem', color: 'var(--text-color-light)', marginBottom: '14px', marginTop: 0}}>
-                  Šie laukai suformatuoti pagal atnaujintus „Mano dienynas“ ir TAMO reikalavimus: motyvuota tema su laukiamais rezultatais (ką žinoti, gebėti, taikyti), namų darbai su aiškiu tikslingumu, o vertinimas rodomas tik tuo atveju, jei mokytojas jį numatė. Spustelėkite „Kopijuoti“ prie reikiamo laukelio.
-                </p>
+                <div style={{background: 'rgba(249, 115, 22, 0.08)', border: '1px solid rgba(249, 115, 22, 0.25)', borderRadius: '8px', padding: '10px 12px', marginBottom: '14px', fontSize: '0.8rem', color: 'var(--text-color)'}}>
+                  <p style={{margin: '0 0 6px 0', fontWeight: 600, color: '#fb923c'}}>
+                    ✨ Standartizuoti įrašai pagal eMokykla.lt ir ŠMSM rekomendacijas:
+                  </p>
+                  <ul style={{margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '3px', opacity: 0.9}}>
+                    <li><strong>Tema ir veikla:</strong> standartizuota formuluotė su mokymosi uždaviniais, konkrečiu žodynu ir gebėjimais (neakademiniams dalykams – su ugdomąja verte).</li>
+                    <li><strong>Namų darbai:</strong> aiškus tikslas, sąsaja su pamokos tema ir optimali trukmė be perkrovimo (~15–20 min.).</li>
+                    <li><strong>Pastabos:</strong> patarimai kuo naudinga realiame gyvenime, o vertinimas ir klasės mokymasis – jei mokytojas nurodė.</li>
+                  </ul>
+                </div>
                 {[
-                  { key: 'topicClassworkExpectations', label: '📌 Pamokos tema ir motyvuotas klasės darbas (Žinoti, Gebėti, Taikyti)', hint: 'Įklijuokite į „Tema / Klasės darbas“' },
-                  { key: 'homework', label: '🎯 Namų darbai (su tikslingumu)', hint: 'Įklijuokite į „Namų darbai“' },
-                  { key: 'notes', label: '📝 Vertinimas / Pamokos pastaba', hint: 'Įklijuokite į „Pastaba / Vertinimas“ (tik jei planuotas)' }
-                ].map(({ key, label, hint }) => {
+                  { 
+                    key: 'topicClassworkExpectations', 
+                    label: '📌 Standartizuota pamokos tema ir veikla (eMokykla.lt BP)', 
+                    hint: 'Įklijuokite į „Tema / Klasės darbas“',
+                    subtip: 'Dalykas, tema, mokymosi uždaviniai ir veikla pagal BP' 
+                  },
+                  { 
+                    key: 'homework', 
+                    label: '🎯 Namų darbai su tikslu, tema ir optimalia trukme', 
+                    hint: 'Įklijuokite į „Namų darbai“',
+                    subtip: 'Aiškus tikslas, sąsaja su tema, neperkraunant mokinių' 
+                  },
+                  { 
+                    key: 'notes', 
+                    label: '📝 Dienyno pastabos (Gyvenimiška nauda + Vertinimas + Klasės mokymasis)', 
+                    hint: 'Įklijuokite į „Pastaba / Vertinimas“',
+                    subtip: 'Kuo naudinga realiame gyvenime, planuojamas vertinimas ir klasės ypatumai' 
+                  }
+                ].map(({ key, label, hint, subtip }) => {
                   const val = lessonPlan.eDiaryEntry ? (lessonPlan.eDiaryEntry as any)[key] : '';
                   const isEmptyNote = key === 'notes' && (!val || !val.trim());
                   return (
-                    <div key={key} className="diary-field-wrapper">
-                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
-                        <label className="diary-label" style={{margin: 0, color: '#fb923c'}}>{label}</label>
-                        <span style={{fontSize: '0.75rem', color: 'var(--text-color-light)', opacity: 0.7}}>{hint}</span>
+                    <div key={key} className="diary-field-wrapper" style={{marginBottom: '16px'}}>
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap', gap: '4px'}}>
+                        <label className="diary-label" style={{margin: 0, color: '#fb923c', fontWeight: 600}}>{label}</label>
+                        <span style={{fontSize: '0.75rem', color: 'var(--text-color-light)', opacity: 0.8}}>{hint}</span>
                       </div>
-                      <div className="diary-field">
-                        <span className="diary-text" style={isEmptyNote ? {fontStyle: 'italic', opacity: 0.65} : {}}>
-                          {isEmptyNote ? 'Vertinimas nenurodytas (mokytojas nepasirinko vertinimo šiai pamokai).' : (val || '—')}
+                      <p style={{fontSize: '0.73rem', color: 'var(--text-color-light)', margin: '0 0 6px 0', opacity: 0.7}}>
+                        {subtip}
+                      </p>
+                      <div className="diary-field" style={{background: 'var(--input-bg)', padding: '10px 12px', borderRadius: '8px', border: '1px solid #334155'}}>
+                        <span className="diary-text" style={{whiteSpace: 'pre-wrap', lineHeight: '1.5', ...(isEmptyNote ? {fontStyle: 'italic', opacity: 0.65} : {})}}>
+                          {isEmptyNote ? 'Pastabos nenurodytos.' : (val || '—')}
                         </span>
                         {!isEmptyNote && (
-                          <button 
-                            onClick={() => handleCopy(val, key)} 
-                            className="copy-button"
-                            style={{
-                              background: copiedField === key ? 'var(--success-color)' : '#ea580c',
-                              minWidth: '90px'
-                            }}
-                          >
-                            {copiedField === key ? 'Nukopijuota! ✓' : 'Kopijuoti'}
-                          </button>
+                          <div style={{display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: 'flex-start'}}>
+                            <button 
+                              onClick={() => handleCopy(val, key)} 
+                              className="copy-button"
+                              style={{
+                                background: copiedField === key ? 'var(--success-color)' : '#ea580c',
+                                minWidth: '95px',
+                                padding: '6px 12px',
+                                fontWeight: 600
+                              }}
+                            >
+                              {copiedField === key ? 'Nukopijuota! ✓' : 'Kopijuoti'}
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -2182,18 +2318,18 @@ Struktūra:
                 <textarea value={editedPlan.differentiation.struggling} onChange={e => updateEditedField('differentiation.struggling', e.target.value)} rows={2} />
               </div>
 
-              <div className="edit-divider">📖 „Mano dienynas“ įrašai</div>
+              <div className="edit-divider">📖 „Mano dienynas“ ir TAMO įrašai (eMokykla.lt standartas)</div>
               <div className="edit-group">
-                <label>📌 Pamokos tema ir motyvuotas klasės darbas (Žinoti, Gebėti, Taikyti)</label>
+                <label>📌 Standartizuota pamokos tema ir veikla (eMokykla.lt BP)</label>
                 <textarea value={editedPlan.eDiaryEntry.topicClassworkExpectations} onChange={e => updateEditedField('eDiaryEntry.topicClassworkExpectations', e.target.value)} rows={3} />
               </div>
               <div className="edit-group">
-                <label>🎯 Namų darbai (su tikslingumu)</label>
+                <label>🎯 Namų darbai su tikslu, tema ir optimalia trukme (iki 15–20 min.)</label>
                 <textarea value={editedPlan.eDiaryEntry.homework} onChange={e => updateEditedField('eDiaryEntry.homework', e.target.value)} rows={2} />
               </div>
                <div className="edit-group">
-                <label>📝 Vertinimas / Pamokos pastaba (palikite tuščią, jei vertinimo neplanuojate)</label>
-                <textarea value={editedPlan.eDiaryEntry.notes} onChange={e => updateEditedField('eDiaryEntry.notes', e.target.value)} rows={2} placeholder="Palikite tuščią, jei vertinimo neplanuojate..." />
+                <label>📝 Dienyno pastabos (Gyvenimiška nauda + Vertinimas + Klasės mokymasis)</label>
+                <textarea value={editedPlan.eDiaryEntry.notes} onChange={e => updateEditedField('eDiaryEntry.notes', e.target.value)} rows={3} placeholder="Gyvenimiška nauda, planuojamas vertinimas ir klasės ypatumai..." />
               </div>
               
               <div className="edit-divider">Motyvacija</div>
@@ -2259,6 +2395,139 @@ Struktūra:
                   <button type="button" onClick={() => setShowSaveTemplateModal(false)} className="modal-btn cancel">Atšaukti</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* eMokykla BP ir dienyno pildymo metodinių rekomendacijų modalas */}
+      {showGuidelinesModal && (
+        <div className="modal-overlay" onClick={() => setShowGuidelinesModal(false)}>
+          <div className="modal-content large" onClick={e => e.stopPropagation()} style={{maxWidth: '850px', maxHeight: '85vh', overflowY: 'auto'}}>
+            <div className="modal-header" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', paddingBottom: '12px'}}>
+              <h2 style={{margin: 0, fontSize: '1.25rem', color: '#60a5fa'}}>
+                📘 eMokykla.lt BP ir Dienyno pildymo metodinės rekomendacijos
+              </h2>
+              <button 
+                onClick={() => setShowGuidelinesModal(false)}
+                style={{background: 'none', border: 'none', color: 'var(--text-color-light)', fontSize: '1.25rem', cursor: 'pointer'}}
+              >
+                ✖
+              </button>
+            </div>
+            
+            <div className="modal-body" style={{padding: '16px 0', fontSize: '0.9rem', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '16px'}}>
+              <div style={{background: 'rgba(59, 130, 246, 0.08)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '12px 14px'}}>
+                <h4 style={{margin: '0 0 6px 0', color: '#93c5fd'}}>🎯 Rekomendacijų tikslas</h4>
+                <p style={{margin: 0, color: 'var(--text-color)'}}>
+                  Užtikrinti, kad kiekvienas el. dienyno („Mano dienynas“, TAMO) įrašas būtų informatyvus, motyvuojantis ir naudingas mokiniams, tėvams bei mokyklos bendruomenei, griežtai vadovaujantis atnaujintomis <a href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" target="_blank" rel="noopener noreferrer" style={{color: '#60a5fa', textDecoration: 'underline'}}>eMokykla.lt Bendrosiomis programomis (BP)</a>.
+                </p>
+              </div>
+
+              {/* 1 skyrius */}
+              <div style={{background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #334155', borderRadius: '8px', padding: '14px'}}>
+                <h4 style={{margin: '0 0 8px 0', color: '#fb923c'}}>
+                  1. Standartizuoti pamokų temų formuluotes
+                </h4>
+                <ul style={{margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-color)'}}>
+                  <li>
+                    <strong>Ne tik pavadinimas:</strong> įtraukti dalyką, temą ir trumpą aprašymą, ko mokiniai išmoks (mokymosi uždaviniai) ir kokią veiklą atliks.
+                  </li>
+                  <li>
+                    <strong>Gerosios praktikos pavyzdys:</strong> vietoj sauso <em>„In a restaurant.“</em> rekomenduojama formuluoti: <em>„Užsienio kalba (anglų): Mokymasis užsisakyti maistą restorane, naudojant specifinį žodyną ir frazes.“</em>
+                  </li>
+                  <li>
+                    <strong>Konkretūs gebėjimai:</strong> nurodyti, ką mokiniai gebės žinoti, atlikti ir taikyti pagal temą be pasikartojančių abstrakčių frazių.
+                  </li>
+                </ul>
+              </div>
+
+              {/* 2 skyrius */}
+              <div style={{background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #334155', borderRadius: '8px', padding: '14px'}}>
+                <h4 style={{margin: '0 0 8px 0', color: '#38bdf8'}}>
+                  2. Tikslinės gairės neakademiniams dalykams
+                </h4>
+                <p style={{margin: '0 0 8px 0', color: 'var(--text-color)'}}>
+                  Neakademiniuose dalykuose dienyno įrašas turi atspindėti jų ugdomąją vertę ir socialinę prasmę:
+                </p>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                  <div style={{padding: '8px 10px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', borderLeft: '3px solid #38bdf8'}}>
+                    <strong>Klasės vadovo veikla:</strong> akcentuoti klasės mikroklimatą, bendravimo susitarimus, empatiją, atsakomybę ir savirefleksiją.
+                  </div>
+                  <div style={{padding: '8px 10px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', borderLeft: '3px solid #38bdf8'}}>
+                    <strong>Etika / Tikyba:</strong> moralinių dilemų analizė, vertybinis pasirinkimas, tolerancija ir dialogas.
+                  </div>
+                  <div style={{padding: '8px 10px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', borderLeft: '3px solid #38bdf8'}}>
+                    <strong>Teatras:</strong> sceninė raiška, kūno kalba, improvizacija, pasitikėjimas savimi ir dėmesingumas partneriui.
+                  </div>
+                  <div style={{padding: '8px 10px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '6px', borderLeft: '3px solid #38bdf8'}}>
+                    <strong>Gyvenimo įgūdžiai (SEU):</strong> emocijų valdymas, streso įveika, sveika gyvensena ir praktinis saugumas.
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 skyrius */}
+              <div style={{background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #334155', borderRadius: '8px', padding: '14px'}}>
+                <h4 style={{margin: '0 0 8px 0', color: '#4ade80'}}>
+                  3. Namų darbų formulavimas, tikslingumas ir apimties stebėsena
+                </h4>
+                <ul style={{margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-color)'}}>
+                  <li>
+                    <strong>Aiškus tikslo nurodymas:</strong> prie kiekvienos užduoties aiškiai nurodyti paskirtį (pvz., <em>„Tikslas – įtvirtinti žinias apie...“</em>, <em>„Tikslas – pasiruošti diskusijai...“</em>, <em>„Tikslas – kūrybiškai pritaikyti...“</em>).
+                  </li>
+                  <li>
+                    <strong>Vengti tik pratimų numerių:</strong> vien tik „prat. 5, psl. 32“ nesuteikia mokiniui supratimo apie prasmę.
+                  </li>
+                  <li>
+                    <strong>Sąsaja su pamokos tema:</strong> pabrėžti, kaip namų darbai tęsia klasės veiklą.
+                  </li>
+                  <li>
+                    <strong>Optimalus krūvis (ND kiekio stebėsena):</strong> skiriama optimali apimtis (rekomenduojama <strong>iki 15–20 min.</strong>), griežtai saugant mokinius nuo perkrovimo.
+                  </li>
+                  <li>
+                    <strong>Jei be namų darbų:</strong> aiškiai nurodyti, kad mokiniai viską atliko pamokoje.
+                  </li>
+                </ul>
+              </div>
+
+              {/* 4 skyrius */}
+              <div style={{background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #334155', borderRadius: '8px', padding: '14px'}}>
+                <h4 style={{margin: '0 0 8px 0', color: '#e879f9'}}>
+                  4. Dienyno pastabos – gyvenimiška nauda, vertinimas ir klasės mokymasis
+                </h4>
+                <ul style={{margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px', color: 'var(--text-color)'}}>
+                  <li>
+                    <strong>Kuo naudinga realiame gyvenime:</strong> pastabose visada pateikiamas patarimas mokiniams ir tėvams, kur ši tema praktiškai taikoma kasdienybėje, finansuose, profesijoje ar technologijose.
+                  </li>
+                  <li>
+                    <strong>Planuojamas vertinimas:</strong> įtraukiamas tik tuomet, jei pats mokytojas numatė vertinimą (nurodė metodus ar kriterijus).
+                  </li>
+                  <li>
+                    <strong>Klasės mokymasis:</strong> mokytojo pastaba apie klasės tempą, bendradarbiavimą ar individualią paramą.
+                  </li>
+                </ul>
+              </div>
+
+              {/* 5 skyrius */}
+              <div style={{background: 'rgba(255, 255, 255, 0.03)', border: '1px solid #334155', borderRadius: '8px', padding: '14px'}}>
+                <h4 style={{margin: '0 0 8px 0', color: '#facc15'}}>
+                  5. Vengti šabloninių įrašų ir užtikrinti kalbos kokybę
+                </h4>
+                <p style={{margin: 0, color: 'var(--text-color)'}}>
+                  Dienynas yra oficialus dokumentas ir reprezentacinė mokyklos komunikacijos priemonė. Generatorius formuluoja autentišką, kiekvienam dalykui ir temai specifinį turinį be pasikartojančių šablonų („esmines sąvokas ir taisykles“), užtikrindamas taisyklingą lietuvių kalbos rašybą bei skyrybą.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{borderTop: '1px solid #334155', paddingTop: '12px'}}>
+              <button 
+                type="button" 
+                onClick={() => setShowGuidelinesModal(false)} 
+                className="modal-btn confirm"
+                style={{background: 'var(--primary-color)'}}
+              >
+                Supratau ir taikysiu ✓
+              </button>
+            </div>
           </div>
         </div>
       )}
