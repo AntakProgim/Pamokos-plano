@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { buildPedagogicalPlan, GenerateTemplateParams } from './src/templatePlanGenerator';
+import { buildPedagogicalPlan, GenerateTemplateParams, generateRealWorldExamples } from './src/templatePlanGenerator';
 import { generateSmartGoalPedagogical, GenerateSmartGoalParams } from './src/smartGoalService';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -263,6 +263,58 @@ Atsakymą pateik griežtai JSON formatu:
   return res.json({ success: true, result, mode: 'pedagogical_template' });
 });
 
+// 3b. Real-world application examples generator endpoint
+app.post('/api/generate-real-world-examples', async (req, res) => {
+  const { subject = '', topic = '', grade = '' } = req.body;
+  const ai = getGeminiClient();
+
+  if (ai && topic) {
+    try {
+      const prompt = `Pateik 4 konkrečius realaus gyvenimo pritaikymo pavyzdžius šiai pamokai pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
+Dalykas. ${subject}
+Tema. ${topic}
+Klasė. ${grade}
+
+Kategorijos:
+1. daily (Kasdienybė ir asmeniniai finansai / asmeninė patirtis)
+2. career (Šiuolaikinės profesijos ir darbo rinka)
+3. steam (Technologijos, inovacijos ir ateities įgūdžiai)
+4. advice (Praktinis patarimas mokiniui: „Kam man to prireiks?“)
+
+Pateik atsakymą JSON masyvu:
+[
+  {
+    "id": "rw-1",
+    "category": "daily",
+    "categoryTitle": "Kasdienis gyvenimas ir asmeniniai finansai",
+    "categoryIcon": "🏠",
+    "title": "...",
+    "text": "...",
+    "snippetForNotes": "Glausta frazė, tinkama įkelti tiesiai į el. dienyno pastabas..."
+  },
+  ...
+]
+GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' },
+      });
+
+      const parsed = JSON.parse(cleanJsonString(response.text || ''));
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return res.json({ success: true, examples: parsed, mode: 'ai' });
+      }
+    } catch (err: any) {
+      console.warn('AI real-world examples failed, falling back to pedagogical generator:', err?.message || err);
+    }
+  }
+
+  const examples = generateRealWorldExamples(subject, topic, grade);
+  return res.json({ success: true, examples, mode: 'pedagogical_template' });
+});
+
 // 4. Pedagogical assistant chat endpoint
 app.post('/api/chat', async (req, res) => {
   const { messages = [], lessonContext = '' } = req.body;
@@ -314,7 +366,7 @@ async function startServer() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: 'spa',
     });
     app.use(vite.middlewares);

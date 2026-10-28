@@ -2804,6 +2804,282 @@ body {
   padding: 10px 12px;
 }
 
+/* =========================================================
+   Realaus gyvenimo pritaikymo modulis (BP ir Dienyno pastaboms)
+   ========================================================= */
+
+.rw-module-box {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 10px;
+  margin-bottom: 12px;
+}
+
+.rw-module-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.rw-module-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #34d399;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rw-module-desc {
+  font-size: 0.8rem;
+  color: var(--text-color-light);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.rw-category-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.rw-pill-btn {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid #334155;
+  color: var(--text-color-light);
+  font-size: 0.76rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rw-pill-btn:hover {
+  border-color: #34d399;
+  color: #fff;
+}
+
+.rw-pill-btn.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #34d399;
+  font-weight: 600;
+}
+
+.rw-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rw-card {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  padding: 12px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+
+.rw-card:hover {
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.rw-card.daily { border-left: 3px solid #38bdf8; }
+.rw-card.career { border-left: 3px solid #fbbf24; }
+.rw-card.steam { border-left: 3px solid #a855f7; }
+.rw-card.advice { border-left: 3px solid #34d399; }
+
+.rw-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.rw-card-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.rw-card.daily .rw-card-badge { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+.rw-card.career .rw-card-badge { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+.rw-card.steam .rw-card-badge { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+.rw-card.advice .rw-card-badge { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+
+.rw-card-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--heading-color);
+  margin-bottom: 4px;
+}
+
+.rw-card-text {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+
+.rw-snippet-box {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px dashed rgba(52, 211, 153, 0.35);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
+  color: #a7f3d0;
+  line-height: 1.4;
+}
+
+.rw-snippet-box strong {
+  color: #34d399;
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.rw-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.rw-insert-btn {
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.15s ease;
+}
+
+.rw-insert-btn:hover {
+  background: #10b981;
+}
+
+.rw-copy-btn {
+  background: rgba(51, 65, 85, 0.6);
+  border: 1px solid #475569;
+  color: var(--text-color-light);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rw-copy-btn:hover {
+  background: #334155;
+  color: #fff;
+}
+
+/* Toast pranešimas */
+.floating-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: #065f46;
+  color: #ecfdf5;
+  border: 1px solid #10b981;
+  padding: 12px 18px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  font-size: 0.88rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: slideInToast 0.25s ease-out;
+}
+
+@keyframes slideInToast {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Dienyno greitasis patarimų parinkiklis */
+.diary-rw-helper {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+
+.diary-rw-helper-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.diary-rw-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.diary-rw-chip {
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: var(--text-color-light);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.74rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.diary-rw-chip:hover {
+  border-color: #34d399;
+  color: #fff;
+}
+
+.diary-rw-chip.selected {
+  background: rgba(16, 185, 129, 0.25);
+  border-color: #10b981;
+  color: #a7f3d0;
+  font-weight: 600;
+}
+
 
 
 

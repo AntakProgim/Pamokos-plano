@@ -7,7 +7,9 @@ import {
   ActiveMethodItem, 
   IcebreakerItem, 
   DigitalIdeaItem, 
-  ReflectionIdeaItem 
+  ReflectionIdeaItem,
+  RealWorldExampleItem,
+  generateRealWorldExamples
 } from './src/templatePlanGenerator';
 
 type LessonCategory = 'Įvadinė' | 'Įtvirtinimo' | 'Apibendrinamoji' | 'Vertinamoji' | '';
@@ -449,6 +451,99 @@ const App = () => {
   const [methodologyTab, setMethodologyTab] = useState<'all' | 'icebreakers' | 'active' | 'realworld' | 'digital' | 'reflection'>('all');
   const [isGeneratingExtraIdeas, setIsGeneratingExtraIdeas] = useState(false);
   const [extraIdeas, setExtraIdeas] = useState<string[]>([]);
+
+  // Realaus gyvenimo pritaikymo modulio būsenos
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimeoutRef = useRef<any>(null);
+  const [formRwCategory, setFormRwCategory] = useState<'all' | 'daily' | 'career' | 'steam' | 'advice'>('all');
+  const [isGeneratingRwAI, setIsGeneratingRwAI] = useState(false);
+  const [customRwExamples, setCustomRwExamples] = useState<RealWorldExampleItem[] | null>(null);
+  const [selectedDiaryRwId, setSelectedDiaryRwId] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToastMessage(msg);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2800);
+  };
+
+  const handleInsertRealWorldToForm = (snippet: string) => {
+    if (!realWorldNote || !realWorldNote.trim()) {
+      setRealWorldNote(snippet);
+    } else if (!realWorldNote.includes(snippet)) {
+      setRealWorldNote(`${realWorldNote.trim()}\n${snippet}`);
+    }
+    showToast('Patarimas įkeltas į formos pastabas! 💡');
+  };
+
+  const handleInsertRealWorldToDiary = (snippet: string) => {
+    if (!lessonPlan || !lessonPlan.eDiaryEntry) return;
+    const currentNotes = lessonPlan.eDiaryEntry.notes || '';
+    let updatedNotes = '';
+    if (currentNotes.includes('💡 Kuo naudinga realiame gyvenime:')) {
+      updatedNotes = currentNotes.replace(
+        /💡 Kuo naudinga realiame gyvenime:[^\n]*(\n\n)?/,
+        `💡 Kuo naudinga realiame gyvenime: ${snippet}$1`
+      );
+    } else {
+      updatedNotes = `💡 Kuo naudinga realiame gyvenime: ${snippet}` + (currentNotes.trim() ? `\n\n${currentNotes.trim()}` : '');
+    }
+
+    const updatedPlan: LessonPlan = {
+      ...lessonPlan,
+      eDiaryEntry: {
+        ...lessonPlan.eDiaryEntry,
+        notes: updatedNotes,
+        realWorldUse: snippet
+      }
+    };
+    setLessonPlan(updatedPlan);
+    if (editedPlan) {
+      setEditedPlan({
+        ...editedPlan,
+        eDiaryEntry: {
+          ...editedPlan.eDiaryEntry,
+          notes: updatedNotes,
+          realWorldUse: snippet
+        }
+      });
+    }
+    showToast('Patarimas įtrauktas į dienyno pastabas! ✨');
+  };
+
+  const handleGenerateRwWithAI = async () => {
+    const curSubj = subject || lessonPlan?.lessonOverview?.topic || 'Bendrasis ugdymas';
+    const curTopic = topic || lessonPlan?.lessonOverview?.topic || 'Pamokos tema';
+    const curGrade = grade || '8 klasė';
+
+    setIsGeneratingRwAI(true);
+    try {
+      const res = await fetch('/api/generate-real-world-examples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: curSubj, topic: curTopic, grade: curGrade }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.examples) && data.examples.length > 0) {
+          setCustomRwExamples(data.examples);
+          showToast('Gyvenimiško pritaikymo pavyzdžiai atnaujinti! 🌍');
+          return;
+        }
+      }
+      // Vietinis generatorius kaip patikimas rezervas
+      const local = generateRealWorldExamples(curSubj, curTopic, curGrade);
+      setCustomRwExamples(local);
+      showToast('Gyvenimiško pritaikymo pavyzdžiai atnaujinti! 🌍');
+    } catch (e) {
+      console.warn('Klaida gaunant pavyzdžius:', e);
+      const local = generateRealWorldExamples(curSubj, curTopic, curGrade);
+      setCustomRwExamples(local);
+    } finally {
+      setIsGeneratingRwAI(false);
+    }
+  };
 
   const handleGenerateExtraIdeas = async () => {
     const currentSubject = subject || lessonPlan?.lessonOverview?.topic || 'Bendrasis ugdymas';
@@ -1266,7 +1361,7 @@ Struktūra:
                   { label: '⭐ Gyvenimo įgūdžiai', name: 'Gyvenimo įgūdžiai' },
                   { label: 'Lietuvių kalba', name: 'Lietuvių kalba ir literatūra' },
                   { label: 'Anglų kalba', name: 'Užsienio kalba (anglų)' },
-                  { label: 'IT (Google Sheets)', name: 'Informacinės technologijos' },
+                  { label: 'Informatika', name: 'Informatika' },
                   { label: 'Matematika', name: 'Matematika' },
                   { label: 'Istorija', name: 'Istorija' },
                 ].map(item => (
@@ -1505,8 +1600,10 @@ Struktūra:
             </div>
 
             <div className="form-group">
-              <label>💡 Papildomas gyvenimiškas kontekstas (pasirinktinai)</label>
-              <p style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginTop: '-4px', marginBottom: '8px'}}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px'}}>
+                <label style={{margin: 0}}>💡 Papildomas gyvenimiškas kontekstas (pasirinktinai)</label>
+              </div>
+              <p style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginTop: '2px', marginBottom: '8px'}}>
                 Kuo ši tema naudinga realiame gyvenime (jei paliksite tuščią, generatorius paruoš automatiškai pagal eMokyklos standartus):
               </p>
               <textarea 
@@ -1515,6 +1612,91 @@ Struktūra:
                 placeholder="Pvz., Šios žinios taikomos asmeniniams finansams, verslo skaičiavimams ar kritiniam medijų vertinimui..." 
                 rows={2} 
               />
+
+              {/* 🌍 Automatinis realaus gyvenimo pritaikymo pavyzdžių modulis */}
+              {(() => {
+                const currentRwExamples = customRwExamples || generateRealWorldExamples(
+                  subject || 'Lietuvių kalba',
+                  topic || 'Skaitmeninis ugdymo turinys. Google sheet priemonės panaudojimas kuriant skaitmeninę programą',
+                  grade || '8 klasė'
+                );
+                return (
+                  <div className="rw-module-box">
+                    <div className="rw-module-header">
+                      <span className="rw-module-title">
+                        🌍 Realaus gyvenimo pritaikymo pavyzdžiai
+                      </span>
+                      <button
+                        type="button"
+                        className="rw-pill-btn active"
+                        style={{fontSize: '0.73rem', padding: '3px 8px'}}
+                        onClick={handleGenerateRwWithAI}
+                        disabled={isGeneratingRwAI}
+                        title="Atnaujinti gyvenimiško pritaikymo pavyzdžius pagal temą"
+                      >
+                        {isGeneratingRwAI ? '⏳ Rengiama...' : '🔄 Atnaujinti su DI'}
+                      </button>
+                    </div>
+                    <p className="rw-module-desc">
+                      Pateikiami tikslingi pavyzdžiai pagal eMokykla.lt BP. Spustelėkite <strong>„➕ Įkelti į pastabų laukelį“</strong>, kad patarimas atsidurtų dienyno pastabose:
+                    </p>
+
+                    <div className="rw-category-pills">
+                      {[
+                        { id: 'all', label: 'Visi (4)' },
+                        { id: 'daily', label: '🏠 Kasdienybė' },
+                        { id: 'career', label: '💼 Profesijos' },
+                        { id: 'steam', label: '🚀 STEAM' },
+                        { id: 'advice', label: '💡 Patarimas' },
+                      ].map(cat => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          className={`rw-pill-btn ${formRwCategory === cat.id ? 'active' : ''}`}
+                          onClick={() => setFormRwCategory(cat.id as any)}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="rw-cards-grid">
+                      {currentRwExamples
+                        .filter(item => formRwCategory === 'all' || item.category === formRwCategory)
+                        .map(item => (
+                          <div key={item.id} className={`rw-card ${item.category}`}>
+                            <div className="rw-card-header">
+                              <span className="rw-card-badge">{item.categoryIcon} {item.categoryTitle}</span>
+                            </div>
+                            <div className="rw-card-title">{item.title}</div>
+                            <div className="rw-card-text">{item.text}</div>
+                            <div className="rw-snippet-box">
+                              <strong>📌 Pastabų formuluotė:</strong>
+                              {item.snippetForNotes}
+                            </div>
+                            <div className="rw-card-actions">
+                              <button
+                                type="button"
+                                className="rw-insert-btn"
+                                onClick={() => handleInsertRealWorldToForm(item.snippetForNotes)}
+                                title="Įkelti šį patarimą į pastabų laukelį"
+                              >
+                                ➕ Įkelti į pastabų laukelį
+                              </button>
+                              <button
+                                type="button"
+                                className="rw-copy-btn"
+                                onClick={() => handleCopy(item.snippetForNotes, `form-rw-${item.id}`)}
+                              >
+                                {copiedField === `form-rw-${item.id}` ? 'Nukopijuota! ✓' : '📋 Kopijuoti'}
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             <div style={{marginTop: '1.25rem'}}>
@@ -1846,14 +2028,58 @@ Struktūra:
                 )}
 
                 {/* 3. Gyvenimiškas kontekstas ir STEAM sąsajos */}
-                {(methodologyTab === 'all' || methodologyTab === 'realworld') && lessonPlan.methodologyBank?.realWorldContext && (
+                {(methodologyTab === 'all' || methodologyTab === 'realworld') && (
                   <div className="method-section-block">
                     <div className="method-section-title">
                       <span>🌍 Gyvenimiškas kontekstas, STEAM ir profesinės sąsajos</span>
                     </div>
-                    <div className="method-realworld-box">
-                      <p>{lessonPlan.methodologyBank.realWorldContext}</p>
-                    </div>
+                    {lessonPlan.methodologyBank?.realWorldContext && (
+                      <div className="method-realworld-box" style={{marginBottom: '12px'}}>
+                        <p>{lessonPlan.methodologyBank.realWorldContext}</p>
+                      </div>
+                    )}
+                    {/* 4 struktūruotos gyvenimiško pritaikymo kortelės */}
+                    {(() => {
+                      const rwList = lessonPlan.methodologyBank?.realWorldExamples || generateRealWorldExamples(
+                        subject || lessonPlan.lessonOverview?.topic || 'Lietuvių kalba',
+                        lessonPlan.lessonOverview?.topic || topic || 'Pamokos tema',
+                        grade || '8 klasė'
+                      );
+                      return (
+                        <div className="rw-cards-grid">
+                          {rwList.map(item => (
+                            <div key={item.id} className={`rw-card ${item.category}`}>
+                              <div className="rw-card-header">
+                                <span className="rw-card-badge">{item.categoryIcon} {item.categoryTitle}</span>
+                              </div>
+                              <div className="rw-card-title">{item.title}</div>
+                              <div className="rw-card-text">{item.text}</div>
+                              <div className="rw-snippet-box">
+                                <strong>📌 Dienyno pastabų formuluotė:</strong>
+                                {item.snippetForNotes}
+                              </div>
+                              <div className="rw-card-actions">
+                                <button
+                                  type="button"
+                                  className="rw-insert-btn"
+                                  onClick={() => handleInsertRealWorldToDiary(item.snippetForNotes)}
+                                  title="Įtraukti šį gyvenimišką patarimą į el. dienyno pastabas"
+                                >
+                                  ➕ Įtraukti į dienyno pastabas
+                                </button>
+                                <button
+                                  type="button"
+                                  className="rw-copy-btn"
+                                  onClick={() => handleCopy(item.snippetForNotes, `bank-rw-${item.id}`)}
+                                >
+                                  {copiedField === `bank-rw-${item.id}` ? 'Nukopijuota! ✓' : '📋 Kopijuoti'}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -2151,6 +2377,60 @@ Struktūra:
                           </div>
                         )}
                       </div>
+
+                      {key === 'notes' && (() => {
+                        const rwList: RealWorldExampleItem[] = 
+                          lessonPlan.methodologyBank?.realWorldExamples || 
+                          generateRealWorldExamples(
+                            subject || lessonPlan.lessonOverview?.topic || 'Lietuvių kalba',
+                            lessonPlan.lessonOverview?.topic || topic || 'Pamokos tema',
+                            grade || '8 klasė'
+                          );
+                        const activeItem = rwList.find(x => x.id === selectedDiaryRwId) || rwList[0];
+                        return (
+                          <div className="diary-rw-helper">
+                            <div className="diary-rw-helper-title">
+                              💡 Greitas gyvenimiško patarimo įtraukimas į dienyno pastabas:
+                            </div>
+                            <div className="diary-rw-chips-row">
+                              {rwList.map(ex => (
+                                <button
+                                  key={ex.id}
+                                  type="button"
+                                  className={`diary-rw-chip ${activeItem?.id === ex.id ? 'selected' : ''}`}
+                                  onClick={() => setSelectedDiaryRwId(ex.id)}
+                                >
+                                  {ex.categoryIcon} {ex.title}
+                                </button>
+                              ))}
+                            </div>
+                            {activeItem && (
+                              <div style={{background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', padding: '10px', marginTop: '6px'}}>
+                                <div style={{fontSize: '0.78rem', color: '#a7f3d0', marginBottom: '8px', lineHeight: '1.4'}}>
+                                  <strong>{activeItem.categoryIcon} {activeItem.title}:</strong> {activeItem.snippetForNotes}
+                                </div>
+                                <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
+                                  <button
+                                    type="button"
+                                    className="rw-insert-btn"
+                                    onClick={() => handleInsertRealWorldToDiary(activeItem.snippetForNotes)}
+                                    title="Pakeisti arba įtraukti šį patarimą į dienyno pastabas"
+                                  >
+                                    ➕ Įtraukti į dienyno pastabas
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="rw-copy-btn"
+                                    onClick={() => handleCopy(activeItem.snippetForNotes, `diary-rw-${activeItem.id}`)}
+                                  >
+                                    {copiedField === `diary-rw-${activeItem.id}` ? 'Nukopijuota! ✓' : '📋 Kopijuoti patarimą'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })}
@@ -2570,6 +2850,13 @@ Struktūra:
           </div>
         )}
       </div>
+
+      {toastMessage && (
+        <div className="floating-toast">
+          <span>✨</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </div>
   );
 };

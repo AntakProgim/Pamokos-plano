@@ -11,6 +11,51 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/index.css" />
+    <script>
+      // Malšinti Vite WebSocket / HMR klaidos pranešimus iFrame aplinkoje
+      (function() {
+        var OrigWebSocket = window.WebSocket;
+        if (OrigWebSocket) {
+          window.WebSocket = function(url, protocols) {
+            if (typeof url === 'string' && (url.includes('vite') || url.includes('hmr') || url.includes('ws') || url.includes('europe-west2.run.app'))) {
+              return {
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                send: function() {},
+                close: function() {},
+                readyState: 3 // CLOSED
+              };
+            }
+            try {
+              return new OrigWebSocket(url, protocols);
+            } catch (err) {
+              return {
+                addEventListener: function() {},
+                removeEventListener: function() {},
+                send: function() {},
+                close: function() {},
+                readyState: 3
+              };
+            }
+          };
+          window.WebSocket.prototype = OrigWebSocket.prototype;
+        }
+
+        window.addEventListener('error', function (e) {
+          if (e && ((e.message || '').includes('WebSocket') || (e.filename || '').includes('@vite/client'))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function (e) {
+          if (e && e.reason && ((e.reason.message || e.reason.stack || e.reason || '').toString().includes('WebSocket'))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

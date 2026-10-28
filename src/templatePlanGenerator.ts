@@ -23,10 +23,21 @@ export interface ReflectionIdeaItem {
   description: string;
 }
 
+export interface RealWorldExampleItem {
+  id: string;
+  category: 'daily' | 'career' | 'steam' | 'advice';
+  categoryTitle: string;
+  categoryIcon: string;
+  title: string;
+  text: string;
+  snippetForNotes: string;
+}
+
 export interface MethodologyBank {
   activeMethods: ActiveMethodItem[];
   icebreakers: IcebreakerItem[];
   realWorldContext: string;
+  realWorldExamples?: RealWorldExampleItem[];
   digitalAndGamified: DigitalIdeaItem[];
   reflectionIdeas: ReflectionIdeaItem[];
   creativePrompts?: string[];
@@ -653,7 +664,8 @@ Diferencijuotos praktikos eiga:
         method: "„Šviesoforas ir viena mintis“",
         description: "Žalia: supratau puikiai, gebu paaiškinti draugui; Geltona: supratau esmę, bet reikia papildomos praktikos; Raudona: kilo neaiškumų."
       }
-    ]
+    ],
+    realWorldExamples: generateRealWorldExamples(currentSubject, currentTopic, currentGrade)
   };
 
   return {
@@ -696,4 +708,309 @@ Diferencijuotos praktikos eiga:
     motivation: `„Kiekvienas šiandien žengtas žingsnis temoje „${currentTopic}“ ugdo pasitikėjimą savo gebėjimais!“`,
     stageDurations
   };
+}
+
+// Sugeneruoja konkrečius, išsamius realaus gyvenimo pritaikymo pavyzdžius pagal temą ir dalyką
+export function generateRealWorldExamples(subject: string, topic: string, grade = ''): RealWorldExampleItem[] {
+  const sLow = (subject || '').toLowerCase();
+  const tLow = (topic || '').toLowerCase();
+  const combined = `${sLow} ${tLow}`;
+
+  // 1. Skaičiuoklės / Google Sheets / Excel / Duomenys
+  if (combined.includes('sheet') || combined.includes('excel') || combined.includes('skaičiuokl') || combined.includes('lentel') || combined.includes('duomenys')) {
+    return [
+      {
+        id: 'rw-sheet-daily',
+        category: 'daily',
+        categoryTitle: 'Kasdienis gyvenimas ir asmeniniai finansai',
+        categoryIcon: '🏠',
+        title: 'Asmeninio biudžeto ir kišenpinigių planavimas',
+        text: `Skaičiuoklės leidžia susikurti asmeninį išlaidų ir santaupų sekiklį: suskaičiuoti mėnesio kišenpinigius, planuoti pirkinius, automatiškai apskaičiuoti nuolaidas ir vizualizuoti išlaidas skrituline diagrama.`,
+        snippetForNotes: `Skaičiuoklių valdymo įgūdžiai tiesiogiai taikomi asmeninio biudžeto planavimui, santaupų sekimui ir finansinio raštingumo ugdymui kasdienybėje.`
+      },
+      {
+        id: 'rw-sheet-career',
+        category: 'career',
+        categoryTitle: 'Šiuolaikinės profesijos ir darbo rinka',
+        categoryIcon: '💼',
+        title: 'Verslo analitika, rinkodara ir projektų valdymas',
+        text: `Daugiau nei 75% šiuolaikinių biuro ir technologijų specialistų (rinkodaros analitikai, inžinieriai, finansininkai, renginių vadybininkai, logistikos koordinatoriai) kasdien naudoja formules (SUM, AVERAGE, IF) greitam duomenų apdorojimui ir strateginių sprendimų priėmimui.`,
+        snippetForNotes: `Google Sheets formulių kūrimas yra viena paklausiausių bazinių kompetencijų verslo analitikos, rinkodaros, vadybos ir inžinerijos profesijose.`
+      },
+      {
+        id: 'rw-sheet-steam',
+        category: 'steam',
+        categoryTitle: 'Technologijos, inovacijos ir STEAM',
+        categoryIcon: '🚀',
+        title: 'Eksperimentų duomenų modeliavimas ir automatizavimas',
+        text: `Skaičiuoklė veikia kaip skaitmeninė laboratorija: suvedus biologijos, fizikos ar chemijos eksperimento matavimus, formulės akimirksniu apskaičiuoja vidurkius, paklaidas ir nubraižo dėsningumų kreives.`,
+        snippetForNotes: `Skaičiuoklė taikoma mokslo eksperimentų duomenų apdorojimui, automatiniams skaičiavimams ir rezultatų vizualizavimui.`
+      },
+      {
+        id: 'rw-sheet-advice',
+        category: 'advice',
+        categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+        categoryIcon: '💡',
+        title: 'Automatizavimas vietoje šimtų valandų rankinio darbo',
+        text: `Išmokę vieną kartą sukurti teisingą formulę, sutaupysite šimtus valandų ateityje: kompiuteris tūkstančius eilučių suskaičiuoja per sekundės dalį, apsaugodamas nuo žmogiškų skaičiavimo klaidų.`,
+        snippetForNotes: `Mokantis kurti formules ugdomas automatizavimo įprotis: vietoje varginančio rankinio perskaičiavimo kompiuteris darbą atlieka akimirksniu.`
+      }
+    ];
+  }
+
+  // 2. Užsienio kalbos (pvz., In a restaurant / Kelionės / Komunikacija)
+  if (sLow.includes('angl') || sLow.includes('užsienio') || sLow.includes('vokieč') || sLow.includes('prancūz') || combined.includes('restaurant')) {
+    const isFood = combined.includes('restaurant') || combined.includes('maist') || combined.includes('food');
+    return [
+      {
+        id: 'rw-lang-daily',
+        category: 'daily',
+        categoryTitle: 'Kasdienis gyvenimas ir kelionės',
+        categoryIcon: '🏠',
+        title: isFood ? 'Laisvas bendravimas kavinėse ir restoranuose užsienyje' : 'Savarankiškumas keliaujant ir bendraujant internete',
+        text: isFood 
+          ? `Mokėjimas taisyklingai ir mandagiai užsisakyti maistą, paklausti apie patiekalo sudėtį (alergenus) ir paprašyti sąskaitos suteikia visišką laisvę bet kurioje pasaulio šalyje.`
+          : `Kalbinių konstrukcijų išmanymas leidžia savarankiškai keliauti be gidų, laisvai susikalbėti viešbučiuose, parduotuvėse ir susirasti draugų iš kitų šalių.`,
+        snippetForNotes: `Užsienio kalbos temos įgūdžiai suteikia savarankiškumo kelionėse, padeda laisvai bendrauti kasdienėse situacijose ir ugdo mandagaus dialogo kultūrą.`
+      },
+      {
+        id: 'rw-lang-career',
+        category: 'career',
+        categoryTitle: 'Tarptautinė karjera ir studijos',
+        categoryIcon: '💼',
+        title: 'Darbas tarptautinėse komandose ir klientų aptarnavimas',
+        text: `Tarptautinės kompanijos, IT startuoliai ir turizmo sektorius reikalauja sklandaus bendravimo ir specifinio teminio žodyno. Mandagus formalus ir neformalus bendravimas formuoja profesionalų įvaizdį.`,
+        snippetForNotes: `Specifinis teminis žodynas ir mandagumo frazės yra esminis pagrindas tarptautinėms studijoms, darbui pasaulinėse kompanijose ir klientų aptarnavimui.`
+      },
+      {
+        id: 'rw-lang-steam',
+        category: 'steam',
+        categoryTitle: 'Kultūrinis akiratis ir medijos',
+        categoryIcon: '🚀',
+        title: 'Originalaus turinio supratimas be vertėjo pagalbos',
+        text: `Specifinių kalbos frazių išmanymas padeda žiūrėti filmus, skaityti receptus ar instrukcijas originalo kalba, suprasti kultūrinius niuansus ir humorą, kuris dažnai dingsta automatiniame vertime.`,
+        snippetForNotes: `Žodyno įvaldymas leidžia suprasti kultūrinius kontekstus, tarptautines medijas ir bendrauti be kalbinio barjero.`
+      },
+      {
+        id: 'rw-lang-advice',
+        category: 'advice',
+        categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+        categoryIcon: '💡',
+        title: 'Pasitikėjimas savimi realiame dialoge',
+        text: `Tikslas nėra kalbėti tobulai be klaidų, o gebėti aiškiai išreikšti savo poreikį ir suprasti pašnekovą. Šios pamokos frazės pašalina kalbėjimo baimę realiose situacijose.`,
+        snippetForNotes: `Kalbinių frazių treniravimasis porose šalina viešo bendravimo baimę ir ugdo drąsą kalbėti užsienio kalba realiame gyvenime.`
+      }
+    ];
+  }
+
+  // 3. Lietuvių kalba ir literatūra (pvz. Tiesioginė kalba / Reklama / Rašyba)
+  if (sLow.includes('lietuvi') || combined.includes('rašyb') || combined.includes('skyryb') || combined.includes('tiesiogin') || combined.includes('reklam')) {
+    const isDirect = combined.includes('tiesiogin');
+    return [
+      {
+        id: 'rw-lt-daily',
+        category: 'daily',
+        categoryTitle: 'Kasdienė komunikacija ir susirašinėjimas',
+        categoryIcon: '🏠',
+        title: isDirect ? 'Taisyklingas citavimas ir minčių perdavimas pranešimuose' : 'Aiški ir taisyklinga asmeninė komunikacija',
+        text: isDirect
+          ? `Tiesioginės kalbos taisyklės padeda išvengti dviprasmybių persiunčiant kito žmogaus žodžius žinutėse, socialiniuose tinkluose ir rašant oficialius pareiškimus ar skundus.`
+          : `Taisyklinga rašyba ir rišli mintis kuria išsilavinusio, patikimo žmogaus įvaizdį susirašinėjant su būsimais darbdaviais, universitetais ar institucijomis.`,
+        snippetForNotes: `Taisyklinga kalbos raiška ir skyryba padeda aiškiai perduoti informaciją be dviprasmybių ir kuria patikimą asmeninį įvaizdį.`
+      },
+      {
+        id: 'rw-lt-career',
+        category: 'career',
+        categoryTitle: 'Šiuolaikinės profesijos ir medijos',
+        categoryIcon: '💼',
+        title: 'Žurnalistika, komunikacija, teisė ir turinio kūrimas',
+        text: `Tekstų autoriai (copywriters), žurnalistai, teisininkai ir ryšių su visuomene specialistai privalo preciziškai cituoti šaltinius, argumentuoti ir kurti įtaigius tekstus, atitinkančius aukščiausius etikos standartus.`,
+        snippetForNotes: `Temos įgūdžiai yra pamatiniai žurnalistikos, teisės, viešųjų ryšių ir profesionalaus turinio kūrimo profesijose.`
+      },
+      {
+        id: 'rw-lt-steam',
+        category: 'steam',
+        categoryTitle: 'Kritinis medijų raštingumas',
+        categoryIcon: '🚀',
+        title: 'Netikrų naujienų ir manipuliacijų atpažinimas',
+        text: `Suprantant, kaip autoriaus žodžiai gali pakeisti cituojamos minties prasmę, mokiniai išmoksta kritiškai vertinti antraštes naujienų portaluose ir atpažinti iš konteksto išrautas frazes.`,
+        snippetForNotes: `Teksto analizės įgūdžiai padeda atpažinti manipuliacijas, netikras naujienas (Fake News) ir vertinti informacijos patikimumą.`
+      },
+      {
+        id: 'rw-lt-advice',
+        category: 'advice',
+        categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+        categoryIcon: '💡',
+        title: 'Galia įtikinti ir apginti savo nuomonę',
+        text: `Taisyklingai suformuluotas sakinys ir pagrįsti argumentai padeda laimėti diskusijas, parašyti įtaigų motyvacinį laišką ir apginti savo teises bet kurioje gyvenimo situacijoje.`,
+        snippetForNotes: `Kalbinė kompetencija suteikia pranašumą diskusijose, derybose ir leidžia argumentuotai apginti savo poziciją.`
+      }
+    ];
+  }
+
+  // 4. Neakademiniai dalykai (Klasės vadovo veikla / Etika / Teatras / Gyvenimo įgūdžiai)
+  if (sLow.includes('vadov') || sLow.includes('valand') || sLow.includes('etik') || sLow.includes('teatr') || sLow.includes('gyvenimo')) {
+    return [
+      {
+        id: 'rw-nonacad-daily',
+        category: 'daily',
+        categoryTitle: 'Asmeniniai santykiai ir emocinis saugumas',
+        categoryIcon: '🏠',
+        title: 'Konfliktų sprendimas ir saugi aplinka',
+        text: `Socialiniai-emociniai įgūdžiai padeda atpažinti savo ir kitų ribas, laiku pastebėti netinkamą elgesį ir sustabdyti patyčias ar nesutarimus be agresijos.`,
+        snippetForNotes: `Temos veiklos tiesiogiai stiprina mokinių gebėjimą spręsti kasdienius tarpusavio konfliktus taikiai ir kurti pagarbų klasės mikroklimatą.`
+      },
+      {
+        id: 'rw-nonacad-career',
+        category: 'career',
+        categoryTitle: 'Komandinis darbas ir lyderystė',
+        categoryIcon: '💼',
+        title: 'Bendradarbiavimas šiuolaikinėse komandose',
+        text: `Gebėjimas išklausyti kitokią nuomonę, susitarti dėl bendrų taisyklių ir kartu siekti tikslo yra Nr. 1 minkštasis įgūdis (Soft Skills), kurio ieško modernios organizacijos.`,
+        snippetForNotes: `Empatija, pagarbus dialogas ir bendradarbiavimas yra labiausiai vertinami šiuolaikinės lyderystės ir komandinio darbo įgūdžiai.`
+      },
+      {
+        id: 'rw-nonacad-steam',
+        category: 'steam',
+        categoryTitle: 'Skaitmeninė etika ir saugumas',
+        categoryIcon: '🚀',
+        title: 'Atsakingas elgesys socialiniuose tinkluose',
+        text: `Temos principai perkeliami į internetinę erdvę: mokiniai mokosi bendrauti forumuose, susirašinėjimo grupėse (Discord, Messenger) ir atpažinti elektronines patyčias ar spaudimą.`,
+        snippetForNotes: `Ugdantis skaitmeninę etiką mokiniai išmoksta saugoti savo privatumą ir pagarbiai bendrauti internetinėse bendruomenėse.`
+      },
+      {
+        id: 'rw-nonacad-advice',
+        category: 'advice',
+        categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+        categoryIcon: '💡',
+        title: 'Asmeninė ramybė ir pasitikėjimas savimi',
+        text: `Žinodami, kaip išreikšti savo jausmus ir kur kreiptis pagalbos, mokiniai jaučiasi saugūs ir emociškai stipresni bet kokioje netikėtoje gyvenimo situacijoje.`,
+        snippetForNotes: `Emocijų atpažinimas ir pasitikėjimas savimi padeda išlaikyti vidinę ramybę stresinėse situacijose.`
+      }
+    ];
+  }
+
+  // 5. Matematika
+  if (sLow.includes('matemat') || combined.includes('lygt') || combined.includes('geometr') || combined.includes('trupmen')) {
+    return [
+      {
+        id: 'rw-math-daily',
+        category: 'daily',
+        categoryTitle: 'Kasdieniai skaičiavimai ir apsipirkimas',
+        categoryIcon: '🏠',
+        title: 'Praktiniai matavimai, nuolaidos ir biudžetas',
+        text: `Matematiniai ryšiai padeda apskaičiuoti realią prekės kainą su nuolaida, palyginti skirtingos talpos pakuočių vertę ir atlikti remonto ar baldų išdėstymo matavimus kambaryje.`,
+        snippetForNotes: `Matematiniai dėsningumai tiesiogiai taikomi kasdieniuose pirkiniuose, finansų skaičiavime ir praktiniuose erdvės matavimuose.`
+      },
+      {
+        id: 'rw-math-career',
+        category: 'career',
+        categoryTitle: 'Inžinerija, architektūra ir IT',
+        categoryIcon: '💼',
+        title: 'Konstravimas, algoritmai ir modeliavimas',
+        text: `Architektai, žaidimų kūrėjai, inžinieriai ir logistikos planuotojai kasdien remiasi geometriniais dėsningumais, funkcijomis ir proporcijomis, kurdami pastatus, 3D grafiką ir maršrutus.`,
+        snippetForNotes: `Temos matematiniai algoritmai yra pamatas inžinerijos, 3D modeliavimo, kompiuterinių žaidimų fizikos ir architektūros disciplinose.`
+      },
+      {
+        id: 'rw-math-steam',
+        category: 'steam',
+        categoryTitle: 'Mokslas, duomenys ir technologijos',
+        categoryIcon: '🚀',
+        title: 'Duomenų statistika ir dirbtinis intelektas',
+        text: `Šiuolaikiniai dirbtinio intelekto algoritmai ir mašininis mokymasis yra paremti matematinėmis funkcijomis ir tikimybių skaičiavimais. Suprasdami matematiką, mokiniai supranta ateities technologijas.`,
+        snippetForNotes: `Loginis matematinis mąstymas ugdo gebėjimą suprasti šiuolaikines duomenų technologijas ir algoritmų veikimą.`
+      },
+      {
+        id: 'rw-math-advice',
+        category: 'advice',
+        categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+        categoryIcon: '💡',
+        title: 'Mąstymo aštrumas ir loginis sprendimų priėmimas',
+        text: `Matematika yra mąstymo treniruotė: išmokę struktūruotai spręsti uždavinį žingsnis po žingsnio, taip pat sėkmingai išspręsite bet kokią gyvenimišką ar profesinę problemą.`,
+        snippetForNotes: `Matematikos mokymasis lavina nuoseklų problemų sprendimą ir loginį mąstymą, būtiną priimant apgalvotus sprendimus.`
+      }
+    ];
+  }
+
+  // 6. Gamtos mokslai (Biologija, Chemija, Fizika)
+  if (sLow.includes('biolog') || sLow.includes('fizik') || sLow.includes('chemij') || sLow.includes('gamt')) {
+    return [
+      {
+        id: 'rw-sci-daily',
+        category: 'daily',
+        categoryTitle: 'Kasdienė sveikata ir buities saugumas',
+        categoryIcon: '🏠',
+        title: 'Sveika gyvensena, buitinė chemija ir energijos vartojimas',
+        text: `Mokslo dėsnių supratimas padeda pasirinkti sveikesnius maisto produktus, saugiai naudoti buities priemones ir taupyti elektros bei šilumos energiją namuose.`,
+        snippetForNotes: `Gamtamokslinės žinios padeda priimti sveikesnius mitybos pasirinkimus, saugiai elgtis su buitine technika ir tausoti aplinką.`
+      },
+      {
+        id: 'rw-sci-career',
+        category: 'career',
+        categoryTitle: 'Medicina, ekologija ir energetika',
+        categoryIcon: '💼',
+        title: 'Ateities medicinos ir žaliosios energetikos sprendimai',
+        text: `Gydytojai, biotechnologai, atsinaujinančios energetikos inžinieriai ir aplinkosaugos ekspertai remiasi šiais dėsniais kurdami naujus vaistus, saulės baterijas ir tvarias technologijas.`,
+        snippetForNotes: `Temos dėsniai taikomi medicinos, biotechnologijų, aplinkosaugos ir moderniosios energetikos inovacijose.`
+      },
+      {
+        id: 'rw-sci-steam',
+        category: 'steam',
+        categoryTitle: 'Eksperimentai ir inovacijos',
+        categoryIcon: '🚀',
+        title: 'Mokslinio tyrėjo mąstymas ir hipotezių tikrinimas',
+        text: `Mokiniai mokosi ne aklai tikėti mitais, o patikrinti faktus eksperimentu, fiksuoti matavimus ir daryti moksliškai pagrįstas išvadas.`,
+        snippetForNotes: `Eksperimentinė veikla ugdo tiriamąjį mąstymą ir gebėjimą atskirti moksliškai pagrįstus faktus nuo pseudomokslo.`
+      },
+      {
+        id: 'rw-sci-advice',
+        category: 'advice',
+        categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+        categoryIcon: '💡',
+        title: 'Kaip veikia pasaulis aplink mus',
+        text: `Suprasdami gamtos dėsnius, jūs matote tai, ko kiti nepastebi: kodėl dangus mėlynas, kaip veikia išmaniojo telefono jutikliai ir kas vyksta žmogaus kūne sportuojant.`,
+        snippetForNotes: `Gamtos dėsnių supratimas paaiškina kasdienius reiškinius ir skatina smalsumą tyrinėti pasaulį.`
+      }
+    ];
+  }
+
+  // 7. Universalus dinaminis generatorius bet kuriai temai
+  return [
+    {
+      id: 'rw-gen-daily',
+      category: 'daily',
+      categoryTitle: 'Kasdienis gyvenimas ir asmeninė patirtis',
+      categoryIcon: '🏠',
+      title: `Temos „${topic}“ taikymas kasdienybėje`,
+      text: `Šios temos principai padeda geriau suprasti mus supančią aplinką, analizuoti kasdienes situacijas ir priimti apgalvotus asmeninius sprendimus.`,
+      snippetForNotes: `Temos „${topic}“ medžiaga ugdo praktinį mąstymą ir padeda spręsti kasdienes gyvenimiškas problemas.`
+    },
+    {
+      id: 'rw-gen-career',
+      category: 'career',
+      categoryTitle: 'Šiuolaikinės profesijos ir karjera',
+      categoryIcon: '💼',
+      title: `Kur ši tema taikoma profesinėje veikloje`,
+      text: `Šiuolaikinėje darbo rinkoje šios temos žinios padeda analizuoti informaciją, rengti projektus, bendradarbiauti komandoje ir kurti pridėtinę vertę.`,
+      snippetForNotes: `Įgytos žinios yra vertinga kompetencija šiuolaikinėse profesijose, reikalaujančiose analitikos ir komandinio darbo.`
+    },
+    {
+      id: 'rw-gen-steam',
+      category: 'steam',
+      categoryTitle: 'Technologijos, inovacijos ir ateities įgūdžiai',
+      categoryIcon: '🚀',
+      title: `Ryšys su technologijomis ir inovacijomis`,
+      text: `Temos principai glaudžiai siejasi su šiuolaikinėmis skaitmeninėmis priemonėmis, technologiniais procesais ir tarpdalykiniu STEAM požiūriu.`,
+      snippetForNotes: `Tema integruoja technologinius įrankius ir ugdo XXI a. tarpdalykines kompetencijas.`
+    },
+    {
+      id: 'rw-gen-advice',
+      category: 'advice',
+      categoryTitle: 'Praktinis patarimas mokiniui („Kam man to prireiks?“)',
+      categoryIcon: '💡',
+      title: `Asmeninė vertė ir praktinė nauda`,
+      text: `Šios pamokos įgūdžiai suteikia pasitikėjimo savimi, moko kelti klausimus ir savarankiškai rasti teisingus atsakymus realiame pasaulyje.`,
+      snippetForNotes: `Ugdantis temos gebėjimus didėja asmeninis savarankiškumas ir gebėjimas pritaikyti žinias realiame gyvenime.`
+    }
+  ];
 }
