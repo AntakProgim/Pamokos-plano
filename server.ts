@@ -2,8 +2,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
-import { buildPedagogicalPlan, GenerateTemplateParams, generateRealWorldExamples } from './src/templatePlanGenerator';
-import { generateSmartGoalPedagogical, GenerateSmartGoalParams } from './src/smartGoalService';
+import { buildPedagogicalPlan, GenerateTemplateParams, generateRealWorldExamples } from './src/templatePlanGenerator.ts';
+import { generateSmartGoalPedagogical, GenerateSmartGoalParams } from './src/smartGoalService.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -373,7 +373,7 @@ async function startServer() {
   } else {
     const distPath = path.resolve(__dirname, 'dist');
     app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
+    app.use((_req, res) => {
       res.sendFile(path.resolve(distPath, 'index.html'));
     });
   }

@@ -1,4 +1,4 @@
-import { BLOOM_LEVELS } from './bloomData';
+import { BLOOM_LEVELS } from './bloomData.ts';
 
 export interface GenerateSmartGoalParams {
   subject?: string;
