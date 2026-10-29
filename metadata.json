@@ -1,6 +1,5 @@
 {
   "name": "Pamokos plano rengimas",
-  "description": "Programėlė padedanti mokytojams kurti pamokų planus pagal Lietuvos bendrąsias programas.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "Programėlė padedanti mokytojams kurti pamokų planus.",
+  "requestFramePermissions": []
 }
