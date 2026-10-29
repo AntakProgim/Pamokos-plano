@@ -51,6 +51,8 @@ export interface GenerateTemplateParams {
   goal?: string;
   activities?: string;
   homeworkPurpose?: string;
+  homeworkDuration?: string;
+  homeworkType?: string;
   selectedResources?: string[];
   selectedEvaluations?: string[];
   evaluationCriteria?: string;
@@ -492,7 +494,7 @@ Diferencijuotos praktikos eiga:
   };
 
   // 8. Namų darbai pagal eMokykla.lt rekomendacijas (aiškus tikslas, sąsaja su tema, įvairovė, neperkraunant mokinių)
-  const isNoHomework = hwPurpose === 'Be namų darbų';
+  const isNoHomework = hwPurpose === 'Be namų darbų' || params.homeworkDuration === '0' || (params.homeworkType && params.homeworkType.includes('Be namų darbų'));
   
   const homework = {
     purpose: hwPurpose,
@@ -533,9 +535,16 @@ Diferencijuotos praktikos eiga:
   // Namų darbai dienyne
   let eDiaryHomework = '';
   if (isNoHomework) {
-    eDiaryHomework = 'Namų darbai neužduoti (mokiniai visus tikslus pasiekė ir praktinius darbus atliko pamokos metu).';
+    eDiaryHomework = 'Namų darbai neužduodami (mokymosi krūvio balansas pagal N0015 rekomendaciją – visi tikslai pasiekti pamokoje).';
   } else {
-    eDiaryHomework = `${profile.homeworkGoalStatement} Sąsaja su tema: ${profile.homeworkConnection} Užduotis: ${profile.homeworkSpecificTask} Rekomenduojama trukmė: iki 15–20 min. (optimalus krūvis).`;
+    const durationLabel = params.homeworkDuration === '15'
+      ? '10–15 min. (rekomenduojama)'
+      : params.homeworkDuration === '20'
+      ? '15–20 min.'
+      : params.homeworkDuration === '30'
+      ? '20–30 min.'
+      : 'iki 15–20 min.';
+    eDiaryHomework = `${profile.homeworkGoalStatement} Sąsaja su tema: ${profile.homeworkConnection} Užduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukmė: ${durationLabel}).`;
   }
 
   // Pastabos dienyne

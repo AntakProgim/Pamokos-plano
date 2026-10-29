@@ -769,10 +769,225 @@ body {
   padding: 12px;
   border-radius: 10px;
   flex: 1;
+  min-width: 120px;
   border: none;
   cursor: pointer;
   font-weight: bold;
   font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.print-button:hover {
+  background: #334155;
+  transform: translateY(-1px);
+}
+
+.pdf-button {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  flex: 1;
+  min-width: 140px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.pdf-button:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+}
+
+.pdf-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ediary-pdf-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+
+.ediary-pdf-btn:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.ediary-pdf-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* PDF Modal styles */
+.pdf-modal-content {
+  max-width: 660px;
+  width: 90%;
+  background: #1e293b;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pdf-modal-header {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.pdf-modal-header h2 {
+  margin: 0 0 6px 0;
+  color: white;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdf-modal-subtext {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.pdf-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin: 8px 0;
+}
+
+@media (min-width: 600px) {
+  .pdf-options-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pdf-option-card {
+  background: #0f172a;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.pdf-option-card:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.pdf-option-badge {
+  display: inline-block;
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.pdf-option-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: white;
+  margin: 4px 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pdf-option-desc {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pdf-download-action-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s;
+}
+
+.pdf-download-action-btn:hover {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+}
+
+.pdf-download-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Generating PDF toast notification */
+.pdf-generating-banner {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #0f172a;
+  border: 1.5px solid #3b82f6;
+  border-radius: 12px;
+  padding: 14px 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.pdf-spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Emokykla BP & E-diary Standards Styles */
@@ -885,25 +1100,155 @@ body {
   font-weight: 600;
 }
 
-.homework-duration-select {
+.homework-config-card {
+  background: rgba(15, 23, 42, 0.45);
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 16px;
+}
+
+.homework-config-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
   gap: 8px;
+}
+
+.homework-config-title {
+  color: #93c5fd;
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.homework-bp-tag {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.homework-duration-control {
   background: #0f172a;
-  padding: 8px 12px;
+  padding: 12px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  font-size: 0.8rem;
-  color: var(--text-color-light);
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.homework-duration-select select {
+
+.homework-duration-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+}
+
+.homework-duration-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.homework-duration-label .clock-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.homework-duration-current-badge {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #6ee7b7;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.homework-duration-pills {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.duration-pill-btn {
   background: #1e293b;
   border: 1px solid var(--border-color);
-  color: white;
-  padding: 4px 8px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.duration-pill-btn:hover {
+  background: #334155;
+  border-color: #64748b;
+  transform: translateY(-1px);
+}
+
+.duration-pill-btn.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 0 0 1px #10b981;
+}
+
+.duration-pill-time {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #f8fafc;
+}
+
+.duration-pill-btn.active .duration-pill-time {
+  color: #34d399;
+}
+
+.duration-pill-desc {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.duration-pill-btn.active .duration-pill-desc {
+  color: #a7f3d0;
+}
+
+.homework-duration-hint {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  padding: 6px 10px;
   border-radius: 6px;
-  font-size: 0.8rem;
-  width: auto;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.homework-duration-hint .hint-zero {
+  color: #93c5fd;
+}
+
+.homework-duration-hint .hint-ok {
+  color: #cbd5e1;
+}
+
+.homework-duration-hint strong {
+  color: #f1f5f9;
 }
 
 /* Mano Dienynas & BP Selector Styles */
@@ -1292,7 +1637,14 @@ body {
   .copy-button,
   .modal-overlay,
   .mini-delete-button,
-  .time-planner-container {
+  .time-planner-container,
+  .pdf-button,
+  .ediary-pdf-btn,
+  .manodienynas-link-btn,
+  .best-practice-banner-btn,
+  .ediary-copy-all-btn,
+  .ediary-item-copy-btn,
+  .pdf-generating-banner {
     display: none !important;
   }
 
@@ -1411,7 +1763,92 @@ body {
     display: block !important;
   }
 
-  /* E-diary inputs/views */
+  /* E-diary styling for print */
+  .ediary-box {
+    background: #ffffff !important;
+    border: 2px solid #1e40af !important;
+    box-shadow: none !important;
+    padding: 1rem !important;
+    margin-bottom: 1.5rem !important;
+    page-break-inside: avoid !important;
+  }
+
+  .ediary-header {
+    border-bottom: 1.5px solid #1e40af !important;
+    padding-bottom: 8px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .ediary-title-group h3 {
+    color: #1e3a8a !important;
+  }
+
+  .ediary-bp-badge {
+    background: #f0fdf4 !important;
+    border: 1px solid #86efac !important;
+    color: #166534 !important;
+  }
+
+  .ediary-card-item {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    margin-bottom: 10px !important;
+    page-break-inside: avoid !important;
+  }
+
+  .ediary-item-top {
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    padding: 6px 10px !important;
+  }
+
+  .ediary-item-title {
+    color: #0f172a !important;
+  }
+
+  .ediary-item-subtitle {
+    color: #64748b !important;
+  }
+
+  .ediary-item-content {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 10px !important;
+  }
+
+  .ediary-metadata-bar {
+    border-top: 1px dashed #cbd5e1 !important;
+    margin-top: 8px !important;
+    padding-top: 8px !important;
+  }
+
+  .ediary-tag-badge {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+  }
+
+  .ediary-tag-badge.success {
+    background: #f0fdf4 !important;
+    border: 1px solid #86efac !important;
+    color: #166534 !important;
+  }
+
+  .quality-audit-container {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid !important;
+  }
+
+  .quality-audit-title {
+    color: #0f172a !important;
+  }
+
+  .quality-audit-item {
+    color: #334155 !important;
+  }
+
+  /* Legacy e-diary inputs/views fallback */
   .diary-field-wrapper {
     margin-bottom: 1rem !important;
     page-break-inside: avoid !important;

@@ -341,7 +341,7 @@ Diferencijuotos praktikos eiga:
     struggling: `\u2022 Padr\u0105sinamasis formuojamasis vertinimas, fiksuojant asmenin\u0119 pa\u017Eang\u0105 ir pastangas be streso.
 \u2022 \u012Esivertinimas: \u017Dingsninis kontrolinis s\u0105ra\u0161as (Checklist): 3 trumpi teiginiai apie tai, k\u0105 pavyko atlikti.`
   };
-  const isNoHomework = hwPurpose === "Be nam\u0173 darb\u0173";
+  const isNoHomework = hwPurpose === "Be nam\u0173 darb\u0173" || params.homeworkDuration === "0" || params.homeworkType && params.homeworkType.includes("Be nam\u0173 darb\u0173");
   const homework = {
     purpose: hwPurpose,
     gifted: isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokiniai visk\u0105 atliko pamokoje)." : `${profile.homeworkGoalStatement} S\u0105saja su tema: Gilinamasis i\u0161\u0161\u016Bkis temai \u201E${currentTopic}\u201C. U\u017Eduotis: K\u016Brybi\u0161kai pritaikyti \u017Einias, sukurti 2 probleminius klausimus arba mini projektin\u012F pavyzd\u012F (rekomenduojama trukm\u0117: ~15\u201320 min.).`,
@@ -361,9 +361,10 @@ Papildomi \u0161altiniai: eMokykla.lt skaitmenin\u0117 saugykla, Eduka klas\u011
   }
   let eDiaryHomework = "";
   if (isNoHomework) {
-    eDiaryHomework = "Nam\u0173 darbai neu\u017Eduoti (mokiniai visus tikslus pasiek\u0117 ir praktinius darbus atliko pamokos metu).";
+    eDiaryHomework = "Nam\u0173 darbai neu\u017Eduodami (mokymosi kr\u016Bvio balansas pagal N0015 rekomendacij\u0105 \u2013 visi tikslai pasiekti pamokoje).";
   } else {
-    eDiaryHomework = `${profile.homeworkGoalStatement} S\u0105saja su tema: ${profile.homeworkConnection} U\u017Eduotis: ${profile.homeworkSpecificTask} Rekomenduojama trukm\u0117: iki 15\u201320 min. (optimalus kr\u016Bvis).`;
+    const durationLabel = params.homeworkDuration === "15" ? "10\u201315 min. (rekomenduojama)" : params.homeworkDuration === "20" ? "15\u201320 min." : params.homeworkDuration === "30" ? "20\u201330 min." : "iki 15\u201320 min.";
+    eDiaryHomework = `${profile.homeworkGoalStatement} S\u0105saja su tema: ${profile.homeworkConnection} U\u017Eduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukm\u0117: ${durationLabel}).`;
   }
   const realWorldText = realWorldNote && realWorldNote.trim().length > 0 ? realWorldNote.trim() : profile.realWorldUse;
   const teacherRequestedEvaluation = selectedEvaluations && selectedEvaluations.length > 0 || evaluationCriteria && evaluationCriteria.trim().length > 0;

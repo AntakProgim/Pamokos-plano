@@ -5,6 +5,7 @@ import { GoogleGenAI, Chat, Type } from '@google/genai';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import firebaseConfig from './firebase-applet-config.json';
+import { downloadDocumentPdf } from './src/pdfService.ts';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -141,10 +142,10 @@ const HOMEWORK_TYPES = [
 ];
 
 const HOMEWORK_DURATIONS = [
-  { value: '15', label: '10–15 min. (rekomenduojama)' },
-  { value: '20', label: '15–20 min.' },
-  { value: '30', label: '20–30 min.' },
-  { value: '0', label: '0 min. (be namų darbų)' }
+  { value: '0', label: '0 min.', desc: 'Be namų darbų' },
+  { value: '15', label: '10–15 min.', desc: 'Rekomenduojama (1–6 kl.)' },
+  { value: '20', label: '15–20 min.', desc: 'Standartinė (7–8 kl.)' },
+  { value: '30', label: '20–30 min.', desc: 'Išplėstinė (9–12 kl.)' }
 ];
 
 const QUICK_GRADES = [
@@ -739,6 +740,40 @@ const App = () => {
     summary: 5
   });
 
+  // PDF export states
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfSuccessMessage, setPdfSuccessMessage] = useState<string | null>(null);
+
+  const handleGeneratePdf = async (type: 'full' | 'ediary') => {
+    if (!lessonPlan) return;
+    setIsGeneratingPdf(true);
+    setShowPdfModal(false);
+    try {
+      await downloadDocumentPdf(type, lessonPlan, {
+        subject,
+        grade,
+        topic: lessonPlan.lessonOverview?.topic || topic,
+        goal: lessonPlan.lessonOverview?.goal || goal,
+        stageDurations,
+        homeworkDuration
+      });
+      setPdfSuccessMessage(
+        type === 'full' 
+          ? 'Visas pamokos planas sėkmingai atsisiųstas kaip PDF dokumentas! 📄✅' 
+          : 'El. dienyno įrašai sėkmingai atsisiųsti kaip PDF kortelė! ✍️✅'
+      );
+      setTimeout(() => {
+        setPdfSuccessMessage(null);
+      }, 4500);
+    } catch (err: any) {
+      console.error('Failed to generate PDF:', err);
+      setError('Nepavyko sugeneruoti PDF dokumento. Bandykite dar kartą arba naudokite mygtuką „Spausdinti“.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   useEffect(() => {
     if (lessonPlan) {
       if (lessonPlan.stageDurations) {
@@ -910,7 +945,7 @@ Struktūra:
       - Veiklos / papildomos idėjos: ${activities || 'Pasiūlyk modernias, įtraukias veiklas'}
       - Naudojamos priemonės: ${selectedResources.length > 0 ? selectedResources.join(', ') : 'Standartinės priemonės, skaitmeniniai įrankiai'}
       - Namų darbų pobūdis: ${homeworkType}
-      - Pageidaujama ND trukmė: ${homeworkDuration === '0' ? 'Be namų darbų' : `apie ${homeworkDuration} min.`}
+      - Pageidaujama ND trukmė: ${homeworkDuration === '0' ? 'Be namų darbų (0 min.)' : homeworkDuration === '15' ? '10–15 min. (rekomenduojama)' : homeworkDuration === '20' ? '15–20 min.' : '20–30 min.'} (krūvio kontrolė pagal N0015 rekomendaciją)
       - Vertinimo metodai: ${selectedEvaluations.length > 0 ? selectedEvaluations.join(', ') : 'NENURODYTI'}
       - Vertinimo kriterijai: ${evaluationCriteria.trim() || 'NENURODYTI'}
       - Integruota pamoka: ${isIntegratedInput ? integrationDetails : 'Ne'}
@@ -921,8 +956,7 @@ Struktūra:
       2. EL. DIENYNO ĮRAŠAI (eDiaryEntry):
          - topicClassworkExpectations: Standartizuota formuluotė: [Dalykas]: [Temos pavadinimas]. Mokymosi uždavinys: [konkretus mokymosi uždavinys / ko išmoks]. Veikla: [konkreti veikla / metodas / atliekama užduotis].
            Griežtai NENAUDOTI sausų šablonų („Žinoti: sąvokas... Gebėti: atlikti... Taikyti: spręsti...“).
-         - homework: Tikslas – [aiškus tikslas]. [Konkreti užduotis su kontekstu, be plikų numerių]. (Rekomenduojama trukmė: ~${homeworkDuration} min.).
-           (Jei pasirinkta be namų darbų: „Namų darbai neskiriami – mokymosi krūvio subalansavimas po intensyvaus darbo pamokoje.“)
+         - homework: ${homeworkDuration === '0' || homeworkType.includes('Be namų darbų') ? '„Namų darbai neskiriami – mokymosi krūvio subalansavimas pagal N0015 rekomendaciją (visi tikslai pasiekti pamokoje).“' : `Tikslas – [aiškus tikslas]. [Konkreti užduotis su kontekstu, be plikų numerių]. (Rekomenduojama trukmė: ${homeworkDuration === '15' ? '10–15 min.' : homeworkDuration === '20' ? '15–20 min.' : '20–30 min.'}).`}
          - notes: Privalomai nurodyk patarimus, kuo ši mokymo medžiaga naudinga realiame gyvenime / ateičiai.
            ${hasEvaluation ? 'Kadangi mokytojas nurodė vertinimą, papildomai įtrauk: Vertinimas: [būdas ir kriterijai]. Klasės mokymasis: [pastebėjimai].' : 'KADANGI MOKYTOJAS VERTINIMO NENURODĖ, Į PASTABAS JOKIOS INFORMACIJOS APIE VERTINIMĄ NEĮTRAUK (tik gyvenimišką naudą ir motyvacinį pastebėjimą)!'}
       3. Diferencijavimas gabiesiems, bendro lygio ir sunkumų patiriantiems mokiniams.
@@ -1479,8 +1513,12 @@ ${lessonPlan.eDiaryEntry.notes}`;
             </div>
 
             {/* Namų darbų formulavimas ir krūvio stebėsena */}
-            <div className="form-group" style={{background: 'rgba(15, 23, 42, 0.4)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)'}}>
-              <label style={{color: '#93c5fd'}}>🎯 Namų darbų pobūdis ir krūvis</label>
+            <div className="homework-config-card">
+              <div className="homework-config-header">
+                <label className="homework-config-title">🎯 Namų darbų pobūdis ir krūvio kontrolė</label>
+                <span className="homework-bp-tag">N0015 rekomendacija</span>
+              </div>
+
               <div className="homework-type-pills">
                 {HOMEWORK_TYPES.map(type => (
                   <button 
@@ -1489,8 +1527,11 @@ ${lessonPlan.eDiaryEntry.notes}`;
                     className={`homework-type-pill ${homeworkType === type.label ? 'active' : ''}`}
                     onClick={() => {
                       setHomeworkType(type.label);
-                      if (type.id === 'none') setHomeworkDuration('0');
-                      else if (homeworkDuration === '0') setHomeworkDuration('15');
+                      if (type.id === 'none') {
+                        setHomeworkDuration('0');
+                      } else if (homeworkDuration === '0') {
+                        setHomeworkDuration('15');
+                      }
                     }}
                   >
                     {type.label}
@@ -1498,13 +1539,59 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 ))}
               </div>
 
-              <div className="homework-duration-select">
-                <span>⏱️ Rekomenduojama trukmė (krūvio kontrolė N0015):</span>
-                <select value={homeworkDuration} onChange={e => setHomeworkDuration(e.target.value)}>
-                  {HOMEWORK_DURATIONS.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
+              {/* Korektiškas, ergonomiškas laiko parinkimas */}
+              <div className="homework-duration-control">
+                <div className="homework-duration-label-row">
+                  <span className="homework-duration-label">
+                    <span className="clock-icon">⏱️</span>
+                    <span>Rekomenduojama atlikimo trukmė:</span>
+                  </span>
+                  <span className="homework-duration-current-badge">
+                    {homeworkDuration === '0' 
+                      ? '0 min. (be ND)' 
+                      : homeworkDuration === '15' 
+                      ? '10–15 min.' 
+                      : homeworkDuration === '20' 
+                      ? '15–20 min.' 
+                      : '20–30 min.'}
+                  </span>
+                </div>
+
+                <div className="homework-duration-pills">
+                  {HOMEWORK_DURATIONS.map(d => {
+                    const isSelected = homeworkDuration === d.value;
+                    return (
+                      <button
+                        key={d.value}
+                        type="button"
+                        className={`duration-pill-btn ${isSelected ? 'active' : ''}`}
+                        onClick={() => {
+                          setHomeworkDuration(d.value);
+                          if (d.value === '0') {
+                            setHomeworkType('🚫 Be namų darbų (krūvio balansas)');
+                          } else if (homeworkType === '🚫 Be namų darbų (krūvio balansas)') {
+                            setHomeworkType('💡 Įtvirtinimas ir taikymas');
+                          }
+                        }}
+                      >
+                        <span className="duration-pill-time">{d.label}</span>
+                        <span className="duration-pill-desc">{d.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="homework-duration-hint">
+                  {homeworkDuration === '0' ? (
+                    <span className="hint-zero">🛡️ <strong>Krūvio balansas:</strong> Namų darbai neužduodami. Visi mokymosi uždaviniai įgyvendinami pamokos metu.</span>
+                  ) : homeworkDuration === '15' ? (
+                    <span className="hint-ok">💡 <strong>Optimalus laikas (10–15 min.):</strong> Rekomenduojama 1–6 klasėms, kad mokiniai nebūtų perkraunami.</span>
+                  ) : homeworkDuration === '20' ? (
+                    <span className="hint-ok">📘 <strong>Standartinė trukmė (15–20 min.):</strong> Rekomenduojama 7–8 klasėms žinių ir gebėjimų įtvirtinimui.</span>
+                  ) : (
+                    <span className="hint-ok">🎓 <strong>Išplėstinė trukmė (20–30 min.):</strong> Rekomenduojama 9–12 (gimnazijos) klasėms ar tiriamiesiems darbams.</span>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1627,7 +1714,16 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 <button onClick={() => setShowSaveConfirm(true)} className="save-button">Išsaugoti 💾</button>
                 <button onClick={() => { setEditedPlan(lessonPlan); setShowEditModal(true); }} className="edit-modal-btn">Redaguoti ✏️</button>
                 <button onClick={() => setShowClassroomModal(true)} className="classroom-share-button">Classroom 🏫</button>
-                <button onClick={() => window.print()} className="print-button">Spausdinti 🖨️</button>
+                <button 
+                  type="button"
+                  onClick={() => setShowPdfModal(true)} 
+                  className="pdf-button" 
+                  disabled={isGeneratingPdf} 
+                  title="Atsisiųsti šį pamokos planą ar dienyno įrašus kaip PDF"
+                >
+                  {isGeneratingPdf ? 'Generuojama... ⏳' : 'Atsisiųsti PDF 📄'}
+                </button>
+                <button onClick={() => window.print()} className="print-button" title="Spausdinti dokumentą">Spausdinti 🖨️</button>
               </div>
 
               <div className="card">
@@ -1821,6 +1917,15 @@ ${lessonPlan.eDiaryEntry.notes}`;
                     <span className="ediary-bp-badge">TAMO / Mano Dienynas / Eduka suderinamumas ✅</span>
                   </div>
                   <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
+                    <button 
+                      type="button" 
+                      onClick={() => handleGeneratePdf('ediary')} 
+                      className="ediary-pdf-btn"
+                      disabled={isGeneratingPdf}
+                      title="Atsisiųsti el. dienyno įrašus kaip PDF dokumentą"
+                    >
+                      📄 Atsisiųsti PDF
+                    </button>
                     <a 
                       href="https://www.manodienynas.lt/1/lt/public/public/login" 
                       target="_blank" 
@@ -1946,7 +2051,7 @@ ${lessonPlan.eDiaryEntry.notes}`;
                     </div>
                     <div className="quality-audit-item">
                       <span className="check-icon">✓</span>
-                      <span>ND krūvio kontrolė (~{homeworkDuration === '0' ? '0' : homeworkDuration} min., be mokinių perkrovimo)</span>
+                      <span>ND krūvio kontrolė ({homeworkDuration === '0' ? '0 min., be namų darbų' : homeworkDuration === '15' ? '10–15 min.' : homeworkDuration === '20' ? '15–20 min.' : '20–30 min.'}, N0015)</span>
                     </div>
                     <div className="quality-audit-item">
                       <span className="check-icon">✓</span>
@@ -2357,6 +2462,84 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 <button onClick={() => setDeletingPlanId(null)} className="modal-btn cancel">Atšaukti</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* PDF pasirinkimo ir atsisiuntimo modalas */}
+      {showPdfModal && (
+        <div className="modal-overlay" onClick={() => setShowPdfModal(false)}>
+          <div className="pdf-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="pdf-modal-header">
+              <h2>📄 Atsisiųsti kaip PDF dokumentą</h2>
+              <p className="pdf-modal-subtext">
+                Pasirinkite norimą dokumento formatą. PDF bus sugeneruotas pritaikant oficialius LR bendrųjų programų (emokykla.lt) ir dienynų pildymo reikalavimus švariame A4 dokumento lape.
+              </p>
+            </div>
+
+            <div className="pdf-options-grid">
+              {/* 1. Visas pamokos planas */}
+              <div className="pdf-option-card">
+                <div>
+                  <span className="pdf-option-badge">Pilnas metodinis dokumentas</span>
+                  <div className="pdf-option-title">
+                    📚 Visas pamokos planas
+                  </div>
+                  <p className="pdf-option-desc">
+                    Išsamus planas: BP sąsajos, pamokos apžvalga, laiko biudžetas ({(Object.values(stageDurations) as number[]).reduce((s, v) => s + (Number(v) || 0), 0)} min.), veiklos klasėje, individualus darbas, diferencijavimas (3 lygiai), el. dienyno įrašai ir motyvacinė žinutė.
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  className="pdf-download-action-btn"
+                  onClick={() => handleGeneratePdf('full')}
+                  disabled={isGeneratingPdf}
+                >
+                  {isGeneratingPdf ? 'Ruošiamas PDF... ⏳' : 'Atsisiųsti visą planą 📥'}
+                </button>
+              </div>
+
+              {/* 2. Tik el. dienyno įrašai */}
+              <div className="pdf-option-card">
+                <div>
+                  <span className="pdf-option-badge">Kompaktiška dienyno kortelė</span>
+                  <div className="pdf-option-title">
+                    ✍️ Tik el. dienyno įrašai
+                  </div>
+                  <p className="pdf-option-desc">
+                    Kompaktiška kortelė: standartizuota tema (Dalykas + Uždavinys + Veikla), namų darbai su tikslu ir N0015 krūvio kontrole, pastaba su gyvenimiška verte bei kokybės audito patikra.
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  className="pdf-download-action-btn"
+                  onClick={() => handleGeneratePdf('ediary')}
+                  disabled={isGeneratingPdf}
+                >
+                  {isGeneratingPdf ? 'Ruošiamas PDF... ⏳' : 'Atsisiųsti dienyno įrašus 📥'}
+                </button>
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{justifyContent: 'flex-end', marginTop: '6px'}}>
+              <button type="button" onClick={() => setShowPdfModal(false)} className="modal-btn cancel">
+                Uždaryti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF generavimo būsenos indikatorius ir pranešimai */}
+      {isGeneratingPdf && (
+        <div className="pdf-generating-banner">
+          <div className="pdf-spinner"></div>
+          <span>Formuojamas švarus PDF dokumentas pagal spaudos standartus... ⏳</span>
+        </div>
+      )}
+
+      {pdfSuccessMessage && (
+        <div className="pdf-generating-banner" style={{borderColor: '#10b981', background: '#0b1b17'}}>
+          <span>{pdfSuccessMessage}</span>
         </div>
       )}
 
