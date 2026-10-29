@@ -1,5 +1,5 @@
 {
-  "name": "Pamokos plano rengimas",
-  "description": "Programėlė padedanti mokytojams kurti pamokų planus.",
+  "name": "Pamokos plano rengimas ir el. dienynas pagal BP",
+  "description": "Profesionalus pamokų planų ir el. dienyno įrašų (TAMO, Mano Dienynas) rengimas pagal Lietuvos Bendrąsias programas (emokykla.lt) ir gerosios praktikos standartus.",
   "requestFramePermissions": []
 }
