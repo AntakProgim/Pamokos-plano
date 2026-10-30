@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { GoogleGenAI, Chat, Type } from '@google/genai';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
-import firebaseConfig from './firebase-applet-config.json';
+import { firebaseConfig } from './src/firebaseConfig.ts';
 import { downloadDocumentPdf } from './src/pdfService.ts';
 
 const app = initializeApp(firebaseConfig);
