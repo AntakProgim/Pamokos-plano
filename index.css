@@ -107,6 +107,97 @@ body {
 
 .form-container h2 { color: var(--heading-color); margin-bottom: 1.5rem; font-size: 1.25rem; }
 
+/* Auto-Save Draft Styles */
+.autosave-bar {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.autosave-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.autosave-info strong {
+  color: #60a5fa;
+}
+
+.autosave-pulse {
+  display: inline-block;
+  transition: transform 0.3s ease;
+}
+
+.autosave-pulse.flash {
+  transform: scale(1.3);
+  color: #10b981;
+}
+
+.autosave-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.autosave-btn {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  color: var(--text-color-light);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.autosave-btn:hover {
+  background: #334155;
+  color: white;
+}
+
+.autosave-btn.save-now:hover {
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+.autosave-btn.clear:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.draft-restored-banner {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #6ee7b7;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.draft-restored-banner button {
+  background: transparent;
+  border: none;
+  color: #a7f3d0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 4px;
+}
+
 /* Forms */
 .form-group { margin-bottom: 1.2rem; }
 .form-group label { display: block; color: var(--heading-color); margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; }

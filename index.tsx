@@ -654,6 +654,8 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
   motivation: "Kiekvienas mokinys yra kūrėjas. Šiandien jūs ne tik vartotojai, bet ir tie, kurie supranta žodžio galią. Sėkmės kūryboje."
 };
 
+const DRAFT_STORAGE_KEY = 'pamokos_planas_form_draft_v1';
+
 const App = () => {
   const [grade, setGrade] = useState('');
   const [subject, setSubject] = useState('');
@@ -686,6 +688,133 @@ const App = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Auto-Save Draft states
+  const [lastSavedTime, setLastSavedTime] = useState<string | null>(null);
+  const [showAutoSaveFlash, setShowAutoSaveFlash] = useState(false);
+  const [isDraftRestored, setIsDraftRestored] = useState(false);
+
+  // Ref to always hold the latest form values for interval auto-save
+  const formValuesRef = useRef({
+    grade, subject, topic, lessonType, goal, activities,
+    evaluationCriteria, selectedEvaluations, selectedResources,
+    homeworkType, homeworkDuration, selectedBpModuleId,
+    bpContentDescription, isIntegratedInput, integrationDetails,
+    isOutsideInput, outsideLocation, outsideGoal
+  });
+
+  useEffect(() => {
+    formValuesRef.current = {
+      grade, subject, topic, lessonType, goal, activities,
+      evaluationCriteria, selectedEvaluations, selectedResources,
+      homeworkType, homeworkDuration, selectedBpModuleId,
+      bpContentDescription, isIntegratedInput, integrationDetails,
+      isOutsideInput, outsideLocation, outsideGoal
+    };
+  }, [
+    grade, subject, topic, lessonType, goal, activities,
+    evaluationCriteria, selectedEvaluations, selectedResources,
+    homeworkType, homeworkDuration, selectedBpModuleId,
+    bpContentDescription, isIntegratedInput, integrationDetails,
+    isOutsideInput, outsideLocation, outsideGoal
+  ]);
+
+  // Restore saved draft from localStorage on initial mount
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const draft = JSON.parse(savedDraft);
+        if (draft && typeof draft === 'object') {
+          if (draft.grade !== undefined) setGrade(draft.grade);
+          if (draft.subject !== undefined) setSubject(draft.subject);
+          if (draft.topic !== undefined) setTopic(draft.topic);
+          if (draft.lessonType !== undefined) setLessonType(draft.lessonType);
+          if (draft.goal !== undefined) setGoal(draft.goal);
+          if (draft.activities !== undefined) setActivities(draft.activities);
+          if (draft.evaluationCriteria !== undefined) setEvaluationCriteria(draft.evaluationCriteria);
+          if (Array.isArray(draft.selectedEvaluations)) setSelectedEvaluations(draft.selectedEvaluations);
+          if (Array.isArray(draft.selectedResources)) setSelectedResources(draft.selectedResources);
+          if (draft.homeworkType !== undefined) setHomeworkType(draft.homeworkType);
+          if (draft.homeworkDuration !== undefined) setHomeworkDuration(draft.homeworkDuration);
+          if (draft.selectedBpModuleId !== undefined) setSelectedBpModuleId(draft.selectedBpModuleId);
+          if (draft.bpContentDescription !== undefined) setBpContentDescription(draft.bpContentDescription);
+          if (draft.isIntegratedInput !== undefined) setIsIntegratedInput(draft.isIntegratedInput);
+          if (draft.integrationDetails !== undefined) setIntegrationDetails(draft.integrationDetails);
+          if (draft.isOutsideInput !== undefined) setIsOutsideInput(draft.isOutsideInput);
+          if (draft.outsideLocation !== undefined) setOutsideLocation(draft.outsideLocation);
+          if (draft.outsideGoal !== undefined) setOutsideGoal(draft.outsideGoal);
+
+          if (draft.lastSavedAt) {
+            const savedDate = new Date(draft.lastSavedAt);
+            setLastSavedTime(savedDate.toLocaleTimeString('lt-LT'));
+          }
+          setIsDraftRestored(true);
+        }
+      }
+    } catch (err) {
+      console.error('Klaida atkuriant juodraštį iš localStorage:', err);
+    }
+  }, []);
+
+  const saveDraftToLocalStorage = () => {
+    const cur = formValuesRef.current;
+    const hasAnyInput = Boolean(
+      cur.grade || cur.subject || cur.topic || cur.goal || cur.activities || cur.evaluationCriteria || cur.bpContentDescription
+    );
+    if (!hasAnyInput) return;
+
+    const now = new Date();
+    const draftObj = {
+      ...cur,
+      lastSavedAt: now.toISOString()
+    };
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftObj));
+      setLastSavedTime(now.toLocaleTimeString('lt-LT'));
+      setShowAutoSaveFlash(true);
+      setTimeout(() => setShowAutoSaveFlash(false), 2000);
+    } catch (err) {
+      console.error('Klaida išsaugant juodraštį į localStorage:', err);
+    }
+  };
+
+  // 30-second interval auto-save
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      saveDraftToLocalStorage();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const handleClearDraft = () => {
+    setGrade('');
+    setSubject('');
+    setTopic('');
+    setLessonType('');
+    setGoal('');
+    setActivities('');
+    setEvaluationCriteria('');
+    setSelectedEvaluations([]);
+    setSelectedResources([]);
+    setHomeworkType('💡 Įtvirtinimas ir taikymas');
+    setHomeworkDuration('15');
+    setSelectedBpModuleId('');
+    setBpContentDescription('');
+    setIsIntegratedInput(false);
+    setIntegrationDetails('');
+    setIsOutsideInput(false);
+    setOutsideLocation('');
+    setOutsideGoal('');
+
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (e) {}
+
+    setLastSavedTime(null);
+    setIsDraftRestored(false);
+  };
 
   const availableBpModules = getBPModules(subject, grade);
 
@@ -1336,10 +1465,48 @@ ${lessonPlan.eDiaryEntry.notes}`;
       
       <main className="main-content">
         <div className="form-container">
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem'}}>
+          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
             <h2 style={{margin: 0}}>Pamokos informacija</h2>
             <button onClick={loadExample} className="mini-link" style={{border: 'none', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary-color)'}}>💡 Užkrauti pavyzdį</button>
           </div>
+
+          {/* Auto-Save Status Bar */}
+          <div className="autosave-bar">
+            <div className="autosave-info">
+              <span className={`autosave-pulse ${showAutoSaveFlash ? 'flash' : ''}`}>💾</span>
+              {lastSavedTime ? (
+                <span>Juodraštis automatiškai išsaugotas: <strong>{lastSavedTime}</strong> (kas 30 s)</span>
+              ) : (
+                <span>Automatinis juodraščio išsaugojimas aktyvus (kas 30 s)</span>
+              )}
+            </div>
+            <div className="autosave-actions">
+              <button 
+                type="button" 
+                onClick={saveDraftToLocalStorage}
+                className="autosave-btn save-now"
+                title="Išsaugoti įvestį į kompiuterio atmintį rankiniu būdu"
+              >
+                Išsaugoti dabar
+              </button>
+              <button 
+                type="button" 
+                onClick={handleClearDraft}
+                className="autosave-btn clear"
+                title="Išvalyti visus įvesties laukus ir ištrinti juodraštį"
+              >
+                Valyti 🗑️
+              </button>
+            </div>
+          </div>
+
+          {isDraftRestored && (
+            <div className="draft-restored-banner">
+              <span>ℹ️ Atkurtas anksčiau automatiškai išsaugotas įvesties juodraštis.</span>
+              <button onClick={() => setIsDraftRestored(false)} title="Uždaryti pranešimą">✖</button>
+            </div>
+          )}
+
           <form onSubmit={handleGenerate}>
             <div className="form-group">
               <label>Dalykas *</label>
