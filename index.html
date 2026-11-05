@@ -4,6 +4,66 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pamokos plano rengimas ir el. dienynas pagal BP</title>
+    <!-- Vite HMR WebSocket interceptor for sandbox iframe environment -->
+    <script>
+      (function() {
+        if (typeof window !== 'undefined' && window.WebSocket) {
+          var NativeWebSocket = window.WebSocket;
+          function ViteHmrSafeWebSocket(url, protocols) {
+            var isViteHmr = (protocols === 'vite-hmr') || 
+                            (typeof url === 'string' && (url.indexOf('vite') !== -1 || url.indexOf('24678') !== -1 || url.indexOf('/@vite/') !== -1));
+            if (isViteHmr) {
+              var dummy = new EventTarget();
+              dummy.readyState = 1; // WebSocket.OPEN
+              dummy.CONNECTING = 0;
+              dummy.OPEN = 1;
+              dummy.CLOSING = 2;
+              dummy.CLOSED = 3;
+              dummy.bufferedAmount = 0;
+              dummy.extensions = '';
+              dummy.protocol = 'vite-hmr';
+              dummy.url = String(url);
+              dummy.binaryType = 'blob';
+              dummy.send = function() {};
+              dummy.close = function() {};
+              dummy.onopen = null;
+              dummy.onclose = null;
+              dummy.onerror = null;
+              dummy.onmessage = null;
+              setTimeout(function() {
+                if (typeof dummy.onopen === 'function') dummy.onopen(new Event('open'));
+                dummy.dispatchEvent(new Event('open'));
+              }, 0);
+              return dummy;
+            }
+            return new NativeWebSocket(url, protocols);
+          }
+          ViteHmrSafeWebSocket.CONNECTING = 0;
+          ViteHmrSafeWebSocket.OPEN = 1;
+          ViteHmrSafeWebSocket.CLOSING = 2;
+          ViteHmrSafeWebSocket.CLOSED = 3;
+          ViteHmrSafeWebSocket.prototype = NativeWebSocket.prototype;
+          window.WebSocket = ViteHmrSafeWebSocket;
+        }
+
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event && event.reason;
+          var msg = (reason && (reason.message || String(reason))) || '';
+          if (msg.indexOf('WebSocket') !== -1 || msg.indexOf('websocket') !== -1) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        window.addEventListener('error', function(event) {
+          var msg = (event && (event.message || (event.error && event.error.message))) || '';
+          if (typeof msg === 'string' && (msg.indexOf('WebSocket') !== -1 || msg.indexOf('websocket') !== -1)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+      })();
+    </script>
     <meta name="description" content="Pamokų planų ir el. dienyno įrašų (TAMO, Mano Dienynas) generatorius pagal Lietuvos Bendrąsias programas (emokykla.lt) ir gerosios praktikos rekomendacijas." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
