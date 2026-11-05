@@ -51,7 +51,7 @@ app.get('/api/health', (_req, res) => {
 
 // 1. Generate comprehensive lesson plan
 app.post('/api/generate-plan', async (req, res) => {
-  const params: GenerateTemplateParams = req.body;
+  const params: GenerateTemplateParams & { prompt?: string; systemInstruction?: string } = req.body;
   const {
     subject = '',
     grade = '',
@@ -71,6 +71,8 @@ app.post('/api/generate-plan', async (req, res) => {
     isOutsideInput = false,
     outsideLocation = '',
     outsideGoal = '',
+    prompt: clientPrompt,
+    systemInstruction: clientSystemInstruction
   } = params;
 
   if (!grade || !subject || !topic) {
@@ -81,9 +83,7 @@ app.post('/api/generate-plan', async (req, res) => {
 
   if (ai) {
     try {
-      const hasTeacherRequestedEvaluation = (selectedEvaluations && selectedEvaluations.length > 0) || (evaluationCriteria && evaluationCriteria.trim().length > 0);
-      const hasTeacherClassNotes = classLearningNotes && classLearningNotes.trim().length > 0;
-      const systemInstruction = `
+      const systemInstruction = clientSystemInstruction || `
 Tu esi aukščiausio lygio Lietuvos bendrojo ugdymo didaktikos ekspertas ir metodininkas, besiremiantis eMokykla.lt Bendrosiomis programomis (BP) ir ŠMSM metodinėmis rekomendacijomis.
 Tavo tikslas – parengti gilų, profesionalų, praktišką pamokos planą ir kokybiškus el. dienyno („Mano dienynas“, TAMO) įrašus.
 GRIEŽTAI VENGTI ŠABLONINIŲ IR SAUSŲ FRAZIŲ („esmines sąvokas ir taisykles“, „atlikti nurodytus pratimus iš temos“). Viskas turi būti konkrečiai pritaikyta nurodytam dalykui ir temai!
@@ -110,7 +110,7 @@ REIKALAVIMAI „MANO DIENYNAS“ ĮRAŠAMS PAGAL EMOKYKLA.LT METODIKĄ (eDiaryEn
 Atsakymą pateik griežtai JSON formatu pagal nurodytą struktūrą.
       `;
 
-      const prompt = `
+      const prompt = clientPrompt || `
 Sukurk pamokos planą pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Mokomasis dalykas. ${subject}
 - Klasė. ${grade}

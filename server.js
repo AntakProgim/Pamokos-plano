@@ -940,7 +940,9 @@ app.post("/api/generate-plan", async (req, res) => {
     integrationDetails = "",
     isOutsideInput = false,
     outsideLocation = "",
-    outsideGoal = ""
+    outsideGoal = "",
+    prompt: clientPrompt,
+    systemInstruction: clientSystemInstruction
   } = params;
   if (!grade || !subject || !topic) {
     return res.status(400).json({ error: "U\u017Epildykite privalomus laukus (dalykas, klas\u0117, tema)." });
@@ -948,9 +950,7 @@ app.post("/api/generate-plan", async (req, res) => {
   const ai = getGeminiClient();
   if (ai) {
     try {
-      const hasTeacherRequestedEvaluation = selectedEvaluations && selectedEvaluations.length > 0 || evaluationCriteria && evaluationCriteria.trim().length > 0;
-      const hasTeacherClassNotes = classLearningNotes && classLearningNotes.trim().length > 0;
-      const systemInstruction = `
+      const systemInstruction = clientSystemInstruction || `
 Tu esi auk\u0161\u010Diausio lygio Lietuvos bendrojo ugdymo didaktikos ekspertas ir metodininkas, besiremiantis eMokykla.lt Bendrosiomis programomis (BP) ir \u0160MSM metodin\u0117mis rekomendacijomis.
 Tavo tikslas \u2013 parengti gil\u0173, profesional\u0173, prakti\u0161k\u0105 pamokos plan\u0105 ir kokybi\u0161kus el. dienyno (\u201EMano dienynas\u201C, TAMO) \u012Fra\u0161us.
 GRIE\u017DTAI VENGTI \u0160ABLONINI\u0172 IR SAUS\u0172 FRAZI\u0172 (\u201Eesmines s\u0105vokas ir taisykles\u201C, \u201Eatlikti nurodytus pratimus i\u0161 temos\u201C). Viskas turi b\u016Bti konkre\u010Diai pritaikyta nurodytam dalykui ir temai!
@@ -976,7 +976,7 @@ REIKALAVIMAI \u201EMANO DIENYNAS\u201C \u012ERA\u0160AMS PAGAL EMOKYKLA.LT METOD
 
 Atsakym\u0105 pateik grie\u017Etai JSON formatu pagal nurodyt\u0105 strukt\u016Br\u0105.
       `;
-      const prompt = `
+      const prompt = clientPrompt || `
 Sukurk pamokos plan\u0105 pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Mokomasis dalykas. ${subject}
 - Klas\u0117. ${grade}

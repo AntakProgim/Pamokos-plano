@@ -1,11 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { GoogleGenAI, Chat, Type } from '@google/genai';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig } from './src/firebaseConfig.ts';
 import { downloadDocumentPdf } from './src/pdfService.ts';
+import { downloadDocumentDocx } from './src/docxService.ts';
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -903,6 +903,40 @@ const App = () => {
     }
   };
 
+  // Word (.docx) export states
+  const [showDocxModal, setShowDocxModal] = useState(false);
+  const [isGeneratingDocx, setIsGeneratingDocx] = useState(false);
+  const [docxSuccessMessage, setDocxSuccessMessage] = useState<string | null>(null);
+
+  const handleGenerateDocx = async (type: 'full' | 'ediary') => {
+    if (!lessonPlan) return;
+    setIsGeneratingDocx(true);
+    setShowDocxModal(false);
+    try {
+      await downloadDocumentDocx(type, lessonPlan, {
+        subject,
+        grade,
+        topic: lessonPlan.lessonOverview?.topic || topic,
+        goal: lessonPlan.lessonOverview?.goal || goal,
+        stageDurations,
+        homeworkDuration
+      });
+      setDocxSuccessMessage(
+        type === 'full' 
+          ? 'Visas pamokos planas sėkmingai atsisiųstas į Word (.docx)! 📝✅' 
+          : 'El. dienyno įrašai sėkmingai atsisiųsti į Word (.docx)! 📝✅'
+      );
+      setTimeout(() => {
+        setDocxSuccessMessage(null);
+      }, 4500);
+    } catch (err: any) {
+      console.error('Failed to generate Word document:', err);
+      setError('Nepavyko sugeneruoti Word (.docx) dokumento. Bandykite dar kartą.');
+    } finally {
+      setIsGeneratingDocx(false);
+    }
+  };
+
   useEffect(() => {
     if (lessonPlan) {
       if (lessonPlan.stageDurations) {
@@ -1093,14 +1127,43 @@ Struktūra:
     `;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: { systemInstruction, responseMimeType: "application/json" },
+      const response = await fetch('/api/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject,
+          grade,
+          topic,
+          lessonType,
+          activities,
+          goal,
+          homeworkDuration,
+          homeworkPurpose: homeworkType,
+          homeworkType,
+          evaluationCriteria,
+          selectedEvaluations,
+          selectedResources,
+          selectedStudentLevels: ['pažengę', 'vidutiniai', 'turintys sunkumų'],
+          classLearningNotes: '',
+          realWorldNote: '',
+          isIntegratedInput,
+          integrationDetails,
+          isOutsideInput,
+          outsideLocation,
+          outsideGoal,
+          prompt,
+          systemInstruction,
+        }),
       });
-      
-      const parsedPlan = tryParseJSON(response.text || '');
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Serverio klaida: ${response.status}`);
+      }
+
+      const resData = await response.json();
+      const rawPlan = resData.plan;
+      const parsedPlan = typeof rawPlan === 'string' ? tryParseJSON(rawPlan) : rawPlan;
       if (!parsedPlan) throw new Error("Nepavyko sugeneruoti plano formatu. Bandykite iš naujo.");
 
       const sanitizedPlan: LessonPlan = {
@@ -1236,31 +1299,27 @@ ${lessonPlan.eDiaryEntry.notes}`;
     setIsChatLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
-      let context = "Tu esi ekspertas pedagogas, metodininkas ir asistentas, padedantis mokytojams rengti pamokų planus ir pildyti el. dienyną pagal Lietuvos Bendrąsias programas (emokykla.lt BP) ir oficialias rekomendacijas. Atsakyk trumpai, profesionaliai, aiškiai ir lietuviškai.";
+      let lessonContext = "Bendrasis ugdymas pagal atnaujintas BP";
       if (lessonPlan) {
-        context += `\nŠtai dabartinis pamokos planas:\nTema: ${lessonPlan.lessonOverview?.topic}\nTikslas: ${lessonPlan.lessonOverview?.goal}\nEl. dienyno tema: ${lessonPlan.eDiaryEntry?.topicClassworkExpectations}\nNamų darbai: ${lessonPlan.eDiaryEntry?.homework}\nPastabos: ${lessonPlan.eDiaryEntry?.notes}`;
+        lessonContext = `Tema: ${lessonPlan.lessonOverview?.topic || topic}. Tikslas: ${lessonPlan.lessonOverview?.goal || goal}. Dalykas: ${subject}, Klasė: ${grade}. El. dienyno tema: ${lessonPlan.eDiaryEntry?.topicClassworkExpectations || ''}. Namų darbai: ${lessonPlan.eDiaryEntry?.homework || ''}. Pastabos: ${lessonPlan.eDiaryEntry?.notes || ''}`;
       }
 
-      // We format the history for the model.
-      const historyContents = chatMessages.map(msg => ({
-        role: msg.role,
-        parts: [{ text: msg.text }]
-      }));
-      
-      // Append the new user message
-      historyContents.push({ role: 'user', parts: [{ text: userMessage }] });
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: historyContents,
-        config: {
-          systemInstruction: context
-        }
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...chatMessages, { role: 'user', text: userMessage }],
+          lessonContext
+        }),
       });
 
-      setChatMessages(prev => [...prev, { role: 'model', text: response.text || 'Atsiprašau, kažkas nutiko.' }]);
+      if (!response.ok) {
+        throw new Error(`Serverio ryšio klaida: ${response.status}`);
+      }
+
+      const resData = await response.json();
+      const reply = resData.reply || 'Atsakymas paruoštas.';
+      setChatMessages(prev => [...prev, { role: 'model', text: reply }]);
     } catch (err: any) {
       setChatMessages(prev => [...prev, { role: 'model', text: `Klaida: ${err.message}` }]);
     } finally {
@@ -1890,6 +1949,15 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 >
                   {isGeneratingPdf ? 'Generuojama... ⏳' : 'Atsisiųsti PDF 📄'}
                 </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowDocxModal(true)} 
+                  className="docx-button" 
+                  disabled={isGeneratingDocx} 
+                  title="Atsisiųsti šį pamokos planą ar dienyno įrašus kaip Word (.docx) dokumentą"
+                >
+                  {isGeneratingDocx ? 'Generuojama... ⏳' : 'Atsisiųsti Word (.docx) 📝'}
+                </button>
                 <button onClick={() => window.print()} className="print-button" title="Spausdinti dokumentą">Spausdinti 🖨️</button>
               </div>
 
@@ -2092,6 +2160,15 @@ ${lessonPlan.eDiaryEntry.notes}`;
                       title="Atsisiųsti el. dienyno įrašus kaip PDF dokumentą"
                     >
                       📄 Atsisiųsti PDF
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleGenerateDocx('ediary')} 
+                      className="ediary-docx-btn"
+                      disabled={isGeneratingDocx}
+                      title="Atsisiųsti el. dienyno įrašus kaip Word (.docx) dokumentą"
+                    >
+                      📝 Atsisiųsti Word (.docx)
                     </button>
                     <a 
                       href="https://www.manodienynas.lt/1/lt/public/public/login" 
@@ -2707,6 +2784,86 @@ ${lessonPlan.eDiaryEntry.notes}`;
       {pdfSuccessMessage && (
         <div className="pdf-generating-banner" style={{borderColor: '#10b981', background: '#0b1b17'}}>
           <span>{pdfSuccessMessage}</span>
+        </div>
+      )}
+
+      {/* Word (.docx) pasirinkimo ir atsisiuntimo modalas */}
+      {showDocxModal && (
+        <div className="modal-overlay" onClick={() => setShowDocxModal(false)}>
+          <div className="pdf-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="pdf-modal-header">
+              <h2>📝 Atsisiųsti kaip „Microsoft Word“ (.docx)</h2>
+              <p className="pdf-modal-subtext">
+                Pasirinkite norimą dokumento formatą. Word dokumentas bus sugeneruotas su pilna struktūra, lentelėmis, eMokykla.lt BP standartais ir oficialiu apipavidalinimu, paruoštas redagavimui Word ar LibreOffice programose.
+              </p>
+            </div>
+
+            <div className="pdf-options-grid">
+              {/* 1. Visas pamokos planas */}
+              <div className="pdf-option-card">
+                <div>
+                  <span className="pdf-option-badge">Pilnas redaguojamas planas</span>
+                  <div className="pdf-option-title">
+                    📚 Visas pamokos planas (.docx)
+                  </div>
+                  <p className="pdf-option-desc">
+                    Išsamus planas Word formatu: BP sąsajos, pamokos apžvalga, laiko biudžetas ({(Object.values(stageDurations) as number[]).reduce((s, v) => s + (Number(v) || 0), 0)} min.), veiklos klasėje, individualus darbas, diferencijavimas (3 lygiai), el. dienyno įrašai ir metodinė kokybės patikra.
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  className="docx-button"
+                  style={{width: '100%', justifyContent: 'center', marginTop: '12px'}}
+                  onClick={() => handleGenerateDocx('full')}
+                  disabled={isGeneratingDocx}
+                >
+                  {isGeneratingDocx ? 'Ruošiamas Word failas... ⏳' : 'Atsisiųsti visą planą (.docx) 📥'}
+                </button>
+              </div>
+
+              {/* 2. Tik el. dienyno įrašai */}
+              <div className="pdf-option-card">
+                <div>
+                  <span className="pdf-option-badge">Dienyno kortelė redagavimui</span>
+                  <div className="pdf-option-title">
+                    ✍️ Tik el. dienyno įrašai (.docx)
+                  </div>
+                  <p className="pdf-option-desc">
+                    Kompaktiškas Word dokumentas: standartizuota tema (Dalykas + Uždavinys + Veikla), namų darbai su tikslu ir N0015 krūvio kontrole, pastaba su gyvenimiška verte bei kokybės audito patikra.
+                  </p>
+                </div>
+                <button 
+                  type="button"
+                  className="docx-button"
+                  style={{width: '100%', justifyContent: 'center', marginTop: '12px'}}
+                  onClick={() => handleGenerateDocx('ediary')}
+                  disabled={isGeneratingDocx}
+                >
+                  {isGeneratingDocx ? 'Ruošiamas Word failas... ⏳' : 'Atsisiųsti dienyno įrašus (.docx) 📥'}
+                </button>
+              </div>
+            </div>
+
+            <div className="modal-actions" style={{justifyContent: 'flex-end', marginTop: '6px'}}>
+              <button type="button" onClick={() => setShowDocxModal(false)} className="modal-btn cancel">
+                Uždaryti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Word generavimo būsenos indikatorius ir pranešimai */}
+      {isGeneratingDocx && (
+        <div className="docx-generating-banner">
+          <div className="pdf-spinner" style={{borderColor: '#2b579a', borderTopColor: 'transparent'}}></div>
+          <span>Formuojamas Microsoft Word (.docx) dokumentas su struktūra ir lentelėmis... ⏳</span>
+        </div>
+      )}
+
+      {docxSuccessMessage && (
+        <div className="docx-generating-banner" style={{borderColor: '#10b981', background: '#0b1b17', color: '#6ee7b7'}}>
+          <span>{docxSuccessMessage}</span>
         </div>
       )}
 

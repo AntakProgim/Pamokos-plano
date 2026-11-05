@@ -931,6 +931,64 @@ body {
   cursor: not-allowed;
 }
 
+.docx-button {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+  flex: 1;
+  min-width: 150px;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+.docx-button:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+.docx-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ediary-docx-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.ediary-docx-btn:hover {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.ediary-docx-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* PDF Modal styles */
 .pdf-modal-content {
   max-width: 660px;
@@ -1730,12 +1788,15 @@ body {
   .mini-delete-button,
   .time-planner-container,
   .pdf-button,
+  .docx-button,
   .ediary-pdf-btn,
+  .ediary-docx-btn,
   .manodienynas-link-btn,
   .best-practice-banner-btn,
   .ediary-copy-all-btn,
   .ediary-item-copy-btn,
-  .pdf-generating-banner {
+  .pdf-generating-banner,
+  .docx-generating-banner {
     display: none !important;
   }
 
