@@ -149,7 +149,7 @@ const HOMEWORK_DURATIONS = [
 ];
 
 const QUICK_GRADES = [
-  '5 kl.', '6 kl.', '7 kl.', '8 kl.', 'I gimn. (9 kl.)', 'II gimn. (10 kl.)', 'III gimn. (11 kl.)', 'IV gimn. (12 kl.)'
+  '1 kl.', '2 kl.', '3 kl.', '4 kl.', '5 kl.', '6 kl.', '7 kl.', '8 kl.', '9 kl.', '10 kl.', '11 kl.', '12 kl.'
 ];
 
 interface BPModule {
@@ -166,6 +166,43 @@ interface BPModule {
 }
 
 const BP_MODULES: BPModule[] = [
+  // Pradinis ugdymas (1–4 kl.)
+  {
+    id: 'lt-14-1',
+    subjects: ['lietuvių', 'literatūra', 'pradinis'],
+    cycles: ['1-4', '1-2', '3-4', 'all'],
+    cycleLabel: '1–4 kl. (Pradinis)',
+    area: 'Skaitymas, rašymas ir sakinio daryba',
+    topicSuggestion: 'Rišlus pasakojimas pagal paveikslėlių seriją ir sakinio skyryba',
+    goalSuggestion: 'Sudaryti 3–5 rišlius sakinius pagal iliustracijas, taisyklingai vartoti didžiąją raidę ir tašką sakinio pabaigoje.',
+    contentDescription: 'Sakinio sandara, žodžių jungimas į mintį, didžiosios raidės rašymas sakinio pradžioje ir varduose, taškas ir klaustukas sakinio pabaigoje, žodyno turtinimas.',
+    competencies: 'Komunikavimo, kultūrinė, pažinimo',
+    bpCode: 'Pradinio ugdymo BP 1.1'
+  },
+  {
+    id: 'mat-14-1',
+    subjects: ['matematika', 'pradinis'],
+    cycles: ['1-4', '1-2', '3-4', 'all'],
+    cycleLabel: '1–4 kl. (Pradinis)',
+    area: 'Skaičiai, veiksmai ir tekstiniai uždaviniai',
+    topicSuggestion: 'Sudėtis ir atimtis peržengiant dešimtį bei kasdieniai tekstiniai uždaviniai',
+    goalSuggestion: 'Taikyti sudėties ir atimties algoritmus skaičiuojant iki 100 bei teisingai išspręsti 2 žingsnių tekstinį uždavinį.',
+    contentDescription: 'Skaičių skaidymas, dešimčių ir vienetų sąvokos, tekstinių uždavinių sąlygos analizė, matavimo vienetai (eurai, centimetrai, kilogramai), geometrinių figūrų pažinimas.',
+    competencies: 'Pažinimo, skaitmeninė, skaičiavimo',
+    bpCode: 'Pradinio ugdymo BP 2.1'
+  },
+  {
+    id: 'pas-14-1',
+    subjects: ['pasaulio pažinimas', 'gamtos mokslai', 'pasaulio', 'pradinis'],
+    cycles: ['1-4', '1-2', '3-4', 'all'],
+    cycleLabel: '1–4 kl. (Pradinis)',
+    area: 'Gamtos ir visuomenės stebėjimas',
+    topicSuggestion: 'Metų laikai, augalų ir gyvūnų prisitaikymas bei gamtos saugojimas',
+    goalSuggestion: 'Stebėti ir aprašyti 3 pagrindinius gamtos pokyčius bei suformuluoti 2 asmenines taisyles gamtai saugoti.',
+    contentDescription: 'Gyvoji ir neživoji gamta, metų laikų ciklai, augalų dalys ir jų funkcijos, gyvūnų elgsena, atliekų rūšiavimas, saugus elgesys aplinkoje.',
+    competencies: 'Pažinimo, pilietinė, gamtamokslinė',
+    bpCode: 'Pradinio ugdymo BP 3.1'
+  },
   // Lietuvių kalba ir literatūra
   {
     id: 'lt-78-1',
@@ -570,6 +607,10 @@ function getBPModules(subjectName: string, gradeStr: string): BPModule[] {
   
   if (matched.length === 0) return [];
   
+  if (gLower.includes('1') || gLower.includes('2') || gLower.includes('3') || gLower.includes('4')) {
+    const cycleMatch = matched.filter(m => m.cycles.includes('1-4') || m.cycles.includes('1-2') || m.cycles.includes('3-4') || m.cycles.includes('all'));
+    if (cycleMatch.length > 0) return cycleMatch;
+  }
   if (gLower.includes('5') || gLower.includes('6')) {
     const cycleMatch = matched.filter(m => m.cycles.includes('5-6') || m.cycles.includes('all'));
     if (cycleMatch.length > 0) return cycleMatch;
