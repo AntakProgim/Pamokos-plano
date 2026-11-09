@@ -353,44 +353,63 @@ Papildomi \u0161altiniai: eMokykla.lt skaitmenin\u0117 saugykla, Eduka klas\u011
 \u2022 Interaktyv\u016Bs \u012Frankiai greitam patikrinimui: Quizizz, Kahoot, Wordwall.
 \u2022 Bendradarbiavimo ir vizualizavimo priemon\u0117s: Canva plakatams, Miro / Padlet lentos.
 \u2022 Edukaciniai vaizdo \u012Fra\u0161ai: LRT mediateka, Youtube edukaciniai kanalai.`;
-  let eDiaryTopicClasswork = "";
-  if (profile.isNonAcademic) {
-    eDiaryTopicClasswork = `${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir mokymosi u\u017Edaviniai: ${profile.learningObjectives} Veikla: ${profile.actionContext}`;
-  } else {
-    eDiaryTopicClasswork = `${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edaviniai ir veikla: ${profile.learningObjectives} \u017Dinoti: ${profile.knowItem} Geb\u0117ti: ${profile.ableItem} Taikyti: ${profile.applyItem}`;
-  }
-  let eDiaryHomework = "";
-  if (isNoHomework) {
-    eDiaryHomework = "Nam\u0173 darbai neu\u017Eduodami (mokymosi kr\u016Bvio balansas pagal N0015 rekomendacij\u0105 \u2013 visi tikslai pasiekti pamokoje).";
-  } else {
-    const durationLabel = params.homeworkDuration === "15" ? "10\u201315 min. (rekomenduojama)" : params.homeworkDuration === "20" ? "15\u201320 min." : params.homeworkDuration === "30" ? "20\u201330 min." : "iki 15\u201320 min.";
-    eDiaryHomework = `${profile.homeworkGoalStatement} S\u0105saja su tema: ${profile.homeworkConnection} U\u017Eduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukm\u0117: ${durationLabel}).`;
-  }
   const realWorldText = realWorldNote && realWorldNote.trim().length > 0 ? realWorldNote.trim() : profile.realWorldUse;
   const teacherRequestedEvaluation = selectedEvaluations && selectedEvaluations.length > 0 || evaluationCriteria && evaluationCriteria.trim().length > 0;
   const teacherProvidedClassNotes = classLearningNotes && classLearningNotes.trim().length > 0;
-  const notesParts = [];
-  notesParts.push(`\u{1F4A1} Kuo naudinga realiame gyvenime: ${realWorldText}`);
-  if (teacherRequestedEvaluation) {
-    const evalMethodsStr = selectedEvaluations.length > 0 ? selectedEvaluations.join(", ") : "Formuojamasis vertinimas";
-    const evalCritStr = evaluationCriteria && evaluationCriteria.trim() ? `. Kriterijai: ${evaluationCriteria.trim()}` : "";
-    notesParts.push(`\u{1F4CA} Planuojamas vertinimas: ${evalMethodsStr}${evalCritStr}.`);
-  }
-  if (teacherProvidedClassNotes) {
-    notesParts.push(`\u{1F465} Klas\u0117s mokymasis / ypatumai: ${classLearningNotes.trim()}`);
-  }
-  const diaryNotes = notesParts.join("\n\n");
+  const envPrefix = isIntegratedInput && isOutsideInput ? "[INTEGRUOTA PAMOKA U\u017D MOKYKLOS RIB\u0172]: " : isIntegratedInput ? `[INTEGRUOTA PAMOKA (su ${integrationDetails || "kitu dalyku"})]: ` : isOutsideInput ? `[PAMOKA U\u017D MOKYKLOS RIB\u0172 (${outsideLocation || "kitas ugdymo objektas"})]: ` : "";
+  const v1Topic = profile.isNonAcademic ? `${envPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir mokymosi u\u017Edaviniai: ${profile.learningObjectives} Veikla: ${profile.actionContext}` : `${envPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: ${profile.learningObjectives} Veikla: Praktinis u\u017Eduo\u010Di\u0173 sprendimas, pavyzd\u017Ei\u0173 nagrin\u0117jimas ir \u012Fg\u016Bd\u017Ei\u0173 taikymas. \u017Dinoti: ${profile.knowItem} Geb\u0117ti: ${profile.ableItem} Taikyti: ${profile.applyItem}`;
+  const v1Homework = isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokiniai visus tikslus pasiek\u0117 ir praktin\u012F darb\u0105 atliko pamokoje)." : `Tikslas \u2013 \u012Ftvirtinti pamokoje \u012Fgytus praktinius \u012Fg\u016Bd\u017Eius kasdien\u0117je aplinkoje. U\u017Eduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukm\u0117: ~15 min.).`;
+  const v1Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: ${realWorldText} Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Padr\u0105siname mokinius pasteb\u0117ti savo asmenin\u0119 pa\u017Eang\u0105 ir prakti\u0161kai taikyti \u012Fgytas \u017Einias. D\u0117kojame u\u017E aktyv\u0173 \u012Fsitraukim\u0105 bei pagarb\u0173 bendradarbiavim\u0105.`;
+  const v2Topic = profile.isNonAcademic ? `${envPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir k\u016Brybin\u0117 veikla: K\u016Brybi\u0161kai tyrin\u0117ti vertybes, diskutuoti bei kurti bendrus susitarimus. Veikla: Problemini\u0173 situacij\u0173 vaidmen\u0173 \u017Eaidimas ir diskusija porose.` : `${envPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: K\u016Brybi\u0161kai spr\u0119sti problemas, ie\u0161koti alternatyv\u0173 bei argumentuoti savo sprendimus. Veikla: K\u016Brybin\u0117s dirbtuv\u0117s, diskusija porose ir problemin\u0117s situacijos simuliacija.`;
+  const v2Homework = isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokymosi kr\u016Bvio balansas pagal N0015 rekomendacij\u0105 \u2013 visi tikslai pasiekti pamokoje)." : `Tikslas \u2013 pasiruo\u0161ti k\u016Brybinei diskusijai ir lavinti problemin\u012F m\u0105stym\u0105. U\u017Eduotis: suformuluoti 2 probleminius klausimus arba pasi\u016Blyti originali\u0105 id\u0117j\u0105 nagrin\u0117tai temai. (Rekomenduojama trukm\u0117: ~15 min.).`;
+  const v2Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: Ugdo k\u016Brybi\u0161kum\u0105, inovatyv\u0173 m\u0105stym\u0105 ir geb\u0117jim\u0105 spr\u0119sti neapibr\u0117\u017Etas problemas versle bei kasdienyb\u0117je. Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Vertiname mokini\u0173 dr\u0105s\u0105 m\u0105styti kitaip, i\u0161sakyti savo nuomon\u0119 ir i\u0161klausyti kito po\u017Ei\u016Br\u012F be teisimo.`;
+  const v3Topic = profile.isNonAcademic ? `${envPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir kritin\u0117 analiz\u0117: Analizuoti elgesio motyvus, prie\u017Eastis bei pasekmes bendruomen\u0117je. Veikla: Atvejo analiz\u0117 ir reflektyvus situacij\u0173 tyrin\u0117jimas.` : `${envPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: Analizuoti d\u0117sningumus, vertinti prie\u017Eastis bei pasekmes ir daryti pagr\u012Fstas i\u0161vadas. Veikla: Lyginamoji analiz\u0117, duomen\u0173/tekst\u0173 tyrin\u0117jimas ir i\u0161vad\u0173 formulavimas.`;
+  const v3Homework = isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokiniai tiriam\u0105j\u0105 veikl\u0105 u\u017Ebaig\u0117 pamokos metu)." : `Tikslas \u2013 pagilinti temos analiz\u0119 ir savaranki\u0161k\u0105 tyrin\u0117jim\u0105. U\u017Eduotis: i\u0161analizuoti pasirinkt\u0105 pavyzd\u012F ir u\u017Era\u0161yti 2 pagrindines i\u0161vadas. (Rekomenduojama trukm\u0117: ~15\u201320 min.).`;
+  const v3Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: Ugdo analitin\u012F m\u0105stym\u0105, medij\u0173 ra\u0161tingum\u0105 bei geb\u0117jim\u0105 remtis faktais tyrim\u0173, finans\u0173 bei valdymo srityse. Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Pastebime ir d\u017Eiaugiam\u0117s mokini\u0173 kruop\u0161tumu, gilimusi \u012F esm\u0119 ir pastangomis ie\u0161koti pagr\u012Fst\u0173 argument\u0173.`;
+  const variants = [
+    {
+      variantId: "v1",
+      title: "1 VARIANTAS (Praktinis)",
+      typeLabel: "Orientuotas \u012F praktik\u0105 ir pritaikomum\u0105",
+      topicClassworkExpectations: v1Topic,
+      homework: v1Homework,
+      notes: v1Notes
+    },
+    {
+      variantId: "v2",
+      title: "2 VARIANTAS (K\u016Brybinis / Probleminis)",
+      typeLabel: "Orientuotas \u012F k\u016Brybi\u0161kum\u0105, diskusijas ar problem\u0173 sprendim\u0105",
+      topicClassworkExpectations: v2Topic,
+      homework: v2Homework,
+      notes: v2Notes
+    },
+    {
+      variantId: "v3",
+      title: "3 VARIANTAS (Analitinis / Tiriamasis)",
+      typeLabel: "Orientuotas \u012F gilesn\u0119 analiz\u0119 ar savaranki\u0161k\u0105 tyrin\u0117jim\u0105",
+      topicClassworkExpectations: v3Topic,
+      homework: v3Homework,
+      notes: v3Notes
+    }
+  ];
+  const differentiationAdvice = {
+    scaffolding: `Sunkiau besimokantiems pateikti atramin\u012F \u017Eodyn\u0117l\u012F, dalinai u\u017Epildyt\u0105 u\u017Eduoties schem\u0105 ar pavyzdin\u012F \u017Eingsni\u0173 algoritm\u0105 (Step-by-step parama).`,
+    challenge: `Gabesniems mokiniams skirti papildom\u0105 kintam\u0105j\u012F, problemin\u0119 i\u0161imt\u012F arba patik\u0117ti eksperto / lyderio vaidmen\u012F grup\u0117je (Bloom vir\u0161\u016Bn\u0117).`,
+    qualityFocus: `\u012Etraukimui ir refleksijai panaudoti interaktyv\u0173 \u012Frank\u012F (Quizizz/Kahoot) arba pamokos pabaigoje pritaikyti \u201E3-2-1\u201C refleksijos metod\u0105.`
+  };
   const eDiaryEntry = {
-    topicClassworkExpectations: eDiaryTopicClasswork,
-    homework: eDiaryHomework,
-    individualHomework: isNoHomework ? "" : `${profile.homeworkGoalStatement} Individuali diferencijuota u\u017Eduotis pagal mokinio lyg\u012F (iki 15 min.).`,
-    notes: diaryNotes,
+    topicClassworkExpectations: v1Topic,
+    homework: v1Homework,
+    individualHomework: isNoHomework ? "" : `Tikslas \u2013 individualiai pritaikyti u\u017Eduot\u012F pagal mokinio pasiekim\u0173 lyg\u012F. (Rekomenduojama trukm\u0117: ~10-15 min.).`,
+    notes: v1Notes,
     realWorldUse: realWorldText,
     assessmentNote: teacherRequestedEvaluation ? `Vertinimas: ${selectedEvaluations.length > 0 ? selectedEvaluations.join(", ") : "Formuojamasis vertinimas"}${evaluationCriteria ? `. Kriterijai: ${evaluationCriteria}` : ""}.` : "",
     classLearningNote: teacherProvidedClassNotes ? classLearningNotes.trim() : "",
     isIntegrated: !!isIntegratedInput,
     isOutside: !!isOutsideInput,
-    eDiaryLessonType: lessonType || (profile.isNonAcademic ? profile.domainName : "Dalykin\u0117 pamoka")
+    eDiaryLessonType: lessonType || (profile.isNonAcademic ? profile.domainName : "Dalykin\u0117 pamoka"),
+    variants,
+    differentiationAdvice
   };
   const methodologyBank = {
     icebreakers: [
@@ -951,33 +970,34 @@ app.post("/api/generate-plan", async (req, res) => {
   if (ai) {
     try {
       const systemInstruction = clientSystemInstruction || `
-Tu esi auk\u0161\u010Diausio lygio Lietuvos bendrojo ugdymo didaktikos ekspertas ir metodininkas, besiremiantis eMokykla.lt Bendrosiomis programomis (BP) ir \u0160MSM metodin\u0117mis rekomendacijomis.
-Tavo tikslas \u2013 parengti gil\u0173, profesional\u0173, prakti\u0161k\u0105 pamokos plan\u0105 ir kokybi\u0161kus el. dienyno (\u201EMano dienynas\u201C, TAMO) \u012Fra\u0161us.
-GRIE\u017DTAI VENGTI \u0160ABLONINI\u0172 IR SAUS\u0172 FRAZI\u0172 (\u201Eesmines s\u0105vokas ir taisykles\u201C, \u201Eatlikti nurodytus pratimus i\u0161 temos\u201C). Viskas turi b\u016Bti konkre\u010Diai pritaikyta nurodytam dalykui ir temai!
-GRIE\u017DTAI NENAUDOK DVITA\u0160KI\u0172 TEKSTUOSE (vietoj j\u0173 naudok ta\u0161kus arba br\u016Bk\u0161nelius).
+Tu esi profesionalus Lietuvos ugdymo ekspertas ir mokytoj\u0173 asistentas. Tavo tikslas \u2013 pad\u0117ti mokytojams kokybi\u0161kai, greitai ir pagal oficialias rekomendacijas u\u017Epildyti \u201EMano dienynas\u201C laukus bei parengti pamokos plan\u0105.
 
-REIKALAVIMAI \u201EMANO DIENYNAS\u201C \u012ERA\u0160AMS PAGAL EMOKYKLA.LT METODIK\u0104 (eDiaryEntry):
-1. topicClassworkExpectations (Standartizuota temos formuluot\u0117):
-   - Jei neakademinis dalykas (Klas\u0117s vadovo veikla, Etika, Teatras, Gyvenimo \u012Fg\u016Bd\u017Eiai, Karjeros ugdymas ir pan.):
-     Pabr\u0117\u017Eti ugdom\u0105j\u0105 vert\u0119 ir veikl\u0105. Formatas: \u201E[Dalykas]. [Tema]. Ugdomoji vert\u0117 ir mokymosi u\u017Edaviniai: [vertybinis ir socialinis tikslas]. Veikla: [konkreti praktin\u0117 veikla, diskusija, simuliacija ar susitarim\u0173 k\u016Brimas].\u201C
-   - Jei akademinis dalykas:
-     \u012Etraukti dalyk\u0105, tem\u0105 ir trump\u0105 apra\u0161ym\u0105, ko mokiniai i\u0161moks bei koki\u0105 veikl\u0105 atliks. Pavyzd\u017Eiui, pagal eMokykla rekomendacij\u0105: \u201EU\u017Esienio kalba (angl\u0173). Mokymasis u\u017Esisakyti maist\u0105 restorane, naudojant specifin\u012F \u017Eodyn\u0105 ir frazes. \u017Dinoti: [konkre\u010Dios temos terminai]. Geb\u0117ti: [konkretus veiksmas]. Taikyti: [konkretus taikymas/k\u016Brimas].\u201C
-2. homework (Nam\u0173 darbai su ai\u0161kiu tikslu, s\u0105saja su tema ir be mokini\u0173 perkrovimo):
-   - Ai\u0161kus tikslo nurodymas: \u201ETikslas \u2013 [\u012Ftvirtinti \u017Einias apie... / pasiruo\u0161ti diskusijai apie... / k\u016Brybi\u0161kai pritaikyti... / pabaigti klas\u0117s darb\u0105...]\u201C.
-   - S\u0105saja su pamokos tema: pabr\u0117\u017Eti, kaip u\u017Eduotis t\u0119sia klas\u0117s veikl\u0105.
-   - Konkreti u\u017Eduotis: nurodyti konkre\u010Di\u0105 u\u017Eduot\u012F (vengti vien abstrak\u010Di\u0173 pratim\u0173 numeri\u0173).
-   - Optimali trukm\u0117: nurodyti rekomenduojam\u0105 trukm\u0119 (iki 15\u201320 min., kad mokiniai neb\u016Bt\u0173 perkraunami).
-   - Jei pasirinkta \u201EBe nam\u0173 darb\u0173\u201C: \u201ENam\u0173 darbai neu\u017Eduoti (mokiniai visus tikslus pasiek\u0117 ir praktinius darbus atliko pamokos metu).\u201C
-3. notes (Dienyno pastabos):
-   - VISADA pateikti patarim\u0105, kuo \u0161i mokymo med\u017Eiaga naudinga realiame gyvenime (kasdienyb\u0117je, \u0161iuolaikiniame pasaulyje ar b\u016Bsimai profesijai).
-   - TIK jei mokytojas nurod\u0117 vertinim\u0105: \u012Ftraukti \u201EPlanuojamas vertinimas: [metodai ir kriterijai]\u201C.
-   - TIK jei mokytojas nurod\u0117 klas\u0117s mokymosi ypatumus: \u012Ftraukti \u201EKlas\u0117s mokymasis: [pasteb\u0117jimai]\u201C.
-   - Jei mokytojas vertinimo ar klas\u0117s pastab\u0173 nenurod\u0117, pateikti tik gyvenimi\u0161ko pritaikymo patarim\u0105!
+B\u016ATINOSIOS TAISYKL\u0116S EL. DIENYNO \u012ERA\u0160AMS (eDiaryEntry):
+1. Temos formuluot\u0117s standartas (A0010 modelis):
+   Strukt\u016Bra: \u201E[Dalykas]: [Temos pavadinimas]. Mokymosi u\u017Edavinys: [ko i\u0161moks]. Veikla: [koki\u0105 veikl\u0105 atliks / metodas].\u201C
+2. Atitiktis BP ir Pasiekim\u0173 raidai:
+   U\u017Edaviniai atitinka Bendr\u0173j\u0173 program\u0173 pasiekim\u0173 raid\u0105 konkre\u010Diam koncentrui. Naudok aktyvius veiksma\u017Eod\u017Eius.
+3. Neakademiniai dalykai (Klas\u0117s vadovo veikla, Etika, Fizinis ugdymas, Gyvenimo \u012Fg\u016Bd\u017Eiai):
+   Privaloma atspind\u0117ti socialin\u012F-emocin\u012F ra\u0161tingum\u0105, pilieti\u0161kum\u0105, ugdym\u0105 karjerai, bendruomeni\u0161kum\u0105 ar vertybin\u012F ugdym\u0105.
+4. Nam\u0173 darb\u0173 formulavimas (N0015, N0016 modelis):
+   Strukt\u016Bra: \u201ETikslas \u2013 [nurodyti tiksl\u0105]. U\u017Eduotis: [konkretus veiksmas]. (Rekomenduojama trukm\u0117: ~[X] min.).\u201C
+5. Integracija ir kitos aplinkos:
+   Jei pamoka integruota ar vyksta u\u017E mokyklos rib\u0173 \u2013 ai\u0161kiai i\u0161skirk apra\u0161o prad\u017Eioje (pvz., \u201E[INTEGRUOTA PAMOKA (su biologija)]: ...\u201C).
+6. Pastabos (PEPIS ir Nesmurtin\u0117 komunikacija):
+   Pastabose nurodyk temos gyvenimi\u0161k\u0105 vert\u0119 ir s\u0105saj\u0105 su profesijomis. Komunikuok remiantis NVC ir PEPIS principals (pozityvumas, pasteb\u0117jimai, vert\u0117).
+7. TRYS VARIANTAI (eDiaryEntry.variants):
+   - 1 VARIANTAS (Praktinis): Orientuotas \u012F praktik\u0105 ir pritaikomum\u0105.
+   - 2 VARIANTAS (K\u016Brybinis / Probleminis): Orientuotas \u012F k\u016Brybi\u0161kum\u0105, diskusijas ar problem\u0173 sprendim\u0105.
+   - 3 VARIANTAS (Analitinis / Tiriamasis): Orientuotas \u012F gilesn\u0119 analiz\u0119 ar savaranki\u0161k\u0105 tyrin\u0117jim\u0105.
+8. DIFERENCIJAVIMAS IR KOKYB\u0116 (eDiaryEntry.differentiationAdvice):
+   - scaffolding: Konkretus patarimas, kaip pad\u0117ti sunkiau besimokantiems (\u017Eodyn\u0117lis, atramin\u0117 schema).
+   - challenge: Konkretus patarimas, kaip prapl\u0117sti veikl\u0105 gabesniems (papildomas kintamasis, lyderyst\u0117).
+   - qualityFocus: Vienas patarimas \u012Ftraukimui ir kokybei (interaktyvus \u012Frankis, refleksijos metodas).
 
 Atsakym\u0105 pateik grie\u017Etai JSON formatu pagal nurodyt\u0105 strukt\u016Br\u0105.
       `;
       const prompt = clientPrompt || `
-Sukurk pamokos plan\u0105 pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
+Sukurk pamokos plan\u0105 ir 3 el. dienyno \u012Fra\u0161\u0173 variantus pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Mokomasis dalykas. ${subject}
 - Klas\u0117. ${grade}
 - Pamokos tema. ${topic}
@@ -994,14 +1014,8 @@ Sukurk pamokos plan\u0105 pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Integruota pamoka. ${isIntegratedInput ? `Taip. Integruojama su. ${integrationDetails}.` : "Ne"}
 - Pamoka u\u017E mokyklos rib\u0173. ${isOutsideInput ? `Taip. Vieta. ${outsideLocation}, Tikslas. ${outsideGoal}.` : "Ne"}
 
-GRIE\u017DTAI NENAUDOK DVITA\u0160KI\u0172 TEKSTUOSE.
-U\u017Epildyk eDiaryEntry laukus be \u0161ablonini\u0173 frazi\u0173, su konkre\u010Dia temos didaktika:
-- topicClassworkExpectations
-- homework
-- notes
-- realWorldUse
-- assessmentNote
-- classLearningNote
+GRIE\u017DTAI NENAUDOK DVITA\u0160KI\u0172 TEKSTUOSE (naudok ta\u0161kus arba br\u016Bk\u0161nelius).
+Pateik 3 el. dienyno variantus masyve "variants" ir diferencijavimo patarimus objekte "differentiationAdvice".
       `;
       const response = await ai.models.generateContent({
         model: "gemini-3.8-flash",

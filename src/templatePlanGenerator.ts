@@ -33,6 +33,21 @@ export interface RealWorldExampleItem {
   snippetForNotes: string;
 }
 
+export interface EDiaryVariant {
+  variantId: 'v1' | 'v2' | 'v3';
+  title: string;
+  typeLabel: string;
+  topicClassworkExpectations: string;
+  homework: string;
+  notes: string;
+}
+
+export interface DifferentiationAdvice {
+  scaffolding: string;
+  challenge: string;
+  qualityFocus: string;
+}
+
 export interface MethodologyBank {
   activeMethods: ActiveMethodItem[];
   icebreakers: IcebreakerItem[];
@@ -65,6 +80,17 @@ export interface GenerateTemplateParams {
   outsideGoal?: string;
   stageDurations?: Record<string, number>;
   selectedStudentLevels?: string[];
+  isAssessmentWork?: boolean;
+  assessmentType?: string;
+  assessmentPurpose?: string;
+  assessmentTopics?: string;
+  assessmentDate?: string;
+  assessmentCorrectionDeadline?: string;
+  assessmentRetakePolicy?: string;
+  assessmentFeedbackDays?: string;
+  enableAssessmentReminderEmail?: boolean;
+  assessmentReminderEmail?: string;
+  assessmentReminderTime?: string;
 }
 
 // Dalyko ir temos semantinis profilis
@@ -523,32 +549,6 @@ Diferencijuotos praktikos eiga:
   // Namų darbai: tikslas, sąsaja su tema, konkreti užduotis, apimtis be perkrovimo.
   // Pastabos: gyvenimiška nauda visada + vertinimas ir klasės mokymasis TIK jei mokytojas nurodė!
 
-  let eDiaryTopicClasswork = '';
-  if (profile.isNonAcademic) {
-    // Specialios gairės neakademiniams dalykams (Klasės vadovo veikla, Etika, Teatras...)
-    eDiaryTopicClasswork = `${profile.domainName}: ${currentTopic}. Ugdomoji vertė ir mokymosi uždaviniai: ${profile.learningObjectives} Veikla: ${profile.actionContext}`;
-  } else {
-    // Standartizuota akademinė formuluotė pagal eMokykla.lt
-    eDiaryTopicClasswork = `${profile.domainName}: ${currentTopic}. Mokymosi uždaviniai ir veikla: ${profile.learningObjectives} Žinoti: ${profile.knowItem} Gebėti: ${profile.ableItem} Taikyti: ${profile.applyItem}`;
-  }
-
-  // Namų darbai dienyne
-  let eDiaryHomework = '';
-  if (isNoHomework) {
-    eDiaryHomework = 'Namų darbai neužduodami (mokymosi krūvio balansas pagal N0015 rekomendaciją – visi tikslai pasiekti pamokoje).';
-  } else {
-    const durationLabel = params.homeworkDuration === '15'
-      ? '10–15 min. (rekomenduojama)'
-      : params.homeworkDuration === '20'
-      ? '15–20 min.'
-      : params.homeworkDuration === '30'
-      ? '20–30 min.'
-      : 'iki 15–20 min.';
-    eDiaryHomework = `${profile.homeworkGoalStatement} Sąsaja su tema: ${profile.homeworkConnection} Užduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukmė: ${durationLabel}).`;
-  }
-
-  // Pastabos dienyne
-  // Reikalavimas: „Pastabose pateik patarimų kuo naudinga mokymo medžiaga realiame gyvenime, jei mokytojas nurodė pateik informaciją apie vertinimą, klasės mokymąsi. Tai pateik jei mokytojas nurodė.“
   const realWorldText = realWorldNote && realWorldNote.trim().length > 0 
     ? realWorldNote.trim() 
     : profile.realWorldUse;
@@ -556,30 +556,94 @@ Diferencijuotos praktikos eiga:
   const teacherRequestedEvaluation = (selectedEvaluations && selectedEvaluations.length > 0) || (evaluationCriteria && evaluationCriteria.trim().length > 0);
   const teacherProvidedClassNotes = classLearningNotes && classLearningNotes.trim().length > 0;
 
-  const notesParts: string[] = [];
+  const envPrefix = isIntegratedInput && isOutsideInput
+    ? '[INTEGRUOTA PAMOKA UŽ MOKYKLOS RIBŲ]: '
+    : isIntegratedInput
+    ? `[INTEGRUOTA PAMOKA (su ${integrationDetails || 'kitu dalyku'})]: `
+    : isOutsideInput
+    ? `[PAMOKA UŽ MOKYKLOS RIBŲ (${outsideLocation || 'kitas ugdymo objektas'})]: `
+    : '';
 
-  // 1. Gyvenimiškas patarimas (visada pateikiamas pastabose)
-  notesParts.push(`💡 Kuo naudinga realiame gyvenime: ${realWorldText}`);
+  // Vertinimo atgalinis ryšys ir kontrolinio darbo detalės
+  const assessmentFeedbackText = params.isAssessmentWork
+    ? `\n[VERTINIMAS]: ${params.assessmentType || 'Kontrolinis darbas'}${params.assessmentTopics ? ` (Temos: ${params.assessmentTopics})` : ''}.${params.assessmentPurpose ? ` Tikslas: ${params.assessmentPurpose}.` : ''} Vertinimo atgalinis ryšys: Darbai ištaisomi ir įvertinimai mokiniams pateikiami per ${params.assessmentFeedbackDays || '5 d.d.'} (${params.assessmentCorrectionDeadline || 'iki nurodyto termino'}). Perlaikymo / taisymosi galimybės: ${params.assessmentRetakePolicy || 'Leidžiama taisytis 1 kartą'}.${params.enableAssessmentReminderEmail ? ` (Mokytojo el. pašto priminimas suaktyvintas: ${params.assessmentReminderEmail || 'mokytojas@mokykla.lt'}).` : ''}`
+    : '';
 
-  // 2. Vertinimas (TIK jei mokytojas nurodė)
-  if (teacherRequestedEvaluation) {
-    const evalMethodsStr = selectedEvaluations.length > 0 ? selectedEvaluations.join(', ') : 'Formuojamasis vertinimas';
-    const evalCritStr = evaluationCriteria && evaluationCriteria.trim() ? `. Kriterijai: ${evaluationCriteria.trim()}` : '';
-    notesParts.push(`📊 Planuojamas vertinimas: ${evalMethodsStr}${evalCritStr}.`);
-  }
+  const assessmentTopicPrefix = params.isAssessmentWork
+    ? `[${(params.assessmentType || 'KONTROLINIS DARBAS').toUpperCase()}] `
+    : '';
 
-  // 3. Klasės mokymasis (TIK jei mokytojas nurodė)
-  if (teacherProvidedClassNotes) {
-    notesParts.push(`👥 Klasės mokymasis / ypatumai: ${classLearningNotes.trim()}`);
-  }
+  // 1 VARIANTAS (Praktinis)
+  const v1Topic = profile.isNonAcademic
+    ? `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vertė ir mokymosi uždaviniai: ${profile.learningObjectives} Veikla: ${profile.actionContext}`
+    : `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Mokymosi uždavinys: ${profile.learningObjectives} Veikla: ${params.isAssessmentWork ? `Žinių ir gebėjimų patikrinimas raštu / praktiškai (${params.assessmentType || 'Kontrolinis darbas'}).` : 'Praktinis užduočių sprendimas, pavyzdžių nagrinėjimas ir įgūdžių taikymas.'} Žinoti: ${profile.knowItem} Gebėti: ${profile.ableItem} Taikyti: ${profile.applyItem}`;
 
-  const diaryNotes = notesParts.join('\n\n');
+  const v1Homework = isNoHomework
+    ? 'Namų darbai neužduodami (mokiniai visus tikslus pasiekė ir praktinį darbą atliko pamokoje).'
+    : `Tikslas – įtvirtinti pamokoje įgytus praktinius įgūdžius kasdienėje aplinkoje. Užduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukmė: ~15 min.).`;
+
+  const v1Notes = `Gyvenimiška vertė ir sąsaja su profesijomis: ${realWorldText} Pastebėjimai ir vertė (PEPIS & NVC): Padrąsiname mokinius pastebėti savo asmeninę pažangą ir praktiškai taikyti įgytas žinias. Dėkojame už aktyvų įsitraukimą bei pagarbų bendradarbiavimą.${assessmentFeedbackText}`;
+
+  // 2 VARIANTAS (Kūrybinis / Probleminis)
+  const v2Topic = profile.isNonAcademic
+    ? `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vertė ir kūrybinė veikla: Kūrybiškai tyrinėti vertybes, diskutuoti bei kurti bendrus susitarimus. Veikla: Probleminių situacijų vaidmenų žaidimas ir diskusija porose.`
+    : `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Mokymosi uždavinys: Kūrybiškai spręsti problemas, ieškoti alternatyvų bei argumentuoti savo sprendimus. Veikla: ${params.isAssessmentWork ? `Diferencijuotas žinių ir problemų sprendimo patikrinimas (${params.assessmentType || 'Savarankiškas darbas'}).` : 'Kūrybinės dirbtuvės, diskusija porose ir probleminės situacijos simuliacija.'}`;
+
+  const v2Homework = isNoHomework
+    ? 'Namų darbai neužduodami (mokymosi krūvio balansas pagal N0015 rekomendaciją – visi tikslai pasiekti pamokoje).'
+    : `Tikslas – pasiruošti kūrybinei diskusijai ir lavinti probleminį mąstymą. Užduotis: suformuluoti 2 probleminius klausimus arba pasiūlyti originalią idėją nagrinėtai temai. (Rekomenduojama trukmė: ~15 min.).`;
+
+  const v2Notes = `Gyvenimiška vertė ir sąsaja su profesijomis: Ugdo kūrybiškumą, inovatyvų mąstymą ir gebėjimą spręsti neapibrėžtas problemas versle bei kasdienybėje. Pastebėjimai ir vertė (PEPIS & NVC): Vertiname mokinių drąsą mąstyti kitaip, išsakyti savo nuomonę ir išklausyti kito požiūrį be teisimo.${assessmentFeedbackText}`;
+
+  // 3 VARIANTAS (Analitinis / Tiriamasis)
+  const v3Topic = profile.isNonAcademic
+    ? `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vertė ir kritinė analizė: Analizuoti elgesio motyvus, priežastis bei pasekmes bendruomenėje. Veikla: Atvejo analizė ir reflektyvus situacijų tyrinėjimas.`
+    : `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Mokymosi uždavinys: Analizuoti dėsningumus, vertinti priežastis bei pasekmes ir daryti pagrįstas išvadas. Veikla: ${params.isAssessmentWork ? `Analitinių gebėjimų patikrinimas taikant teorines žinias (${params.assessmentType || 'Diagnostinis darbas'}).` : 'Lyginamoji analizė, duomenų/tekstų tyrinėjimas ir išvadų formulavimas.'}`;
+
+  const v3Homework = isNoHomework
+    ? 'Namų darbai neužduodami (mokiniai tiriamąją veiklą užbaigė pamokos metu).'
+    : `Tikslas – pagilinti temos analizę ir savarankišką tyrinėjimą. Užduotis: išanalizuoti pasirinktą pavyzdį ir užrašyti 2 pagrindines išvadas. (Rekomenduojama trukmė: ~15–20 min.).`;
+
+  const v3Notes = `Gyvenimiška vertė ir sąsaja su profesijomis: Ugdo analitinį mąstymą, medijų raštingumą bei gebėjimą remtis faktais tyrimų, finansų bei valdymo srityse. Pastebėjimai ir vertė (PEPIS & NVC): Pastebime ir džiaugiamės mokinių kruopštumu, gilimusi į esmę ir pastangomis ieškoti pagrįstų argumentų.${assessmentFeedbackText}`;
+
+  const variants: EDiaryVariant[] = [
+    {
+      variantId: 'v1',
+      title: '1 VARIANTAS (Praktinis)',
+      typeLabel: 'Orientuotas į praktiką ir pritaikomumą',
+      topicClassworkExpectations: v1Topic,
+      homework: v1Homework,
+      notes: v1Notes
+    },
+    {
+      variantId: 'v2',
+      title: '2 VARIANTAS (Kūrybinis / Probleminis)',
+      typeLabel: 'Orientuotas į kūrybiškumą, diskusijas ar problemų sprendimą',
+      topicClassworkExpectations: v2Topic,
+      homework: v2Homework,
+      notes: v2Notes
+    },
+    {
+      variantId: 'v3',
+      title: '3 VARIANTAS (Analitinis / Tiriamasis)',
+      typeLabel: 'Orientuotas į gilesnę analizę ar savarankišką tyrinėjimą',
+      topicClassworkExpectations: v3Topic,
+      homework: v3Homework,
+      notes: v3Notes
+    }
+  ];
+
+  const differentiationAdvice: DifferentiationAdvice = {
+    scaffolding: `Sunkiau besimokantiems pateikti atraminį žodynėlį, dalinai užpildytą užduoties schemą ar pavyzdinį žingsnių algoritmą (Step-by-step parama).`,
+    challenge: `Gabesniems mokiniams skirti papildomą kintamąjį, probleminę išimtį arba patikėti eksperto / lyderio vaidmenį grupėje (Bloom viršūnė).`,
+    qualityFocus: `Įtraukimui ir refleksijai panaudoti interaktyvų įrankį (Quizizz/Kahoot) arba pamokos pabaigoje pritaikyti „3-2-1“ refleksijos metodą.`
+  };
 
   const eDiaryEntry = {
-    topicClassworkExpectations: eDiaryTopicClasswork,
-    homework: eDiaryHomework,
-    individualHomework: isNoHomework ? '' : `${profile.homeworkGoalStatement} Individuali diferencijuota užduotis pagal mokinio lygį (iki 15 min.).`,
-    notes: diaryNotes,
+    topicClassworkExpectations: v1Topic,
+    homework: v1Homework,
+    individualHomework: isNoHomework ? '' : `Tikslas – individualiai pritaikyti užduotį pagal mokinio pasiekimų lygį. (Rekomenduojama trukmė: ~10-15 min.).`,
+    notes: v1Notes,
     realWorldUse: realWorldText,
     assessmentNote: teacherRequestedEvaluation 
       ? `Vertinimas: ${selectedEvaluations.length > 0 ? selectedEvaluations.join(', ') : 'Formuojamasis vertinimas'}${evaluationCriteria ? `. Kriterijai: ${evaluationCriteria}` : ''}.` 
@@ -587,7 +651,9 @@ Diferencijuotos praktikos eiga:
     classLearningNote: teacherProvidedClassNotes ? classLearningNotes.trim() : '',
     isIntegrated: !!isIntegratedInput,
     isOutside: !!isOutsideInput,
-    eDiaryLessonType: lessonType || (profile.isNonAcademic ? profile.domainName : 'Dalykinė pamoka')
+    eDiaryLessonType: lessonType || (profile.isNonAcademic ? profile.domainName : 'Dalykinė pamoka'),
+    variants,
+    differentiationAdvice
   };
 
   // 11. Didaktinis metodų bankas

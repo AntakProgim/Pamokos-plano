@@ -71,6 +71,17 @@ app.post('/api/generate-plan', async (req, res) => {
     isOutsideInput = false,
     outsideLocation = '',
     outsideGoal = '',
+    isAssessmentWork = false,
+    assessmentType = 'Kontrolinis darbas',
+    assessmentPurpose = '',
+    assessmentTopics = '',
+    assessmentDate = '',
+    assessmentCorrectionDeadline = '',
+    assessmentRetakePolicy = '',
+    assessmentFeedbackDays = '5 d.d.',
+    enableAssessmentReminderEmail = false,
+    assessmentReminderEmail = '',
+    assessmentReminderTime = 'Likus 1 d. iki termino',
     prompt: clientPrompt,
     systemInstruction: clientSystemInstruction
   } = params;
@@ -84,34 +95,35 @@ app.post('/api/generate-plan', async (req, res) => {
   if (ai) {
     try {
       const systemInstruction = clientSystemInstruction || `
-Tu esi aukščiausio lygio Lietuvos bendrojo ugdymo didaktikos ekspertas ir metodininkas, besiremiantis eMokykla.lt Bendrosiomis programomis (BP) ir ŠMSM metodinėmis rekomendacijomis.
-Tavo tikslas – parengti gilų, profesionalų, praktišką pamokos planą ir kokybiškus el. dienyno („Mano dienynas“, TAMO) įrašus.
-GRIEŽTAI VENGTI ŠABLONINIŲ IR SAUSŲ FRAZIŲ („esmines sąvokas ir taisykles“, „atlikti nurodytus pratimus iš temos“). Viskas turi būti konkrečiai pritaikyta nurodytam dalykui ir temai!
-GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE (vietoj jų naudok taškus arba brūkšnelius).
+Tu esi profesionalus Lietuvos ugdymo ekspertas ir mokytojų asistentas. Tavo tikslas – padėti mokytojams kokybiškai, greitai ir pagal oficialias rekomendacijas užpildyti „Mano dienynas“ laukus bei parengti pamokos planą.
 
-REIKALAVIMAI „MANO DIENYNAS“ ĮRAŠAMS PAGAL EMOKYKLA.LT METODIKĄ (eDiaryEntry):
-1. topicClassworkExpectations (Standartizuota temos formuluotė):
-   - Jei neakademinis dalykas (Klasės vadovo veikla, Etika, Teatras, Gyvenimo įgūdžiai, Karjeros ugdymas ir pan.):
-     Pabrėžti ugdomąją vertę ir veiklą. Formatas: „[Dalykas]. [Tema]. Ugdomoji vertė ir mokymosi uždaviniai: [vertybinis ir socialinis tikslas]. Veikla: [konkreti praktinė veikla, diskusija, simuliacija ar susitarimų kūrimas].“
-   - Jei akademinis dalykas:
-     Įtraukti dalyką, temą ir trumpą aprašymą, ko mokiniai išmoks bei kokią veiklą atliks. Pavyzdžiui, pagal eMokykla rekomendaciją: „Užsienio kalba (anglų). Mokymasis užsisakyti maistą restorane, naudojant specifinį žodyną ir frazes. Žinoti: [konkrečios temos terminai]. Gebėti: [konkretus veiksmas]. Taikyti: [konkretus taikymas/kūrimas].“
-2. homework (Namų darbai su aiškiu tikslu, sąsaja su tema ir be mokinių perkrovimo):
-   - Aiškus tikslo nurodymas: „Tikslas – [įtvirtinti žinias apie... / pasiruošti diskusijai apie... / kūrybiškai pritaikyti... / pabaigti klasės darbą...]“.
-   - Sąsaja su pamokos tema: pabrėžti, kaip užduotis tęsia klasės veiklą.
-   - Konkreti užduotis: nurodyti konkrečią užduotį (vengti vien abstrakčių pratimų numerių).
-   - Optimali trukmė: nurodyti rekomenduojamą trukmę (iki 15–20 min., kad mokiniai nebūtų perkraunami).
-   - Jei pasirinkta „Be namų darbų“: „Namų darbai neužduoti (mokiniai visus tikslus pasiekė ir praktinius darbus atliko pamokos metu).“
-3. notes (Dienyno pastabos):
-   - VISADA pateikti patarimą, kuo ši mokymo medžiaga naudinga realiame gyvenime (kasdienybėje, šiuolaikiniame pasaulyje ar būsimai profesijai).
-   - TIK jei mokytojas nurodė vertinimą: įtraukti „Planuojamas vertinimas: [metodai ir kriterijai]“.
-   - TIK jei mokytojas nurodė klasės mokymosi ypatumus: įtraukti „Klasės mokymasis: [pastebėjimai]“.
-   - Jei mokytojas vertinimo ar klasės pastabų nenurodė, pateikti tik gyvenimiško pritaikymo patarimą!
+BŪTINOSIOS TAISYKLĖS EL. DIENYNO ĮRAŠAMS (eDiaryEntry):
+1. Temos formuluotės standartas (A0010 modelis):
+   Struktūra: „[Dalykas]: [Temos pavadinimas]. Mokymosi uždavinys: [ko išmoks]. Veikla: [kokią veiklą atliks / metodas].“
+2. Atitiktis BP ir Pasiekimų raidai:
+   Uždaviniai atitinka Bendrųjų programų pasiekimų raidą konkrečiam koncentrui. Naudok aktyvius veiksmažodžius.
+3. Neakademiniai dalykai (Klasės vadovo veikla, Etika, Fizinis ugdymas, Gyvenimo įgūdžiai):
+   Privaloma atspindėti socialinį-emocinį raštingumą, pilietiškumą, ugdymą karjerai, bendruomeniškumą ar vertybinį ugdymą.
+4. Namų darbų formulavimas (N0015, N0016 modelis):
+   Struktūra: „Tikslas – [nurodyti tikslą]. Užduotis: [konkretus veiksmas]. (Rekomenduojama trukmė: ~[X] min.).“
+5. Integracija ir kitos aplinkos:
+   Jei pamoka integruota ar vyksta už mokyklos ribų – aiškiai išskirk aprašo pradžioje (pvz., „[INTEGRUOTA PAMOKA (su biologija)]: ...“).
+6. Pastabos (PEPIS ir Nesmurtinė komunikacija):
+   Pastabose nurodyk temos gyvenimišką vertę ir sąsają su profesijomis. Komunikuok remiantis NVC ir PEPIS principals (pozityvumas, pastebėjimai, vertė).
+7. TRYS VARIANTAI (eDiaryEntry.variants):
+   - 1 VARIANTAS (Praktinis): Orientuotas į praktiką ir pritaikomumą.
+   - 2 VARIANTAS (Kūrybinis / Probleminis): Orientuotas į kūrybiškumą, diskusijas ar problemų sprendimą.
+   - 3 VARIANTAS (Analitinis / Tiriamasis): Orientuotas į gilesnę analizę ar savarankišką tyrinėjimą.
+8. DIFERENCIJAVIMAS IR KOKYBĖ (eDiaryEntry.differentiationAdvice):
+   - scaffolding: Konkretus patarimas, kaip padėti sunkiau besimokantiems (žodynėlis, atraminė schema).
+   - challenge: Konkretus patarimas, kaip praplėsti veiklą gabesniems (papildomas kintamasis, lyderystė).
+   - qualityFocus: Vienas patarimas įtraukimui ir kokybei (interaktyvus įrankis, refleksijos metodas).
 
 Atsakymą pateik griežtai JSON formatu pagal nurodytą struktūrą.
       `;
 
       const prompt = clientPrompt || `
-Sukurk pamokos planą pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
+Sukurk pamokos planą ir 3 el. dienyno įrašų variantus pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Mokomasis dalykas. ${subject}
 - Klasė. ${grade}
 - Pamokos tema. ${topic}
@@ -128,14 +140,8 @@ Sukurk pamokos planą pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Integruota pamoka. ${isIntegratedInput ? `Taip. Integruojama su. ${integrationDetails}.` : 'Ne'}
 - Pamoka už mokyklos ribų. ${isOutsideInput ? `Taip. Vieta. ${outsideLocation}, Tikslas. ${outsideGoal}.` : 'Ne'}
 
-GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE.
-Užpildyk eDiaryEntry laukus be šabloninių frazių, su konkrečia temos didaktika:
-- topicClassworkExpectations
-- homework
-- notes
-- realWorldUse
-- assessmentNote
-- classLearningNote
+GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE (naudok taškus arba brūkšnelius).
+Pateik 3 el. dienyno variantus masyve "variants" ir diferencijavimo patarimus objekte "differentiationAdvice".
       `;
 
       const response = await ai.models.generateContent({

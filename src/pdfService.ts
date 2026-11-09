@@ -276,53 +276,80 @@ export function buildEDiaryOnlyHtml(plan: any, meta: LessonPlanPdfMetadata): str
         </div>
       </div>
 
-      <!-- 1. Tema ir klasės darbas -->
-      <div class="pdf-section">
-        <div class="pdf-ediary-card primary-card">
-          <div class="pdf-ediary-top">
-            📌 <strong>1. Tema / Klasės darbas</strong>
-            <span class="pdf-ediary-sub">(Standartizuota formuluotė: Dalykas + Mokymosi uždavinys + Veikla)</span>
+      ${plan.eDiaryEntry?.variants && plan.eDiaryEntry.variants.length > 0 ? plan.eDiaryEntry.variants.map((v, i) => `
+        <div class="pdf-section" style="margin-top: 15px; border-top: 2px solid #cbd5e1; padding-top: 15px;">
+          <h3 style="color: #1e3a8a; margin-bottom: 10px; font-size: 14pt;">### ${escapeHtml(v.title)}</h3>
+          <div class="pdf-ediary-card primary-card">
+            <div class="pdf-ediary-top">📌 <strong>Tema, klasės darbai, numatomi pasiekimai</strong></div>
+            <div class="pdf-ediary-content large-text">${escapeHtml(v.topicClassworkExpectations)}</div>
           </div>
-          <div class="pdf-ediary-content large-text">
-            ${escapeHtml(plan.eDiaryEntry?.topicClassworkExpectations || '')}
+          <div class="pdf-ediary-card primary-card" style="margin-top: 8px;">
+            <div class="pdf-ediary-top">🎯 <strong>Namų darbai</strong></div>
+            <div class="pdf-ediary-content large-text">${escapeHtml(v.homework)}</div>
           </div>
-          <div class="pdf-ediary-footer-note">
-            ✓ Nurodytas dalykas, suformuluotas aiškus siekiamas rezultatas ir aprašyta atlikta veikla.
+          <div class="pdf-ediary-card primary-card" style="margin-top: 8px;">
+            <div class="pdf-ediary-top">💡 <strong>Pastabos apie pamoką</strong></div>
+            <div class="pdf-ediary-content large-text">${escapeHtml(v.notes)}</div>
           </div>
         </div>
-      </div>
+      `).join('') : `
+        <!-- 1. Tema ir klasės darbas -->
+        <div class="pdf-section">
+          <div class="pdf-ediary-card primary-card">
+            <div class="pdf-ediary-top">
+              📌 <strong>1. Tema / Klasės darbas</strong>
+              <span class="pdf-ediary-sub">(Standartizuota formuluotė: Dalykas + Mokymosi uždavinys + Veikla)</span>
+            </div>
+            <div class="pdf-ediary-content large-text">
+              ${escapeHtml(plan.eDiaryEntry?.topicClassworkExpectations || '')}
+            </div>
+            <div class="pdf-ediary-footer-note">
+              ✓ Nurodytas dalykas, suformuluotas aiškus siekiamas rezultatas ir aprašyta atlikta veikla.
+            </div>
+          </div>
+        </div>
 
-      <!-- 2. Namų darbai -->
-      <div class="pdf-section">
-        <div class="pdf-ediary-card primary-card">
-          <div class="pdf-ediary-top">
-            🎯 <strong>2. Namų darbai</strong>
-            <span class="pdf-ediary-sub">(Su aiškiu tikslu, kontekstu ir krūvio trukme N0015)</span>
-          </div>
-          <div class="pdf-ediary-content large-text">
-            ${escapeHtml(plan.eDiaryEntry?.homework || '')}
-          </div>
-          <div class="pdf-ediary-footer-note">
-            ✓ Nurodytas aiškus tikslas (įtvirtinti / pasiruošti), apimtis atitinka higienos normas ir krūvio rekomendacijas.
+        <!-- 2. Namų darbai -->
+        <div class="pdf-section">
+          <div class="pdf-ediary-card primary-card">
+            <div class="pdf-ediary-top">
+              🎯 <strong>2. Namų darbai</strong>
+              <span class="pdf-ediary-sub">(Su aiškiu tikslu, kontekstu ir krūvio trukme N0015)</span>
+            </div>
+            <div class="pdf-ediary-content large-text">
+              ${escapeHtml(plan.eDiaryEntry?.homework || '')}
+            </div>
+            <div class="pdf-ediary-footer-note">
+              ✓ Nurodytas aiškus tikslas (įtvirtinti / pasiruošti), apimtis atitinka higienos normas ir krūvio rekomendacijas.
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- 3. Pastaba / Vertinimas -->
-      <div class="pdf-section">
-        <div class="pdf-ediary-card primary-card">
-          <div class="pdf-ediary-top">
-            💡 <strong>3. Pastaba / Vertinimas</strong>
-            <span class="pdf-ediary-sub">(Gyvenimiška vertė ir pasiekimų vertinimo informacija)</span>
-          </div>
-          <div class="pdf-ediary-content large-text">
-            ${escapeHtml(plan.eDiaryEntry?.notes || '')}
-          </div>
-          <div class="pdf-ediary-footer-note">
-            ✓ Pateikta praktinė nauda mokinio kasdieniam gyvenimui ir ateičiai; vertinimas atitinka planuotus kriterijus.
+        <!-- 3. Pastaba / Vertinimas -->
+        <div class="pdf-section">
+          <div class="pdf-ediary-card primary-card">
+            <div class="pdf-ediary-top">
+              💡 <strong>3. Pastaba / Vertinimas</strong>
+              <span class="pdf-ediary-sub">(Gyvenimiška vertė ir pasiekimų vertinimo informacija)</span>
+            </div>
+            <div class="pdf-ediary-content large-text">
+              ${escapeHtml(plan.eDiaryEntry?.notes || '')}
+            </div>
+            <div class="pdf-ediary-footer-note">
+              ✓ Pateikta praktinė nauda mokinio kasdieniam gyvenimui ir ateičiai; vertinimas atitinka planuotus kriterijus.
+            </div>
           </div>
         </div>
-      </div>
+      `}
+
+      ${plan.eDiaryEntry?.differentiationAdvice ? `
+        <div class="pdf-section" style="margin-top: 15px; background: #fffbeb; border: 1px solid #fef3c7; padding: 12px; border-radius: 6px;">
+          <h4 style="color: #92400e; margin-top: 0; margin-bottom: 8px;">💡 Idėjos veiklos diferencijavimui ir pamokos kokybei:</h4>
+          <p style="font-size: 9.5pt; margin: 4px 0;"><strong>🛠️ Pagalba / Pastoliavimas:</strong> ${escapeHtml(plan.eDiaryEntry.differentiationAdvice.scaffolding)}</p>
+          <p style="font-size: 9.5pt; margin: 4px 0;"><strong>🚀 Iššūkis gabesniems:</strong> ${escapeHtml(plan.eDiaryEntry.differentiationAdvice.challenge)}</p>
+          <p style="font-size: 9.5pt; margin: 4px 0;"><strong>✨ Kokybės akcentas:</strong> ${escapeHtml(plan.eDiaryEntry.differentiationAdvice.qualityFocus)}</p>
+        </div>
+      ` : ''}
 
       <!-- Kokybės audito patikra -->
       <div class="pdf-section">

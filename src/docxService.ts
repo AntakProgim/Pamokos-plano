@@ -743,73 +743,128 @@ export function createEDiaryOnlyDocx(plan: any, meta: LessonPlanDocxMetadata): D
 
   children.push(new Paragraph({ spacing: { after: 200 } }));
 
-  // 1. Tema ir klasės darbas
-  children.push(
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 80 },
-      children: [
-        new TextRun({ text: '📌 1. Tema / Klasės darbas (el. dienyno laukelis)', bold: true, size: 24, color: COLOR_PRIMARY })
-      ]
-    })
-  );
-  children.push(
-    new Paragraph({
-      spacing: { after: 140 },
-      children: [
-        new TextRun({
-          text: plan.eDiaryEntry?.topicClassworkExpectations || '',
-          bold: true,
-          size: 21,
-          color: '0F172A'
+  if (plan.eDiaryEntry?.variants && plan.eDiaryEntry.variants.length > 0) {
+    plan.eDiaryEntry.variants.forEach(v => {
+      children.push(
+        new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          spacing: { before: 240, after: 100 },
+          children: [
+            new TextRun({ text: `### ${v.title}`, bold: true, size: 24, color: COLOR_PRIMARY })
+          ]
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: 'Tema, klasės darbai, numatomi pasiekimai: ', bold: true, size: 21, color: COLOR_PRIMARY }),
+            new TextRun({ text: v.topicClassworkExpectations, size: 21 })
+          ]
+        }),
+        new Paragraph({
+          spacing: { after: 60 },
+          children: [
+            new TextRun({ text: 'Namų darbai: ', bold: true, size: 21, color: COLOR_PRIMARY }),
+            new TextRun({ text: v.homework, size: 21 })
+          ]
+        }),
+        new Paragraph({
+          spacing: { after: 140 },
+          children: [
+            new TextRun({ text: 'Pastabos apie pamoką: ', bold: true, size: 21, color: COLOR_PRIMARY }),
+            new TextRun({ text: v.notes, size: 21 })
+          ]
         })
-      ]
-    })
-  );
+      );
+    });
+  } else {
+    // 1. Tema ir klasės darbas
+    children.push(
+      new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 80 },
+        children: [
+          new TextRun({ text: '📌 1. Tema / Klasės darbas (el. dienyno laukelis)', bold: true, size: 24, color: COLOR_PRIMARY })
+        ]
+      }),
+      new Paragraph({
+        spacing: { after: 140 },
+        children: [
+          new TextRun({
+            text: plan.eDiaryEntry?.topicClassworkExpectations || '',
+            bold: true,
+            size: 21,
+            color: '0F172A'
+          })
+        ]
+      }),
+      new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 80 },
+        children: [
+          new TextRun({ text: '🎯 2. Namų darbai (el. dienyno laukelis)', bold: true, size: 24, color: COLOR_PRIMARY })
+        ]
+      }),
+      new Paragraph({
+        spacing: { after: 140 },
+        children: [
+          new TextRun({
+            text: plan.eDiaryEntry?.homework || '',
+            size: 21
+          })
+        ]
+      }),
+      new Paragraph({
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 80 },
+        children: [
+          new TextRun({ text: '💡 3. Pastaba / Vertinimas (el. dienyno laukelis)', bold: true, size: 24, color: COLOR_PRIMARY })
+        ]
+      }),
+      new Paragraph({
+        spacing: { after: 200 },
+        children: [
+          new TextRun({
+            text: plan.eDiaryEntry?.notes || '',
+            size: 21
+          })
+        ]
+      })
+    );
+  }
 
-  // 2. Namų darbai
-  children.push(
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 80 },
-      children: [
-        new TextRun({ text: '🎯 2. Namų darbai (el. dienyno laukelis)', bold: true, size: 24, color: COLOR_PRIMARY })
-      ]
-    })
-  );
-  children.push(
-    new Paragraph({
-      spacing: { after: 140 },
-      children: [
-        new TextRun({
-          text: plan.eDiaryEntry?.homework || '',
-          size: 21
-        })
-      ]
-    })
-  );
-
-  // 3. Pastabos ir vertinimas
-  children.push(
-    new Paragraph({
-      heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200, after: 80 },
-      children: [
-        new TextRun({ text: '💡 3. Pastaba / Vertinimas (el. dienyno laukelis)', bold: true, size: 24, color: COLOR_PRIMARY })
-      ]
-    })
-  );
-  children.push(
-    new Paragraph({
-      spacing: { after: 200 },
-      children: [
-        new TextRun({
-          text: plan.eDiaryEntry?.notes || '',
-          size: 21
-        })
-      ]
-    })
-  );
+  if (plan.eDiaryEntry?.differentiationAdvice) {
+    const da = plan.eDiaryEntry.differentiationAdvice;
+    children.push(
+      new Paragraph({
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 200, after: 80 },
+        children: [
+          new TextRun({ text: '💡 Idėjos veiklos diferencijavimui ir pamokos kokybei:', bold: true, size: 22, color: COLOR_ACCENT })
+        ]
+      }),
+      new Paragraph({
+        spacing: { after: 60 },
+        children: [
+          new TextRun({ text: '🛠️ Pagalba / Pastoliavimas: ', bold: true, size: 20 }),
+          new TextRun({ text: da.scaffolding, size: 20 })
+        ]
+      }),
+      new Paragraph({
+        spacing: { after: 60 },
+        children: [
+          new TextRun({ text: '🚀 Iššūkis gabesniems: ', bold: true, size: 20 }),
+          new TextRun({ text: da.challenge, size: 20 })
+        ]
+      }),
+      new Paragraph({
+        spacing: { after: 140 },
+        children: [
+          new TextRun({ text: '✨ Kokybės akcentas: ', bold: true, size: 20 }),
+          new TextRun({ text: da.qualityFocus, size: 20 })
+        ]
+      })
+    );
+  }
 
   // Kokybės audito patikra
   children.push(

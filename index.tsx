@@ -17,14 +17,31 @@ provider.addScope('https://www.googleapis.com/auth/classroom.courseworkmaterials
 
 type LessonCategory = 'Įvadinė' | 'Įtvirtinimo' | 'Apibendrinamoji' | 'Vertinamoji' | '';
 
+export interface EDiaryVariant {
+  variantId: 'v1' | 'v2' | 'v3';
+  title: string;
+  typeLabel: string;
+  topicClassworkExpectations: string;
+  homework: string;
+  notes: string;
+}
+
+export interface DifferentiationAdvice {
+  scaffolding: string;
+  challenge: string;
+  qualityFocus: string;
+}
+
 interface EDiaryEntry {
   topicClassworkExpectations: string;
   homework: string;
-  individualHomework: string;
+  individualHomework?: string;
   notes: string;
-  isIntegrated: boolean;
-  isOutside: boolean;
-  eDiaryLessonType: string;
+  isIntegrated?: boolean;
+  isOutside?: boolean;
+  eDiaryLessonType?: string;
+  variants?: EDiaryVariant[];
+  differentiationAdvice?: DifferentiationAdvice;
 }
 
 interface EvaluationData {
@@ -101,14 +118,11 @@ interface ChatMessage {
 }
 
 const EVALUATION_TAGS = [
-  'Paprastas pažymys', 'Kontrolinis darbas', 'Savarankiškas darbas', 'Projektinis darbas',
-  'Integruotas tarpdalykinis įvertinimas', 'Tarpinis atsiskaitymas', 'Galutinis atsiskaitymas',
-  'Atsiskaitomasis darbas', 'Formuojamojo vertinimo darbas', 'Probleminio tipo užduotis'
+  'Formuojamasis vertinimas', 'Kontrolinis darbas', 'Savarankiškas darbas', 'Kaupiamasis vertinimas', 'Nenurodyta / Neplanuotas'
 ];
 
 const RESOURCE_TAGS = [
-  'Google Classroom', 'Vadovėlis', 'Pratybos', 'Darbo lapai', 'Mokymosi programėlės',
-  'Miro lenta', 'Canva', 'YouTube', 'Kahoot / Quizizz', 'Mentimeter', 'Padlet', 'Išmanieji telefonai'
+  'Google Classroom', 'Vadovėlis', 'Pratybos', 'Darbo lapai'
 ];
 
 const ACADEMIC_SUBJECTS = [
@@ -145,11 +159,11 @@ const HOMEWORK_DURATIONS = [
   { value: '0', label: '0 min.', desc: 'Be namų darbų' },
   { value: '15', label: '10–15 min.', desc: 'Rekomenduojama (1–6 kl.)' },
   { value: '20', label: '15–20 min.', desc: 'Standartinė (7–8 kl.)' },
-  { value: '30', label: '20–30 min.', desc: 'Išplėstinė (9–12 kl.)' }
+  { value: '25', label: '20–25 min.', desc: 'Išplėstinė / projektinė (7–8 kl.)' }
 ];
 
 const QUICK_GRADES = [
-  '1 kl.', '2 kl.', '3 kl.', '4 kl.', '5 kl.', '6 kl.', '7 kl.', '8 kl.', '9 kl.', '10 kl.', '11 kl.', '12 kl.'
+  '1 kl.', '2 kl.', '3 kl.', '4 kl.', '5 kl.', '6 kl.', '7 kl.', '8 kl.'
 ];
 
 interface BPModule {
@@ -170,7 +184,7 @@ const BP_MODULES: BPModule[] = [
   {
     id: 'lt-14-1',
     subjects: ['lietuvių', 'literatūra', 'pradinis'],
-    cycles: ['1-4', '1-2', '3-4', 'all'],
+    cycles: ['1-4'],
     cycleLabel: '1–4 kl. (Pradinis)',
     area: 'Skaitymas, rašymas ir sakinio daryba',
     topicSuggestion: 'Rišlus pasakojimas pagal paveikslėlių seriją ir sakinio skyryba',
@@ -182,7 +196,7 @@ const BP_MODULES: BPModule[] = [
   {
     id: 'mat-14-1',
     subjects: ['matematika', 'pradinis'],
-    cycles: ['1-4', '1-2', '3-4', 'all'],
+    cycles: ['1-4'],
     cycleLabel: '1–4 kl. (Pradinis)',
     area: 'Skaičiai, veiksmai ir tekstiniai uždaviniai',
     topicSuggestion: 'Sudėtis ir atimtis peržengiant dešimtį bei kasdieniai tekstiniai uždaviniai',
@@ -194,20 +208,69 @@ const BP_MODULES: BPModule[] = [
   {
     id: 'pas-14-1',
     subjects: ['pasaulio pažinimas', 'gamtos mokslai', 'pasaulio', 'pradinis'],
-    cycles: ['1-4', '1-2', '3-4', 'all'],
+    cycles: ['1-4'],
     cycleLabel: '1–4 kl. (Pradinis)',
     area: 'Gamtos ir visuomenės stebėjimas',
     topicSuggestion: 'Metų laikai, augalų ir gyvūnų prisitaikymas bei gamtos saugojimas',
-    goalSuggestion: 'Stebėti ir aprašyti 3 pagrindinius gamtos pokyčius bei suformuluoti 2 asmenines taisyles gamtai saugoti.',
-    contentDescription: 'Gyvoji ir neživoji gamta, metų laikų ciklai, augalų dalys ir jų funkcijos, gyvūnų elgsena, atliekų rūšiavimas, saugus elgesys aplinkoje.',
+    goalSuggestion: 'Stebėti ir aprašyti 3 pagrindinius gamtos pokyčius bei suformuluoti 2 asmenines taisykles gamtai saugoti.',
+    contentDescription: 'Gyvoji ir negyvoji gamta, metų laikų ciklai, augalų dalys ir jų funkcijos, gyvūnų elgsena, atliekų rūšiavimas, saugus elgesys aplinkoje.',
     competencies: 'Pažinimo, pilietinė, gamtamokslinė',
     bpCode: 'Pradinio ugdymo BP 3.1'
   },
-  // Lietuvių kalba ir literatūra
+  {
+    id: 'eng-14-1',
+    subjects: ['užsienio', 'anglų', 'kalba', 'pradinis'],
+    cycles: ['1-4'],
+    cycleLabel: '1–4 kl. (Pradinis)',
+    area: 'Pirmieji žodžiai ir pasisveikinimas',
+    topicSuggestion: 'Mano šeima, spalvos ir skaičiai (My Family & Colours)',
+    goalSuggestion: 'Įvardyti šeimos narius, spalvas bei skaičius nuo 1 iki 20 ir sudaryti paprastus sakinius.',
+    contentDescription: 'Pasisveikinimo frazės, šeimos narių žodynas, skaičiavimas, spalvų atpažinimas, dainelės ir trumpi dialogai.',
+    competencies: 'Komunikavimo, kultūrinė',
+    bpCode: 'Pradinio ugdymo BP 4.1'
+  },
+  {
+    id: 'inf-14-1',
+    subjects: ['informatika', 'pradinis'],
+    cycles: ['1-4'],
+    cycleLabel: '1–4 kl. (Pradinis)',
+    area: 'Skaitmeninis raštingumas ir algoritmai',
+    topicSuggestion: 'Nuoseklūs veiksmai ir piešimas grafiniu redaktoriumi',
+    goalSuggestion: 'Sukurti nuoseklių komandų seką personažui ir nupiešti skaitmeninį piešinį.',
+    contentDescription: 'Paprasti algoritmai, pelės ir klaviatūros valdymas, loginės „Bebras“ užduotėlės, saugus laikas prie ekrano.',
+    competencies: 'Skaitmeninė, kūrybiškumo',
+    bpCode: 'Pradinio ugdymo BP 5.1'
+  },
+
+  // Lietuvių kalba ir literatūra (5–8 kl.)
+  {
+    id: 'lt-56-1',
+    subjects: ['lietuvių', 'literatūra'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Skaitymas ir teksto supratimas',
+    topicSuggestion: 'Veikėjo charakterio atskleidimas pasakojamajame tekste',
+    goalSuggestion: 'Išskirti pagrindinius veikėjo bruožus, motyvuoti jo poelgius teksto detalėmis.',
+    contentDescription: 'Tiesioginis ir netiesioginis veikėjo charakterizavimas, pasakojimo struktūra (užuomazga, kulminacija, atomazga), teksto pagrindinės minties formulavimas.',
+    competencies: 'Kultūrinė, komunikavimo',
+    bpCode: 'BP 1.1'
+  },
+  {
+    id: 'lt-56-2',
+    subjects: ['lietuvių', 'literatūra'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Sintaksė ir skyryba',
+    topicSuggestion: 'Tiesioginė kalba ir dialogų skyryba grožiniame tekste',
+    goalSuggestion: 'Taisyklingai užrašyti ir skirti tiesioginę kalbą bei autoriaus žodžius pagal schemas.',
+    contentDescription: 'Tiesioginės kalbos vieta sakinyje (prieš autoriaus žodžius, po jų), kabučių ir brūkšnių vartojimas, dialogų konstravimas kūrybiniame pasakojime.',
+    competencies: 'Komunikavimo, pažinimo',
+    bpCode: 'BP 2.1'
+  },
   {
     id: 'lt-78-1',
     subjects: ['lietuvių', 'literatūra'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Teksto analizė ir medijų raštingumas',
     topicSuggestion: 'Reklamos kalba ir įtaigos priemonės',
@@ -219,7 +282,7 @@ const BP_MODULES: BPModule[] = [
   {
     id: 'lt-78-2',
     subjects: ['lietuvių', 'literatūra'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Kalbos vartojimas ir sintaksė',
     topicSuggestion: 'Sudėtiniai bejungtukiai ir sujungiamieji sakiniai',
@@ -229,35 +292,47 @@ const BP_MODULES: BPModule[] = [
     bpCode: 'BP 2.3'
   },
   {
-    id: 'lt-56-1',
+    id: 'lt-78-3',
     subjects: ['lietuvių', 'literatūra'],
-    cycles: ['5-6', 'all'],
-    cycleLabel: '5–6 kl.',
-    area: 'Skaitymas ir teksto supratimas',
-    topicSuggestion: 'Veikėjo charakterio atskleidimas pasakojamajame tekste',
-    goalSuggestion: 'Išskirti pagrindinius veikėjo bruožus, motyvuoti jo poelgius teksto detalėmis.',
-    contentDescription: 'Tiesioginis ir netiesioginis veikėjo charakterizavimas, pasakojimo struktūra (užuomazga, kulminacija, atomazga), teksto pagrindinės minties formulavimas.',
-    competencies: 'Kultūrinė, komunikavimo',
-    bpCode: 'BP 1.1'
-  },
-  {
-    id: 'lt-910-1',
-    subjects: ['lietuvių', 'literatūra'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'Literatūros epochos ir autoriai',
-    topicSuggestion: 'Žmogaus ir tėvynės santykis K. Donelaičio ir Maironio kūryboje',
-    goalSuggestion: 'Analizuoti tapatybės ir pareigos motyvus, remiantis epochos kultūriniu kontekstu.',
-    contentDescription: 'Klasicizmo ir romantizmo idėjų atspindžiai literatūroje, pilietinės atsakomybės ir tapatybės problematika, argumentuotos esė pastraipos rengimas.',
-    competencies: 'Pilietinė, kultūrinė, kūrybiškumo',
-    bpCode: 'BP 1.4'
+    cycles: ['7-8'],
+    cycleLabel: '7–8 kl.',
+    area: 'Viešasis kalbėjimas ir argumentavimas',
+    topicSuggestion: 'Viešosios kalbos rengimas ir argumentuotas nuomonės gynimas',
+    goalSuggestion: 'Parengti 2–3 min. viešąją kalbą pasirinkta aktualia tema taikant teiginio, argumento ir pavyzdžio schemą.',
+    contentDescription: 'Kalbos kompozicija (įvadas, dėstymas, pabaiga), retorinės figūros, argumentų atranka, neverbalinė raiška ir pagarba diskusijos oponentui.',
+    competencies: 'Komunikavimo, pilietinė, kūrybiškumo',
+    bpCode: 'BP 3.1'
   },
 
-  // Matematika
+  // Matematika (5–8 kl.)
+  {
+    id: 'mat-56-1',
+    subjects: ['matematika'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Skaičiai ir skaičiavimai',
+    topicSuggestion: 'Paprastųjų ir dešimtainių trupmenų veiksmai kasdienėse situacijose',
+    goalSuggestion: 'Atlikti veiksmus su trupmenomis sprendžiant pirkinių, nuolaidų ir asmeninio biudžeto uždavinius.',
+    contentDescription: 'Trupmenų bendravardiklinimas, dešimtainių trupmenų sudėtis ir daugyba, procentų sąvoka ir praktinis taikymas.',
+    competencies: 'Pažinimo, socialinė-emocinė',
+    bpCode: 'BP 1.2'
+  },
+  {
+    id: 'mat-56-2',
+    subjects: ['matematika'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Geometrija ir matai',
+    topicSuggestion: 'Kampų rūšys, matavimas matlankiu ir trikampių perimetras bei plotas',
+    goalSuggestion: 'Matuoti ir braižyti smailiuosius, stačiuosius ir bukuosius kampus bei apskaičiuoti figūrų plotą.',
+    contentDescription: 'Kampo viršūnė ir kraštinės, laipsniai, stačiakampio ir trikampio ploto formulės, praktiniai matavimai klasės aplinkoje.',
+    competencies: 'Pažinimo, skaitmeninė',
+    bpCode: 'BP 2.1'
+  },
   {
     id: 'mat-78-1',
     subjects: ['matematika'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Reiškiniai, lygtys ir funkcijos',
     topicSuggestion: 'Tiesinė funkcija ir jos grafikas y = kx + b',
@@ -269,7 +344,7 @@ const BP_MODULES: BPModule[] = [
   {
     id: 'mat-78-2',
     subjects: ['matematika'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Geometrija ir matai',
     topicSuggestion: 'Pitagoro teorema ir jos taikymas praktiniams uždaviniams',
@@ -279,47 +354,23 @@ const BP_MODULES: BPModule[] = [
     bpCode: 'BP 3.2'
   },
   {
-    id: 'mat-56-1',
+    id: 'mat-78-3',
     subjects: ['matematika'],
-    cycles: ['5-6', 'all'],
-    cycleLabel: '5–6 kl.',
-    area: 'Skaičiai ir skaičiavimai',
-    topicSuggestion: 'Paprastųjų ir dešimtainių trupmenų veiksmai kasdienėse situacijose',
-    goalSuggestion: 'Atlikti veiksmus su trupmenomis sprendžiant pirkinių, nuolaidų ir asmeninio biudžeto uždavinius.',
-    contentDescription: 'Trupmenų bendravardiklinimas, dešimtainių trupmenų sudėtis ir daugyba, procentų sąvoka ir praktinis taikymas.',
-    competencies: 'Pažinimo, socialinė-emocinė',
-    bpCode: 'BP 1.2'
-  },
-  {
-    id: 'mat-910-1',
-    subjects: ['matematika'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'Kvadratinė funkcija ir modeliavimas',
-    topicSuggestion: 'Kvadratinė funkcija, jos viršūnė ir parabolės taikymas optimizavimo uždaviniams',
-    goalSuggestion: 'Nustatyti kvadratinės funkcijos viršūnę ir rasti didžiausią arba mažiausią reiškinio reikšmę.',
-    contentDescription: 'Kvadratinės funkcijos formulė y = ax^2 + bx + c, grafiko savybės, viršūnės koordinatės, šaknys (diskriminantas), realių situacijų optimizavimas.',
-    competencies: 'Pažinimo, skaitmeninė',
-    bpCode: 'BP 2.3'
+    cycles: ['7-8'],
+    cycleLabel: '7–8 kl.',
+    area: 'Duomenų analizė ir statistika',
+    topicSuggestion: 'Statistinių duomenų apdorojimas, vidurkis, mediana ir diagramos',
+    goalSuggestion: 'Apskaičiuoti duomenų rinkinio aritmetinį vidurkį bei medianą ir pateikti išvadas stulpeline diagrama.',
+    contentDescription: 'Statistinis tyrimas, imtis, dažnių lentelė, vidurkio ir medianos interpretavimas, klaidinančių diagramų atpažinimas.',
+    competencies: 'Pažinimo, skaitmeninė, pilietinė',
+    bpCode: 'BP 4.1'
   },
 
-  // Užsienio kalba (anglų)
-  {
-    id: 'eng-78-1',
-    subjects: ['užsienio', 'anglų', 'kalba'],
-    cycles: ['7-8', 'all'],
-    cycleLabel: '7–8 kl. (A2–B1)',
-    area: 'Socialinis bendravimas ir paslaugos',
-    topicSuggestion: 'Užsakymas restorane ir mandagumo frazės (Ordering Food & Polite Requests)',
-    goalSuggestion: 'Sklandžiai užsisakyti maistą restorane, vartojant specifinį žodyną, modalinius veiksmažodžius ir mandagumo etiketo frazes.',
-    contentDescription: 'Valgiaraščio žodynas, mandagios formuluotės (Would like, Could I have, I will take), dialogų simuliacija porose, kultūriniai arbatpinigių ir etiketo skirtumai.',
-    competencies: 'Komunikavimo, kultūrinė, socialinė-emocinė',
-    bpCode: 'BP 1.2'
-  },
+  // Užsienio kalba (anglų) (5–8 kl.)
   {
     id: 'eng-56-1',
     subjects: ['užsienio', 'anglų', 'kalba'],
-    cycles: ['5-6', 'all'],
+    cycles: ['5-6'],
     cycleLabel: '5–6 kl. (A1–A2)',
     area: 'Asmeninė aplinka ir laisvalaikis',
     topicSuggestion: 'Mano kasdienė rutina ir pomėgiai (Daily Routines & Hobbies)',
@@ -329,23 +380,71 @@ const BP_MODULES: BPModule[] = [
     bpCode: 'BP 1.1'
   },
   {
-    id: 'eng-910-1',
+    id: 'eng-56-2',
     subjects: ['užsienio', 'anglų', 'kalba'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (B1–B2)',
-    area: 'Globalios temos ir ateities perspektyvos',
-    topicSuggestion: 'Technologijos, aplinkosauga ir ateities profesijos (Future Careers & Environment)',
-    goalSuggestion: 'Argumentuotai išreikšti savo nuomonę apie technologijų poveikį klimatui ir ateities darbo rinkai.',
-    contentDescription: 'Priežasties ir pasekmės jungtukai, formalaus el. laiško ir nuomonės esė struktūra, debatai apie tvarią ateitį.',
-    competencies: 'Komunikavimo, pilietinė, skaitmeninė',
-    bpCode: 'BP 3.1'
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl. (A1–A2)',
+    area: 'Miestas, kelionės ir kryptys',
+    topicSuggestion: 'Kaip rasti kelią mieste (Asking for and Giving Directions)',
+    goalSuggestion: 'Paklausti ir paaiškinti kelią iki pasirinkto objekto vartojant prielinksnius ir krypties frazes.',
+    contentDescription: 'Miesto pastatai (library, station, museum), posūkiai (turn left, go straight), žemėlapio skaitymas anglų kalba.',
+    competencies: 'Komunikavimo, kultūrinė',
+    bpCode: 'BP 1.3'
+  },
+  {
+    id: 'eng-78-1',
+    subjects: ['užsienio', 'anglų', 'kalba'],
+    cycles: ['7-8'],
+    cycleLabel: '7–8 kl. (A2–B1)',
+    area: 'Socialinis bendravimas ir paslaugos',
+    topicSuggestion: 'Užsakymas restorane ir mandagumo frazės (Ordering Food & Polite Requests)',
+    goalSuggestion: 'Sklandžiai užsisakyti maistą restorane, vartojant specifinį žodyną, modalinius veiksmažodžius ir mandagumo etiketo frazes.',
+    contentDescription: 'Valgiaraščio žodynas, mandagios formuluotės (Would like, Could I have, I will take), dialogų simuliacija porose, kultūriniai arbatpinigių ir etiketo skirtumai.',
+    competencies: 'Komunikavimo, kultūrinė, socialinė-emocinė',
+    bpCode: 'BP 1.2'
+  },
+  {
+    id: 'eng-78-2',
+    subjects: ['užsienio', 'anglų', 'kalba'],
+    cycles: ['7-8'],
+    cycleLabel: '7–8 kl. (A2–B1)',
+    area: 'Ateities planai ir profesijos',
+    topicSuggestion: 'Mano svajonių profesija ir ateities planai (Dream Jobs & Future Intentions)',
+    goalSuggestion: 'Papasakoti apie dominančią profesiją ir ateities planus vartojant konstrukcijas be going to ir will.',
+    contentDescription: 'Profesijų žodynas, reikalingi įgūdžiai, ateities planų formulavimas, darbo pokalbio mini simuliacija porose.',
+    competencies: 'Komunikavimo, pažinimo, pilietinė',
+    bpCode: 'BP 2.1'
   },
 
-  // Informatika
+  // Informatika (5–8 kl.)
+  {
+    id: 'inf-56-1',
+    subjects: ['informatika'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Algoritmai ir vizualusis programavimas',
+    topicSuggestion: 'Žaidimo personažo judėjimas ir ciklai Scratch aplinkoje',
+    goalSuggestion: 'Sukurti interaktyvią animaciją, kurioje veikėjas juda ir reaguoja į klaviatūros paspaudimus taikant ciklo kartojimus.',
+    contentDescription: 'Scenos ir veikėjų valdymas, nuoseklūs žingsniai, begaliniai ir kartotiniai ciklai, sąlyginiai jutikliai Scratch programoje.',
+    competencies: 'Skaitmeninė, kūrybiškumo',
+    bpCode: 'BP 2.1'
+  },
+  {
+    id: 'inf-56-2',
+    subjects: ['informatika'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Skaitmeninis saugumas ir informacija',
+    topicSuggestion: 'Saugaus slaptažodžio kūrimas ir pagarbus bendravimas internete',
+    goalSuggestion: 'Sukurti saugų slaptažodį, atpažinti asmens duomenų pavojus ir taikyti netiketo (interneto etiketo) taisykles.',
+    contentDescription: 'Skaitmeninis pėdsakas, asmeninė informacija, saugūs slaptažodžiai, patyčių internete prevencija, informacijos patikimumo tikrinimas.',
+    competencies: 'Skaitmeninė, pilietinė, socialinė-emocinė',
+    bpCode: 'BP 3.1'
+  },
   {
     id: 'inf-78-1',
     subjects: ['informatika'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Duomenų analizė ir skaičiuoklės',
     topicSuggestion: 'Google Sheets formulių (SUM, AVERAGE, IF) taikymas asmeniniam biudžetui',
@@ -357,45 +456,33 @@ const BP_MODULES: BPModule[] = [
   {
     id: 'inf-78-2',
     subjects: ['informatika'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
-    area: 'Algoritmai ir programavimas',
+    area: 'Algoritmai ir tekstinis programavimas',
     topicSuggestion: 'Sąlyginiai sakiniai ir kintamieji programavime (Python / Blockly)',
     goalSuggestion: 'Parašyti programą su šakotuoju algoritmu (if-else), atliekančią įvestų duomenų patikrinimą.',
     contentDescription: 'Kintamųjų tipai (int, str, float), loginiai operatoriai (and, or, not), if-elif-else struktūra, kodo derinimas ir testavimas.',
     competencies: 'Skaitmeninė, kūrybiškumo',
     bpCode: 'BP 2.2'
   },
-  {
-    id: 'inf-56-1',
-    subjects: ['informatika'],
-    cycles: ['5-6', 'all'],
-    cycleLabel: '5–6 kl.',
-    area: 'Algoritmai ir vizualusis programavimas',
-    topicSuggestion: 'Žaidimo personažo judėjimas ir ciklai Scratch aplinkoje',
-    goalSuggestion: 'Sukurti interaktyvią animaciją, kurioje veikėjas juda ir reaguoja į klaviatūros paspaudimus taikant ciklo kartojimus.',
-    contentDescription: 'Scenos ir veikėjų valdymas, nuoseklūs žingsniai, begaliniai ir kartotiniai ciklai, sąlyginiai jutikliai Scratch programoje.',
-    competencies: 'Skaitmeninė, kūrybiškumo',
-    bpCode: 'BP 2.1'
-  },
-  {
-    id: 'inf-910-1',
-    subjects: ['informatika'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'Skaitmeninis saugumas ir etika',
-    topicSuggestion: 'Kibernetinis saugumas, duomenų privatumas ir dirbtinis intelektas',
-    goalSuggestion: 'Atpažinti sukčiavimo (phishing) atakas, taikyti dviejų veiksnių autentifikavimą ir kritiškai vertinti DI sugeneruotą turinį.',
-    contentDescription: 'Slaptažodžių sauga, socialinė inžinerija, skaitmeninis pėdsakas, autorių teisės skaitmeninėje erdvėje, DI etika.',
-    competencies: 'Skaitmeninė, pilietinė, pažinimo',
-    bpCode: 'BP 3.1'
-  },
 
-  // Istorija
+  // Istorija (5–8 kl.)
+  {
+    id: 'hist-56-1',
+    subjects: ['istorija'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Istorijos tyrinėjimas ir Lietuvos praeitis',
+    topicSuggestion: 'Lietuvos piliakalniai, legendos ir archeologiniai radiniai',
+    goalSuggestion: 'Išskirti istorinius šaltinius (rašytinius, daiktinius, sakytinius) ir paaiškinti piliakalnių gynybinę paskirtį.',
+    contentDescription: 'Istorinis laikas (amžiai, eros), piliakalnių sandara, archeologų darbas, legendų apie Vilniaus įkūrimą analizė.',
+    competencies: 'Kultūrinė, pažinimo',
+    bpCode: 'BP 1.1'
+  },
   {
     id: 'hist-78-1',
     subjects: ['istorija'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'LDK ir Abiejų Tautų Respublika',
     topicSuggestion: 'Lietuvos krikštas ir Žalgirio mūšis: LDK geopolitinis lūžis',
@@ -404,24 +491,24 @@ const BP_MODULES: BPModule[] = [
     competencies: 'Pilietinė, kultūrinė, pažinimo',
     bpCode: 'BP 1.2'
   },
-  {
-    id: 'hist-910-1',
-    subjects: ['istorija'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'XX a. lūžiai ir laisvės kovos',
-    topicSuggestion: '1918 m. Vasario 16-osios Aktas ir Lietuvos nepriklausomybės atkūrimas',
-    goalSuggestion: 'Aptarti Lietuvos Tarybos veiklą, Nepriklausomybės Akto istorinę vertę ir valstybingumo įtvirtinimo iššūkius.',
-    contentDescription: 'Pirmojo pasaulinio karo pabaiga, Vilniaus konferencija, Lietuvos Taryba, Akto signatarai, kovos už nepriklausomybę su bermontininkais ir bolševikais.',
-    competencies: 'Pilietinė, kultūrinė, komunikavimo',
-    bpCode: 'BP 2.1'
-  },
 
-  // Biologija
+  // Gamtos mokslai ir Biologija (5–8 kl.)
+  {
+    id: 'bio-56-1',
+    subjects: ['biologija', 'gamtos', 'gamta'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Gyvoji gamta ir ląstelė',
+    topicSuggestion: 'Augalo ląstelės sandara ir mikroskopavimo praktika',
+    goalSuggestion: 'Paruošti mikropreparatą (pvz., svogūno odelės), stebėti ląsteles mikroskopu ir įvardyti 3 pagrindines dalis.',
+    contentDescription: 'Mikroskopo sandara, ląstelės sienelė, citoplazma, branduolys, augalų ir gyvūnų ląstelių panašumai bei skirtumai.',
+    competencies: 'Pažinimo, praktinė tyrinėjimo',
+    bpCode: 'BP 1.1'
+  },
   {
     id: 'bio-78-1',
     subjects: ['biologija'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Žmogaus organizmas ir sveikata',
     topicSuggestion: 'Žmogaus kraujotakos sistema ir širdies veikla',
@@ -430,50 +517,38 @@ const BP_MODULES: BPModule[] = [
     competencies: 'Sveikos gyvensenos, pažinimo',
     bpCode: 'BP 2.2'
   },
-  {
-    id: 'bio-910-1',
-    subjects: ['biologija'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'Genetika ir paveldimumas',
-    topicSuggestion: 'Monohibridinis kryžminimas ir Mendelio dėsniai',
-    goalSuggestion: 'Sudaryti genetinių kryžminimų schemas (Peneto gardelę) ir apskaičiuoti palikuonių genotipų bei fenotipų tikimybes.',
-    contentDescription: 'Aleliai, dominantiniai ir recesyviniai požymiai, genotipas ir fenotipas, G. Mendelio pirmasis ir antrasis dėsniai, paveldimos ligos.',
-    competencies: 'Pažinimo, skaitmeninė',
-    bpCode: 'BP 3.1'
-  },
 
-  // Fizika
+  // Fizika (7–8 kl.)
+  {
+    id: 'phys-7-1',
+    subjects: ['fizika'],
+    cycles: ['7-8'],
+    cycleLabel: '7 kl.',
+    area: 'Šiluminiai reiškiniai',
+    topicSuggestion: 'Temperatūros matavimas, šilumos perdavimo būdai ir kūnų plėtimasis',
+    goalSuggestion: 'Paaiškinti šilumos laidumo, konvekcijos ir spinduliavimo skirtumus bei kūnų tūrio kitimą šylant.',
+    contentDescription: 'Termometrai, Celsijaus skalė, šiluminis laidumas buityje, šilumos izoliacija, kūnų plėtimosi pavyzdžiai technikoje.',
+    competencies: 'Pažinimo, technologinė',
+    bpCode: 'BP 1.1'
+  },
   {
     id: 'phys-78-1',
     subjects: ['fizika'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Mechanika ir jėgos gamtoje',
     topicSuggestion: 'Archimedo jėga ir kūnų plaukiojimo sąlygos',
     goalSuggestion: 'Apskaičiuoti Archimedo jėgą ir eksperimentiškai ištirti kūnų skendimo bei plaukiojimo priklausomybę nuo skysčio tankio.',
     contentDescription: 'Hidrostatinis slėgis, Archimedo dėsnis F = ro * g * V, eksperimentinis bandymas su dinamometru ir menzūra, laivų ir povandeninių laivų veikimo principai.',
     competencies: 'Pažinimo, kūrybiškumo',
-    bpCode: 'BP 1.1'
-  },
-  {
-    id: 'phys-910-1',
-    subjects: ['fizika'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'Elektrodinamika',
-    topicSuggestion: 'Omo dėsnis grandinės daliai ir nuoseklusis bei lygiagretusis jungimas',
-    goalSuggestion: 'Ištirti srovės stiprio, įtampos ir varžos sąryšį bei apskaičiuoti mišrių grandinių parametrus.',
-    contentDescription: 'Omo dėsnis I = U / R, voltamperinė charakteristika, nuoseklaus ir lygiagretaus rezistorių jungimo savybės, saugus elgesys su elektra.',
-    competencies: 'Pažinimo, skaitmeninė',
-    bpCode: 'BP 2.1'
+    bpCode: 'BP 1.2'
   },
 
-  // Chemija
+  // Chemija (8 kl.)
   {
     id: 'chem-8-1',
     subjects: ['chemija'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '8 kl.',
     area: 'Medžiagų sandara ir reakcijos',
     topicSuggestion: 'Periodinis elementų dėsnis ir atomo sandara',
@@ -483,23 +558,35 @@ const BP_MODULES: BPModule[] = [
     bpCode: 'BP 1.1'
   },
   {
-    id: 'chem-910-1',
+    id: 'chem-8-2',
     subjects: ['chemija'],
-    cycles: ['9-10', '11-12', 'all'],
-    cycleLabel: '9–10 kl. (Gimnazija)',
-    area: 'Cheminiai junginiai ir tirpalai',
-    topicSuggestion: 'Rūgštys, bazės ir neutralizacijos reakcija',
-    goalSuggestion: 'Parašyti rūgšties ir bazės neutralizacijos reakcijos lygtį bei ištirti tirpalų pH indikatoriais.',
-    contentDescription: 'Rūgščių ir hidroksidų formulės, disociacija vandenyje, pH skalė, lakmuso ir fenolftaleino indikatoriai, neutralizacijos reakcija praktikoje.',
+    cycles: ['7-8'],
+    cycleLabel: '8 kl.',
+    area: 'Tirpalai ir sauga laboratorijoje',
+    topicSuggestion: 'Vanduo kaip tirpiklis, tirpalų koncentracija ir saugus darbas',
+    goalSuggestion: 'Apskaičiuoti tirpinio masės dalį tirpale ir saugiai paruošti nurodytos koncentracijos tirpalą.',
+    contentDescription: 'Tirpinys ir tirpiklis, masės dalies formulė w = m(tirpinio) / m(tirpalo), saugos taisyklės dirbant su cheminėmis medžiagomis.',
     competencies: 'Pažinimo, sveikatos',
-    bpCode: 'BP 2.2'
+    bpCode: 'BP 2.1'
   },
 
-  // Geografija
+  // Geografija (5–8 kl.)
+  {
+    id: 'geo-56-1',
+    subjects: ['geografija'],
+    cycles: ['5-6'],
+    cycleLabel: '5–6 kl.',
+    area: 'Žemėlapis ir orientavimasis',
+    topicSuggestion: 'Žemėlapio mastelis, sutartiniai ženklai ir atstumų matavimas',
+    goalSuggestion: 'Nustatyti atstumus vietovėje pagal žemėlapio mastelį ir orientuotis pagal pasaulio šalis.',
+    contentDescription: 'Mastelio rūšys (skaitmeninis, linijinis), sutartiniai ženklai, horizonto pusės, kompaso naudojimas, koordinačių pradmenys.',
+    competencies: 'Pažinimo, praktinė',
+    bpCode: 'BP 1.1'
+  },
   {
     id: 'geo-78-1',
     subjects: ['geografija'],
-    cycles: ['7-8', 'all'],
+    cycles: ['7-8'],
     cycleLabel: '7–8 kl.',
     area: 'Pasaulio klimatas ir zonos',
     topicSuggestion: 'Pasaulio klimato juostos ir jų įtaka žmonių ūkinei veiklai',
@@ -509,12 +596,12 @@ const BP_MODULES: BPModule[] = [
     bpCode: 'BP 2.1'
   },
 
-  // Neakademiniams dalykams
+  // Neakademiniams dalykams (1–8 kl. bendra)
   {
     id: 'class-1',
     subjects: ['klasės vadovo', 'klases vadovo'],
     cycles: ['all'],
-    cycleLabel: 'Klasės vadovas',
+    cycleLabel: '1–8 kl.',
     area: 'Klasės mikroklimatas ir santykiai',
     topicSuggestion: 'Klasės bendruomeniškumo stiprinimas ir konfliktų sprendimo strategijos',
     goalSuggestion: 'Aptarti konstruktyvaus bendravimo principus, atpažinti konfliktų priežastis ir sukurti bendras klasės taisykles.',
@@ -526,7 +613,7 @@ const BP_MODULES: BPModule[] = [
     id: 'class-2',
     subjects: ['klasės vadovo', 'klases vadovo'],
     cycles: ['all'],
-    cycleLabel: 'Klasės vadovas',
+    cycleLabel: '1–8 kl.',
     area: 'Saviugda ir profesinis orientavimas',
     topicSuggestion: 'Mano asmeninės stiprybės, laiko planavimas ir ateities karjeros kryptys',
     goalSuggestion: 'Įsivertinti asmeninius gebėjimus, suplanuoti savaitės laiko biudžetą ir ištirti dominančias profesijas.',
@@ -538,7 +625,7 @@ const BP_MODULES: BPModule[] = [
     id: 'eth-1',
     subjects: ['etika'],
     cycles: ['all'],
-    cycleLabel: 'Etika',
+    cycleLabel: '1–8 kl.',
     area: 'Moralinis pasirinkimas ir vertybės',
     topicSuggestion: 'Moralinis apsisprendimas ir atsakomybė kasdienėse dilemose',
     goalSuggestion: 'Nagrinėti kasdienio gyvenimo etines dilemas, argumentuotai ginti savo vertybinę poziciją ir gerbti kito asmens orumą.',
@@ -550,7 +637,7 @@ const BP_MODULES: BPModule[] = [
     id: 'theat-1',
     subjects: ['teatras'],
     cycles: ['all'],
-    cycleLabel: 'Teatras',
+    cycleLabel: '1–8 kl.',
     area: 'Sceninė raiška ir improvizacija',
     topicSuggestion: 'Emocijų raiška, sceninis judesys ir neverbalinė komunikacija',
     goalSuggestion: 'Laisvai reikšti emocijas kūno kalba ir improvizuoti trumpas situacijas bendradarbiaujant porose.',
@@ -562,7 +649,7 @@ const BP_MODULES: BPModule[] = [
     id: 'life-1',
     subjects: ['gyvenimo įgūdžiai', 'gyvenimo igudziai'],
     cycles: ['all'],
-    cycleLabel: 'Gyvenimo įgūdžiai',
+    cycleLabel: '1–8 kl.',
     area: 'Psichoemocinis saugumas ir sveikata',
     topicSuggestion: 'Streso atpažinimas, emocijų reguliavimas ir skaitmeninė higiena',
     goalSuggestion: 'Taikyti praktines streso mažinimo technikas ir sukurti asmeninį saugaus elgesio skaitmeninėje erdvėje planą.',
@@ -574,7 +661,7 @@ const BP_MODULES: BPModule[] = [
     id: 'pe-1',
     subjects: ['fizinis ugdymas', 'fizinis'],
     cycles: ['all'],
-    cycleLabel: 'Fizinis ugdymas',
+    cycleLabel: '1–8 kl.',
     area: 'Sveikata ir komandinis bendradarbiavimas',
     topicSuggestion: 'Aerobinės ištvermės lavinimas ir garbingo žaidimo (Fair Play) principai',
     goalSuggestion: 'Atlikti aerobinius ištvermės pratimus kontroliuojant širdies ritmą ir taikyti komandinio žaidimo taisykles.',
@@ -586,7 +673,7 @@ const BP_MODULES: BPModule[] = [
     id: 'art-1',
     subjects: ['dailė', 'daile', 'muzika'],
     cycles: ['all'],
-    cycleLabel: 'Meninis ugdymas',
+    cycleLabel: '1–8 kl.',
     area: 'Meninė saviraiška ir kūrybiškumas',
     topicSuggestion: 'Spalvinė kompozicija ir emocinis vizualiosios raiškos poveikis',
     goalSuggestion: 'Sukurti autorinę kompoziciją pritaikant spalvų kontrastus ir paaiškinti savo kūrinio idėją.',
@@ -601,32 +688,30 @@ function getBPModules(subjectName: string, gradeStr: string): BPModule[] {
   const sLower = subjectName.toLowerCase();
   const gLower = gradeStr.toLowerCase();
   
+  // Rasti dalyką atitinkančius modulius
   const matched = BP_MODULES.filter(m => 
     m.subjects.some(sub => sLower.includes(sub))
   );
   
   if (matched.length === 0) return [];
   
+  // Tikslus koncentro filtravimas 1–8 klasių progimnazijai:
   if (gLower.includes('1') || gLower.includes('2') || gLower.includes('3') || gLower.includes('4')) {
-    const cycleMatch = matched.filter(m => m.cycles.includes('1-4') || m.cycles.includes('1-2') || m.cycles.includes('3-4') || m.cycles.includes('all'));
+    const cycleMatch = matched.filter(m => m.cycles.includes('1-4'));
     if (cycleMatch.length > 0) return cycleMatch;
   }
   if (gLower.includes('5') || gLower.includes('6')) {
-    const cycleMatch = matched.filter(m => m.cycles.includes('5-6') || m.cycles.includes('all'));
+    const cycleMatch = matched.filter(m => m.cycles.includes('5-6'));
     if (cycleMatch.length > 0) return cycleMatch;
   }
   if (gLower.includes('7') || gLower.includes('8')) {
-    const cycleMatch = matched.filter(m => m.cycles.includes('7-8') || m.cycles.includes('all'));
+    const cycleMatch = matched.filter(m => m.cycles.includes('7-8'));
     if (cycleMatch.length > 0) return cycleMatch;
   }
-  if (gLower.includes('9') || gLower.includes('10') || gLower.includes('i') || gLower.includes('ii')) {
-    const cycleMatch = matched.filter(m => m.cycles.includes('9-10') || m.cycles.includes('all'));
-    if (cycleMatch.length > 0) return cycleMatch;
-  }
-  if (gLower.includes('11') || gLower.includes('12') || gLower.includes('iii') || gLower.includes('iv')) {
-    const cycleMatch = matched.filter(m => m.cycles.includes('11-12') || m.cycles.includes('all'));
-    if (cycleMatch.length > 0) return cycleMatch;
-  }
+
+  // Neakademiniams ar bendriems dalykams
+  const generalMatch = matched.filter(m => m.cycles.includes('all'));
+  if (generalMatch.length > 0) return generalMatch;
 
   return matched;
 }
@@ -698,6 +783,17 @@ const EXAMPLE_PLAN_DATA: LessonPlan = {
 const DRAFT_STORAGE_KEY = 'pamokos_planas_form_draft_v1';
 
 const App = () => {
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('app-theme') as 'dark' | 'light') || 'dark');
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+    localStorage.setItem('app-theme', theme);
+  }, [theme]);
+
   const [grade, setGrade] = useState('');
   const [subject, setSubject] = useState('');
   const [topic, setTopic] = useState('');
@@ -725,6 +821,20 @@ const App = () => {
   const [outsideLocation, setOutsideLocation] = useState('');
   const [outsideGoal, setOutsideGoal] = useState('');
 
+  // Assessment work card states
+  const [isAssessmentWork, setIsAssessmentWork] = useState(false);
+  const [assessmentType, setAssessmentType] = useState('Kontrolinis darbas');
+  const [assessmentPurpose, setAssessmentPurpose] = useState('');
+  const [assessmentTopics, setAssessmentTopics] = useState('');
+  const [assessmentDate, setAssessmentDate] = useState('');
+  const [assessmentCorrectionDeadline, setAssessmentCorrectionDeadline] = useState('Ištaisoma per 5 darbo dienas');
+  const [assessmentRetakePolicy, setAssessmentRetakePolicy] = useState('Leidžiama perlaikyti / taisytis 1 kartą');
+  const [assessmentFeedbackDays, setAssessmentFeedbackDays] = useState('5 d.d.');
+  const [enableAssessmentReminderEmail, setEnableAssessmentReminderEmail] = useState(false);
+  const [assessmentReminderEmail, setAssessmentReminderEmail] = useState('mokytojas@mokykla.lt');
+  const [assessmentReminderTime, setAssessmentReminderTime] = useState('Likus 1 d. iki termino');
+  const [reminderToast, setReminderToast] = useState<string | null>(null);
+
   const [lessonPlan, setLessonPlan] = useState<LessonPlan | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -741,7 +851,12 @@ const App = () => {
     evaluationCriteria, selectedEvaluations, selectedResources,
     homeworkType, homeworkDuration, selectedBpModuleId,
     bpContentDescription, isIntegratedInput, integrationDetails,
-    isOutsideInput, outsideLocation, outsideGoal
+    isOutsideInput, outsideLocation, outsideGoal,
+    isAssessmentWork, assessmentType, assessmentPurpose,
+    assessmentTopics, assessmentDate, assessmentCorrectionDeadline,
+    assessmentRetakePolicy, assessmentFeedbackDays,
+    enableAssessmentReminderEmail, assessmentReminderEmail,
+    assessmentReminderTime
   });
 
   useEffect(() => {
@@ -750,14 +865,24 @@ const App = () => {
       evaluationCriteria, selectedEvaluations, selectedResources,
       homeworkType, homeworkDuration, selectedBpModuleId,
       bpContentDescription, isIntegratedInput, integrationDetails,
-      isOutsideInput, outsideLocation, outsideGoal
+      isOutsideInput, outsideLocation, outsideGoal,
+      isAssessmentWork, assessmentType, assessmentPurpose,
+      assessmentTopics, assessmentDate, assessmentCorrectionDeadline,
+      assessmentRetakePolicy, assessmentFeedbackDays,
+      enableAssessmentReminderEmail, assessmentReminderEmail,
+      assessmentReminderTime
     };
   }, [
     grade, subject, topic, lessonType, goal, activities,
     evaluationCriteria, selectedEvaluations, selectedResources,
     homeworkType, homeworkDuration, selectedBpModuleId,
     bpContentDescription, isIntegratedInput, integrationDetails,
-    isOutsideInput, outsideLocation, outsideGoal
+    isOutsideInput, outsideLocation, outsideGoal,
+    isAssessmentWork, assessmentType, assessmentPurpose,
+    assessmentTopics, assessmentDate, assessmentCorrectionDeadline,
+    assessmentRetakePolicy, assessmentFeedbackDays,
+    enableAssessmentReminderEmail, assessmentReminderEmail,
+    assessmentReminderTime
   ]);
 
   // Restore saved draft from localStorage on initial mount
@@ -786,6 +911,18 @@ const App = () => {
           if (draft.outsideLocation !== undefined) setOutsideLocation(draft.outsideLocation);
           if (draft.outsideGoal !== undefined) setOutsideGoal(draft.outsideGoal);
 
+          if (draft.isAssessmentWork !== undefined) setIsAssessmentWork(draft.isAssessmentWork);
+          if (draft.assessmentType !== undefined) setAssessmentType(draft.assessmentType);
+          if (draft.assessmentPurpose !== undefined) setAssessmentPurpose(draft.assessmentPurpose);
+          if (draft.assessmentTopics !== undefined) setAssessmentTopics(draft.assessmentTopics);
+          if (draft.assessmentDate !== undefined) setAssessmentDate(draft.assessmentDate);
+          if (draft.assessmentCorrectionDeadline !== undefined) setAssessmentCorrectionDeadline(draft.assessmentCorrectionDeadline);
+          if (draft.assessmentRetakePolicy !== undefined) setAssessmentRetakePolicy(draft.assessmentRetakePolicy);
+          if (draft.assessmentFeedbackDays !== undefined) setAssessmentFeedbackDays(draft.assessmentFeedbackDays);
+          if (draft.enableAssessmentReminderEmail !== undefined) setEnableAssessmentReminderEmail(draft.enableAssessmentReminderEmail);
+          if (draft.assessmentReminderEmail !== undefined) setAssessmentReminderEmail(draft.assessmentReminderEmail);
+          if (draft.assessmentReminderTime !== undefined) setAssessmentReminderTime(draft.assessmentReminderTime);
+
           if (draft.lastSavedAt) {
             const savedDate = new Date(draft.lastSavedAt);
             setLastSavedTime(savedDate.toLocaleTimeString('lt-LT'));
@@ -801,7 +938,7 @@ const App = () => {
   const saveDraftToLocalStorage = () => {
     const cur = formValuesRef.current;
     const hasAnyInput = Boolean(
-      cur.grade || cur.subject || cur.topic || cur.goal || cur.activities || cur.evaluationCriteria || cur.bpContentDescription
+      cur.grade || cur.subject || cur.topic || cur.goal || cur.activities || cur.evaluationCriteria || cur.bpContentDescription || cur.isAssessmentWork || cur.assessmentTopics || cur.assessmentPurpose
     );
     if (!hasAnyInput) return;
 
@@ -848,6 +985,18 @@ const App = () => {
     setIsOutsideInput(false);
     setOutsideLocation('');
     setOutsideGoal('');
+    setIsAssessmentWork(false);
+    setAssessmentType('Kontrolinis darbas');
+    setAssessmentPurpose('');
+    setAssessmentTopics('');
+    setAssessmentDate('');
+    setAssessmentCorrectionDeadline('Ištaisoma per 5 darbo dienas');
+    setAssessmentRetakePolicy('Leidžiama perlaikyti / taisytis 1 kartą');
+    setAssessmentFeedbackDays('5 d.d.');
+    setEnableAssessmentReminderEmail(false);
+    setAssessmentReminderEmail('mokytojas@mokykla.lt');
+    setAssessmentReminderTime('Likus 1 d. iki termino');
+    setReminderToast(null);
 
     try {
       localStorage.removeItem(DRAFT_STORAGE_KEY);
@@ -876,6 +1025,7 @@ const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const [deletingPlanId, setDeletingPlanId] = useState<string | null>(null);
+  const [selectedVariantTab, setSelectedVariantTab] = useState<'v1' | 'v2' | 'v3' | 'all'>('v1');
 
   // Chat bot states
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -1149,20 +1299,22 @@ Struktūra:
       - Veiklos / papildomos idėjos: ${activities || 'Pasiūlyk modernias, įtraukias veiklas'}
       - Naudojamos priemonės: ${selectedResources.length > 0 ? selectedResources.join(', ') : 'Standartinės priemonės, skaitmeniniai įrankiai'}
       - Namų darbų pobūdis: ${homeworkType}
-      - Pageidaujama ND trukmė: ${homeworkDuration === '0' ? 'Be namų darbų (0 min.)' : homeworkDuration === '15' ? '10–15 min. (rekomenduojama)' : homeworkDuration === '20' ? '15–20 min.' : '20–30 min.'} (krūvio kontrolė pagal N0015 rekomendaciją)
+      - Pageidaujama ND trukmė: ${homeworkDuration === '0' ? 'Be namų darbų (0 min.)' : homeworkDuration === '15' ? '10–15 min. (rekomenduojama)' : homeworkDuration === '20' ? '15–20 min.' : '20–25 min.'} (krūvio kontrolė pagal N0015 rekomendaciją)
       - Vertinimo metodai: ${selectedEvaluations.length > 0 ? selectedEvaluations.join(', ') : 'NENURODYTI'}
       - Vertinimo kriterijai: ${evaluationCriteria.trim() || 'NENURODYTI'}
       - Integruota pamoka: ${isIntegratedInput ? integrationDetails : 'Ne'}
       - Pamoka už mokyklos ribų: ${isOutsideInput ? `Taip. Vieta: ${outsideLocation}, Tikslas: ${outsideGoal}` : 'Ne'}
+      - Kontrolinis / savarankiškas darbas: ${isAssessmentWork ? `Taip (${assessmentType}). Tikslas: ${assessmentPurpose || 'Žinių ir gebėjimų patikrinimas'}. Temos: ${assessmentTopics || topic}. Numatoma data: ${assessmentDate || 'Artimiausia pamoka'}. Vertinimo atgalinio ryšio terminas: ${assessmentFeedbackDays} (${assessmentCorrectionDeadline}). Perlaikymo sąlygos: ${assessmentRetakePolicy}.${enableAssessmentReminderEmail ? ` Automatinis priminimas mokytojui el. paštu (${assessmentReminderEmail}, ${assessmentReminderTime}) suaktyvintas.` : ''}` : 'Ne'}
       
       GRIEŽTI REIKALAVIMAI:
       1. Oficialios BP sąsajos: remkis https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos, nurodyk konkrečias kompetencijas (pažinimo, skaitmeninė, komunikavimo, kūrybiškumo, pilietinė, kultūrinė, socialinė-emocinė ir sveikos gyvensenos) ir BP pasiekimų sritis.
       2. EL. DIENYNO ĮRAŠAI (eDiaryEntry):
          - topicClassworkExpectations: Standartizuota formuluotė: [Dalykas]: [Temos pavadinimas]. Mokymosi uždavinys: [konkretus mokymosi uždavinys / ko išmoks]. Veikla: [konkreti veikla / metodas / atliekama užduotis].
+           ${isAssessmentWork ? `Kadangi vykdomas ${assessmentType}, temoje arba veikloje aiškiai nurodyk: [${assessmentType.toUpperCase()}] ${assessmentPurpose ? `Tikslas: ${assessmentPurpose}. ` : ''}${assessmentTopics ? `Temos: ${assessmentTopics}.` : ''}` : ''}
            Griežtai NENAUDOTI sausų šablonų („Žinoti: sąvokas... Gebėti: atlikti... Taikyti: spręsti...“).
-         - homework: ${homeworkDuration === '0' || homeworkType.includes('Be namų darbų') ? '„Namų darbai neskiriami – mokymosi krūvio subalansavimas pagal N0015 rekomendaciją (visi tikslai pasiekti pamokoje).“' : `Tikslas – [aiškus tikslas]. [Konkreti užduotis su kontekstu, be plikų numerių]. (Rekomenduojama trukmė: ${homeworkDuration === '15' ? '10–15 min.' : homeworkDuration === '20' ? '15–20 min.' : '20–30 min.'}).`}
+         - homework: ${homeworkDuration === '0' || homeworkType.includes('Be namų darbų') ? '„Namų darbai neskiriami – mokymosi krūvio subalansavimas pagal N0015 rekomendaciją (visi tikslai pasiekti pamokoje).“' : `Tikslas – [aiškus tikslas]. [Konkreti užduotis su kontekstu, be plikų numerių]. (Rekomenduojama trukmė: ${homeworkDuration === '15' ? '10–15 min.' : homeworkDuration === '20' ? '15–20 min.' : '20–25 min.'}).`}
          - notes: Privalomai nurodyk patarimus, kuo ši mokymo medžiaga naudinga realiame gyvenime / ateičiai.
-           ${hasEvaluation ? 'Kadangi mokytojas nurodė vertinimą, papildomai įtrauk: Vertinimas: [būdas ir kriterijai]. Klasės mokymasis: [pastebėjimai].' : 'KADANGI MOKYTOJAS VERTINIMO NENURODĖ, Į PASTABAS JOKIOS INFORMACIJOS APIE VERTINIMĄ NEĮTRAUK (tik gyvenimišką naudą ir motyvacinį pastebėjimą)!'}
+           ${isAssessmentWork ? `Kadangi vyksta ${assessmentType}, pastabose privalomai įrašyk oficialią informaciją: Vertinimas: ${assessmentType}. Vertinimo atgalinis ryšys: darbai ištaisomi ir įvertinimai mokiniams pateikiami per ${assessmentFeedbackDays} (${assessmentCorrectionDeadline}). Perlaikymo / taisymosi galimybės: ${assessmentRetakePolicy}.${enableAssessmentReminderEmail ? ` (Mokytojo el. pašto priminimas: suaktyvintas).` : ''}` : hasEvaluation ? 'Kadangi mokytojas nurodė vertinimą, papildomai įtrauk: Vertinimas: [būdas ir kriterijai]. Klasės mokymasis: [pastebėjimai].' : 'KADANGI MOKYTOJAS VERTINIMO NENURODĖ, Į PASTABAS JOKIOS INFORMACIJOS APIE VERTINIMĄ NEĮTRAUK (tik gyvenimišką naudą ir motyvacinį pastebėjimą)!'}
       3. Diferencijavimas gabiesiems, bendro lygio ir sunkumų patiriantiems mokiniams.
       4. Taisyklinga lietuvių kalbos gramatika ir skyryba (J0025).
     `;
@@ -1192,6 +1344,17 @@ Struktūra:
           isOutsideInput,
           outsideLocation,
           outsideGoal,
+          isAssessmentWork,
+          assessmentType,
+          assessmentPurpose,
+          assessmentTopics,
+          assessmentDate,
+          assessmentCorrectionDeadline,
+          assessmentRetakePolicy,
+          assessmentFeedbackDays,
+          enableAssessmentReminderEmail,
+          assessmentReminderEmail,
+          assessmentReminderTime,
           prompt,
           systemInstruction,
         }),
@@ -1217,13 +1380,15 @@ Struktūra:
         individualWork: parsedPlan.individualWork || "",
         digitalResources: parsedPlan.digitalResources || "",
         eDiaryEntry: {
-          topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || '',
-          homework: parsedPlan.eDiaryEntry?.homework || '',
+          topicClassworkExpectations: parsedPlan.eDiaryEntry?.topicClassworkExpectations || parsedPlan.eDiaryEntry?.variants?.[0]?.topicClassworkExpectations || '',
+          homework: parsedPlan.eDiaryEntry?.homework || parsedPlan.eDiaryEntry?.variants?.[0]?.homework || '',
           individualHomework: parsedPlan.eDiaryEntry?.individualHomework || '',
-          notes: parsedPlan.eDiaryEntry?.notes || '',
+          notes: parsedPlan.eDiaryEntry?.notes || parsedPlan.eDiaryEntry?.variants?.[0]?.notes || '',
           isIntegrated: isIntegratedInput,
           isOutside: isOutsideInput,
-          eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || ''
+          eDiaryLessonType: parsedPlan.eDiaryEntry?.eDiaryLessonType || parsedPlan.lessonType || lessonType || '',
+          variants: parsedPlan.eDiaryEntry?.variants || [],
+          differentiationAdvice: parsedPlan.eDiaryEntry?.differentiationAdvice || null
         }
       };
       
@@ -1250,7 +1415,16 @@ Struktūra:
 
   const handleCopyAllEDiary = () => {
     if (!lessonPlan || !lessonPlan.eDiaryEntry) return;
-    const allText = `📌 TEMA IR KLASĖS DARBAS (el. dienynui):
+    const vars = lessonPlan.eDiaryEntry.variants || [];
+    if (vars.length > 0) {
+      let text = vars.map(v => `### ${v.title}\n**Tema, klasės darbai, numatomi pasiekimai:** ${v.topicClassworkExpectations}\n**Namų darbai:** ${v.homework}\n**Pastabos apie pamoką:** ${v.notes}`).join('\n\n');
+      if (lessonPlan.eDiaryEntry.differentiationAdvice) {
+        const da = lessonPlan.eDiaryEntry.differentiationAdvice;
+        text += `\n\n---\n💡 **Idėjos veiklos diferencijavimui ir pamokos kokybei:**\n* **Pagalba / Pastoliavimas:** ${da.scaffolding}\n* **Iššūkis gabesniems:** ${da.challenge}\n* **Kokybės akcentas:** ${da.qualityFocus}`;
+      }
+      handleCopy(text, 'all_diary');
+    } else {
+      const allText = `📌 TEMA IR KLASĖS DARBAS (el. dienynui):
 ${lessonPlan.eDiaryEntry.topicClassworkExpectations}
 
 🎯 NAMŲ DARBAI:
@@ -1258,7 +1432,8 @@ ${lessonPlan.eDiaryEntry.homework}
 
 💡 PASTABA / VERTINIMAS:
 ${lessonPlan.eDiaryEntry.notes}`;
-    handleCopy(allText, 'all_diary');
+      handleCopy(allText, 'all_diary');
+    }
   };
 
   const executeSavePlan = () => {
@@ -1527,434 +1702,780 @@ ${lessonPlan.eDiaryEntry.notes}`;
 
   return (
     <div className="container">
-      <header className="header">
-        <h1>Pamokos plano rengimas ir el. dienynas ✏️</h1>
-        <p>
-          <a href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" target="_blank" rel="noopener noreferrer" className="header-link">
-            Vadovaujantis Lietuvos Bendrosiomis programomis (emokykla.lt BP)
+      {/* Top Bar Contract (1 row, 3 zones) */}
+      <header className="dashboard-top-nav">
+        <div className="nav-brand-zone">
+          <a href="/" className="nav-brand-logo">
+            ✏️ El. dienyno temų DI <span className="nav-brand-badge">1–8 Klasės</span>
           </a>
-        </p>
-        
-        <div style={{marginTop: '0.8rem', display: 'flex', justifyContent: 'center'}}>
+        </div>
+
+        <nav className="nav-links-zone">
+          <a href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" target="_blank" rel="noopener noreferrer" className="nav-link-item">📚 Programos (BP)</a>
+          <a href="https://emokykla.lt/skaitmenines-mokymo-priemones" target="_blank" rel="noopener noreferrer" className="nav-link-item">💻 Priemonės</a>
+          <a href="https://emokykla.lt/bendrosios-programos/kompetencijos" target="_blank" rel="noopener noreferrer" className="nav-link-item">🌟 Kompetencijos</a>
+        </nav>
+
+        <div className="nav-actions-zone">
+          <button 
+            type="button" 
+            onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')} 
+            className="theme-toggle-btn"
+            title="Perjungti šviesią / tamsią temą"
+          >
+            {theme === 'dark' ? '☀️ Šviesi tema' : '🌙 Tamsi tema'}
+          </button>
           <button 
             type="button" 
             onClick={() => setShowBestPracticeModal(true)} 
             className="best-practice-banner-btn"
+            style={{margin: 0}}
           >
-            📖 Dienyno pildymo gerosios praktikos gidas (emokykla BP)
+            📖 Gerosios praktikos gidas
           </button>
-        </div>
-        
-        <div className="header-sections">
-            <div className="resource-links">
-              <h3>📚 Šaltiniai</h3>
-              <a href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" target="_blank" rel="noopener noreferrer" className="mini-link">Programos (BP)</a>
-              <a href="https://emokykla.lt/skaitmenines-mokymo-priemones" target="_blank" rel="noopener noreferrer" className="mini-link">Priemonės</a>
-              <a href="https://emokykla.lt/bendrosios-programos/kompetencijos" target="_blank" rel="noopener noreferrer" className="mini-link">Kompetencijos</a>
-            </div>
-
-            <div className="tool-links">
-              <h3>🛠️ Įrankiai</h3>
-              <a href="https://www.manodienynas.lt/1/lt/public/public/login" target="_blank" rel="noopener noreferrer" className="tool-button manodienynas">Mano Dienynas 📔</a>
-              <a href="https://classroom.google.com" target="_blank" rel="noopener noreferrer" className="tool-button classroom">Classroom</a>
-              <a href="https://miro.com" target="_blank" rel="noopener noreferrer" className="tool-button miro">Miro</a>
-              <a href="https://canva.com" target="_blank" rel="noopener noreferrer" className="tool-button canva">Canva</a>
-            </div>
+          <a href="https://www.manodienynas.lt/1/lt/public/public/login" target="_blank" rel="noopener noreferrer" className="tool-button manodienynas">
+            Mano Dienynas 📔
+          </a>
         </div>
       </header>
+
+      {/* Dashboard Welcome & KPI Hero Card */}
+      <div className="dashboard-hero-banner">
+        <div className="hero-main-info">
+          <h2>Tikslingas el. dienyno pildymas🚀</h2>
+          <p className="hero-subtext">
+            Greitai ir kokybiškai suformuluokite oficialius, gramatiškai taisyklingus dienyno įrašus <strong>1–8 klasėms</strong> pagal atnaujintas emokykla.lt BP programos gaires.
+          </p>
+        </div>
+        <div className="hero-kpi-grid">
+          <div className="kpi-stat-card">
+            <div className="kpi-stat-label">Tikslinė auditorija</div>
+            <div className="kpi-stat-value">1–8 Kl. Progimnazija</div>
+          </div>
+          <div className="kpi-stat-card">
+            <div className="kpi-stat-label">Auto-išsaugojimas</div>
+            <div className="kpi-stat-value">Kas 30 s 💾</div>
+          </div>
+          <div className="kpi-stat-card">
+            <div className="kpi-stat-label">Generavimo formatas</div>
+            <div className="kpi-stat-value">3 Oficialūs variantai</div>
+          </div>
+        </div>
+      </div>
       
       <main className="main-content">
-        <div className="form-container">
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem'}}>
-            <h2 style={{margin: 0}}>Pamokos informacija</h2>
-            <button onClick={loadExample} className="mini-link" style={{border: 'none', cursor: 'pointer', background: 'rgba(16, 185, 129, 0.1)', color: 'var(--secondary-color)'}}>💡 Užkrauti pavyzdį</button>
-          </div>
-
-          {/* Auto-Save Status Bar */}
-          <div className="autosave-bar">
-            <div className="autosave-info">
-              <span className={`autosave-pulse ${showAutoSaveFlash ? 'flash' : ''}`}>💾</span>
-              {lastSavedTime ? (
-                <span>Juodraštis automatiškai išsaugotas: <strong>{lastSavedTime}</strong> (kas 30 s)</span>
-              ) : (
-                <span>Automatinis juodraščio išsaugojimas aktyvus (kas 30 s)</span>
-              )}
-            </div>
-            <div className="autosave-actions">
-              <button 
-                type="button" 
-                onClick={saveDraftToLocalStorage}
-                className="autosave-btn save-now"
-                title="Išsaugoti įvestį į kompiuterio atmintį rankiniu būdu"
-              >
-                Išsaugoti dabar
-              </button>
-              <button 
-                type="button" 
-                onClick={handleClearDraft}
-                className="autosave-btn clear"
-                title="Išvalyti visus įvesties laukus ir ištrinti juodraštį"
-              >
-                Valyti 🗑️
-              </button>
-            </div>
-          </div>
-
-          {isDraftRestored && (
-            <div className="draft-restored-banner">
-              <span>ℹ️ Atkurtas anksčiau automatiškai išsaugotas įvesties juodraštis.</span>
-              <button onClick={() => setIsDraftRestored(false)} title="Uždaryti pranešimą">✖</button>
-            </div>
-          )}
-
+        <div className="form-container" style={{background: 'transparent', padding: 0, border: 'none'}}>
           <form onSubmit={handleGenerate}>
-            <div className="form-group">
-              <label>Dalykas *</label>
-              <div className="subject-pills-section">
-                <span className="subject-pill-label">Akademiniai dalykai:</span>
-                <div className="subject-pills">
-                  {ACADEMIC_SUBJECTS.map(s => (
-                    <button 
-                      key={s} 
-                      type="button" 
-                      className={`subject-pill ${subject === s ? 'active' : ''}`}
-                      onClick={() => {
-                        setSubject(s);
-                        setSelectedBpModuleId('');
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-                
-                <span className="subject-pill-label" style={{marginTop: '6px', color: '#c084fc'}}>Ugdomieji / Neakademiniai dalykai:</span>
-                <div className="subject-pills">
-                  {NON_ACADEMIC_SUBJECTS.map(s => (
-                    <button 
-                      key={s} 
-                      type="button" 
-                      className={`subject-pill non-academic ${subject === s ? 'active' : ''}`}
-                      onClick={() => {
-                        setSubject(s);
-                        setSelectedBpModuleId('');
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <input 
-                type="text" 
-                value={subject} 
-                onChange={e => {
-                  setSubject(e.target.value);
-                  setSelectedBpModuleId('');
-                }} 
-                placeholder="Pvz. Lietuvių kalba ir literatūra arba pasirinkite viršuje" 
-                required 
-              />
-
-              {NON_ACADEMIC_SUBJECTS.some(s => subject.toLowerCase().includes(s.toLowerCase())) && (
-                <div className="non-academic-alert">
-                  <strong>✨ Tikslinės gairės neakademiniams dalykams:</strong> Dienyno įrašuose bus pabrėžta ugdomoji vertė: socialinis-emocinis raštingumas, bendruomeniškumas, vertybinis apsisprendimas ir refleksija.
-                </div>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label>Klasė / Grupė *</label>
-              <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px'}}>
-                {QUICK_GRADES.map(g => (
-                  <button
-                    key={g}
-                    type="button"
-                    className={`subject-pill ${grade === g ? 'active' : ''}`}
-                    onClick={() => {
-                      setGrade(g);
-                      setSelectedBpModuleId('');
-                    }}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-              <input type="text" value={grade} onChange={e => setGrade(e.target.value)} placeholder="pvz., 7a, 8b arba pasirinkite viršuje" required />
-            </div>
-
-            {/* Tiesioginis Bendrosios programos (emokykla.lt BP) parinkiklis ir turinio generatorius */}
-            {availableBpModules.length > 0 && (
-              <div className="bp-selector-box">
-                <div className="bp-selector-header">
-                  <div className="bp-selector-title">
-                    🎯 Oficiali Bendroji programa: {subject} {grade ? `(${grade})` : ''}
+            
+            {/* STEP CARD 01 */}
+            <div className="dashboard-task-card">
+              <div className="task-card-header">
+                <div className="task-card-title-group">
+                  <div className="task-step-number">01</div>
+                  <div>
+                    <h3 className="task-card-title">Pamokos informacija ir BP pasiekimai</h3>
+                    <div className="task-card-subtitle">Dalykas, klasė, tema ir oficialios emokykla.lt BP modulio nuorodos</div>
                   </div>
-                  <a 
-                    href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className="bp-link-mini"
-                  >
-                    emokykla.lt BP programos ↗
-                  </a>
                 </div>
+                <button type="button" onClick={loadExample} className="mini-link example-btn" style={{border: 'none', cursor: 'pointer'}}>
+                  💡 Užkrauti pavyzdį
+                </button>
+              </div>
 
-                <div style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginBottom: '4px'}}>
-                  Pasirinkite BP pasiekimų sritį – tema, tikslas ir turinio aprašas bus užpildyti automatiškai:
-                </div>
+              <div className="task-card-body">
+                <div className="form-group">
+                  <label>Dalykas *</label>
+                  <div className="subject-pills-section">
+                    <span className="subject-pill-label">Akademiniai dalykai:</span>
+                    <div className="subject-pills">
+                      {ACADEMIC_SUBJECTS.map(s => (
+                        <button 
+                          key={s} 
+                          type="button" 
+                          className={`subject-pill ${subject === s ? 'active' : ''}`}
+                          onClick={() => {
+                            setSubject(s);
+                            setSelectedBpModuleId('');
+                          }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <span className="subject-pill-label non-academic-label">Ugdomieji / Neakademiniai dalykai:</span>
+                    <div className="subject-pills">
+                      {NON_ACADEMIC_SUBJECTS.map(s => (
+                        <button 
+                          key={s} 
+                          type="button" 
+                          className={`subject-pill non-academic ${subject === s ? 'active' : ''}`}
+                          onClick={() => {
+                            setSubject(s);
+                            setSelectedBpModuleId('');
+                          }}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                <div className="bp-pills-grid">
-                  {availableBpModules.map(mod => (
-                    <button 
-                      key={mod.id} 
-                      type="button" 
-                      className={`bp-pill-btn ${selectedBpModuleId === mod.id ? 'active' : ''}`}
-                      onClick={() => applyBpModule(mod)}
-                      title={mod.contentDescription}
-                    >
-                      <span style={{color: '#60a5fa', fontWeight: 'bold'}}>[{mod.cycleLabel}]</span> {mod.area}: <strong>{mod.topicSuggestion}</strong>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Mokymosi turinio aprašas */}
-                <div style={{marginTop: '8px'}}>
-                  <label style={{fontSize: '0.8rem', color: '#93c5fd', display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                    <span>Mokymosi turinio aprašas pagal pasirinktą BP:</span>
-                    {selectedBpModuleId && (
-                      <span style={{color: 'var(--secondary-color)', fontWeight: 'bold', fontSize: '0.75rem'}}>
-                        ✓ BP modulis pritaikytas
-                      </span>
-                    )}
-                  </label>
-                  <textarea 
-                    value={bpContentDescription} 
-                    onChange={e => setBpContentDescription(e.target.value)}
-                    placeholder="Pasirinkite BP teminį bloką viršuje – turinio aprašas bus sugeneruotas automatiškai pagal emokykla BP..."
-                    rows={2}
-                    style={{fontSize: '0.82rem', background: '#0b1329'}}
+                  <input 
+                    type="text" 
+                    value={subject} 
+                    onChange={e => {
+                      setSubject(e.target.value);
+                      setSelectedBpModuleId('');
+                    }} 
+                    placeholder="Pvz. Lietuvių kalba ir literatūra arba pasirinkite viršuje" 
+                    required 
                   />
-                  {selectedBpModuleId && (
-                    <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px'}}>
-                      <span style={{fontSize: '0.72rem', color: 'var(--text-color)'}}>
-                        BP kodas: {availableBpModules.find(m => m.id === selectedBpModuleId)?.bpCode} | Kompetencijos: {availableBpModules.find(m => m.id === selectedBpModuleId)?.competencies}
+
+                  {NON_ACADEMIC_SUBJECTS.some(s => subject.toLowerCase().includes(s.toLowerCase())) && (
+                    <div className="non-academic-alert">
+                      <strong>✨ Tikslinės gairės neakademiniams dalykams:</strong> Dienyno įrašuose bus pabrėžta ugdomoji vertė: socialinis-emocinis raštingumas, bendruomeniškumas, vertybinis apsisprendimas ir refleksija.
+                    </div>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label>Klasė / Grupė *</label>
+                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px'}}>
+                    {QUICK_GRADES.map(g => (
+                      <button
+                        key={g}
+                        type="button"
+                        className={`subject-pill ${grade === g ? 'active' : ''}`}
+                        onClick={() => {
+                          setGrade(g);
+                          setSelectedBpModuleId('');
+                        }}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="text" value={grade} onChange={e => setGrade(e.target.value)} placeholder="pvz., 7a, 8b arba pasirinkite viršuje" required />
+                </div>
+
+                {/* Bendrosios programos (emokykla.lt BP) parinkiklis */}
+                {availableBpModules.length > 0 && (
+                  <div className="bp-selector-box">
+                    <div className="bp-selector-header">
+                      <div className="bp-selector-title">
+                        🎯 Oficiali Bendroji programa: {subject} {grade ? `(${grade})` : ''}
+                      </div>
+                      <a 
+                        href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="bp-link-mini"
+                      >
+                        emokykla.lt BP programos ↗
+                      </a>
+                    </div>
+
+                    <div style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginBottom: '4px'}}>
+                      Pasirinkite BP pasiekimų sritį – tema, tikslas ir turinio aprašas bus užpildyti automatiškai:
+                    </div>
+
+                    <div className="bp-pills-grid">
+                      {availableBpModules.map(mod => (
+                        <button 
+                          key={mod.id} 
+                          type="button" 
+                          className={`bp-pill-btn ${selectedBpModuleId === mod.id ? 'active' : ''}`}
+                          onClick={() => applyBpModule(mod)}
+                          title={mod.contentDescription}
+                        >
+                          <span style={{color: 'var(--primary-color)', fontWeight: 'bold'}}>[{mod.cycleLabel}]</span> {mod.area}: <strong>{mod.topicSuggestion}</strong>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div style={{marginTop: '8px'}}>
+                      <label style={{fontSize: '0.8rem', color: 'var(--heading-color)', display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
+                        <span>Mokymosi turinio aprašas pagal pasirinktą BP:</span>
+                        {selectedBpModuleId && (
+                          <span style={{color: 'var(--secondary-color)', fontWeight: 'bold', fontSize: '0.75rem'}}>
+                            ✓ BP modulis pritaikytas
+                          </span>
+                        )}
+                      </label>
+                      <textarea 
+                        value={bpContentDescription} 
+                        onChange={e => setBpContentDescription(e.target.value)}
+                        placeholder="Pasirinkite BP teminį bloką viršuje – turinio aprašas bus sugeneruotas automatiškai..."
+                        rows={2}
+                        style={{fontSize: '0.82rem', background: '#0b1329'}}
+                      />
+                      {selectedBpModuleId && (
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px'}}>
+                          <span style={{fontSize: '0.72rem', color: 'var(--text-color)'}}>
+                            BP kodas: {availableBpModules.find(m => m.id === selectedBpModuleId)?.bpCode} | Kompetencijos: {availableBpModules.find(m => m.id === selectedBpModuleId)?.competencies}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="form-group" style={{marginTop: '1rem'}}>
+                  <label>Tema pagal ilgalaikį planą (B.P.) *</label>
+                  <input type="text" value={topic} onChange={e => setTopic(e.target.value)} placeholder="pvz., Reklamos kalba ir įtaigos priemonės" required />
+                </div>
+              </div>
+            </div>
+
+            {/* STEP CARD 02 */}
+            <div className="dashboard-task-card">
+              <div className="task-card-header">
+                <div className="task-card-title-group">
+                  <div className="task-step-number">02</div>
+                  <div>
+                    <h3 className="task-card-title">Veiklos, namų darbai ir krūvio kontrolė</h3>
+                    <div className="task-card-subtitle">Pamokos tipas, tikslas, veiklos bei N0015 namų darbų trukmės balansas</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="task-card-body">
+                <div className="form-group">
+                  <label>Pamokos tipas</label>
+                  <select value={lessonType} onChange={e => setLessonType(e.target.value as LessonCategory)}>
+                    <option value="">-- Pasirinkite --</option>
+                    <option value="Įvadinė">Įvadinė</option>
+                    <option value="Įtvirtinimo">Įtvirtinimo</option>
+                    <option value="Apibendrinamoji">Apibendrinamoji</option>
+                    <option value="Vertinamoji">Vertinamoji</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Tikslas (Mokiniai gebės...)</label>
+                  <textarea value={goal} onChange={e => setGoal(e.target.value)} placeholder="pvz., atpažinti kalbinės įtaigos priemones ir taikyti jas kūrybiniame darbe..." rows={3} />
+                </div>
+
+                <div className="form-group">
+                  <label>Papildomos idėjos ar veiklos</label>
+                  <textarea value={activities} onChange={e => setActivities(e.target.value)} placeholder="pvz., darbas porose, simuliaciniai žaidimai..." rows={2} />
+                </div>
+
+                {/* Namų darbų formulavimas ir krūvio stebėsena */}
+                <div className="homework-config-card">
+                  <div className="homework-config-header">
+                    <label className="homework-config-title">🎯 Namų darbų pobūdis ir krūvio kontrolė</label>
+                    <span className="homework-bp-tag">N0015 rekomendacija</span>
+                  </div>
+
+                  <div className="homework-type-pills">
+                    {HOMEWORK_TYPES.map(type => (
+                      <button 
+                        key={type.id} 
+                        type="button" 
+                        className={`homework-type-pill ${homeworkType === type.label ? 'active' : ''}`}
+                        onClick={() => {
+                          setHomeworkType(type.label);
+                          if (type.id === 'none') {
+                            setHomeworkDuration('0');
+                          } else if (homeworkDuration === '0') {
+                            setHomeworkDuration('15');
+                          }
+                        }}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="homework-duration-control">
+                    <div className="homework-duration-label-row">
+                      <span className="homework-duration-label">
+                        <span className="clock-icon">⏱️</span>
+                        <span>Rekomenduojama atlikimo trukmė:</span>
                       </span>
+                      <span className="homework-duration-current-badge">
+                        {homeworkDuration === '0' 
+                          ? '0 min. (be ND)' 
+                          : homeworkDuration === '15' 
+                          ? '10–15 min.' 
+                          : homeworkDuration === '20' 
+                          ? '15–20 min.' 
+                          : '20–25 min.'}
+                      </span>
+                    </div>
+
+                    <div className="homework-duration-pills">
+                      {HOMEWORK_DURATIONS.map(d => {
+                        const isSelected = homeworkDuration === d.value;
+                        return (
+                          <button
+                            key={d.value}
+                            type="button"
+                            className={`duration-pill-btn ${isSelected ? 'active' : ''}`}
+                            onClick={() => {
+                              setHomeworkDuration(d.value);
+                              if (d.value === '0') {
+                                setHomeworkType('🚫 Be namų darbų (krūvio balansas)');
+                              } else if (homeworkType === '🚫 Be namų darbų (krūvio balansas)') {
+                                setHomeworkType('💡 Įtvirtinimas ir taikymas');
+                              }
+                            }}
+                          >
+                            <span className="duration-pill-time">{d.label}</span>
+                            <span className="duration-pill-desc">{d.desc}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="homework-duration-hint">
+                      {homeworkDuration === '0' ? (
+                        <span className="hint-zero">🛡️ <strong>Krūvio balansas:</strong> Namų darbai neužduodami. Visi mokymosi uždaviniai įgyvendinami pamokos metu.</span>
+                      ) : homeworkDuration === '15' ? (
+                        <span className="hint-ok">💡 <strong>Optimalus laikas (10–15 min.):</strong> Rekomenduojama 1–6 klasėms, kad mokiniai nebūtų perkraunami.</span>
+                      ) : homeworkDuration === '20' ? (
+                        <span className="hint-ok">📘 <strong>Standartinė trukmė (15–20 min.):</strong> Rekomenduojama 7–8 klasėms žinių ir gebėjimų įtvirtinimui.</span>
+                      ) : (
+                        <span className="hint-ok">🎓 <strong>Išplėstinė trukmė (20–25 min.):</strong> Rekomenduojama 7–8 klasėms tiriamiesiems ar projektiniams darbams.</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* STEP CARD 03 (Švaresnis dizainas) */}
+            <div className="dashboard-task-card">
+              <div className="task-card-header">
+                <div className="task-card-title-group">
+                  <div className="task-step-number">03</div>
+                  <div>
+                    <h3 className="task-card-title">Priemonės ir vertinimas</h3>
+                    <div className="task-card-subtitle">Mokymo ištekliai bei vertinimo kriterijai</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="task-card-body">
+                <div className="form-group">
+                  <label>Naudojamos priemonės (pasirinkite ir / arba įrašykite)</label>
+                  <div className="resource-chips-grid">
+                    {RESOURCE_TAGS.map(tag => {
+                      const isSelected = selectedResources.includes(tag);
+                      return (
+                        <button 
+                          key={tag} 
+                          type="button" 
+                          className={`resource-chip-btn ${isSelected ? 'active' : ''}`}
+                          onClick={() => handleResourceToggle(tag)}
+                        >
+                          <span style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <span className={`chip-indicator ${isSelected ? 'checked' : ''}`}>
+                              {isSelected ? '✓' : ''}
+                            </span>
+                            <span style={{fontWeight: isSelected ? 700 : 600}}>
+                              {tag === 'Google Classroom' ? '🏫 ' : tag === 'Vadovėlis' ? '📘 ' : tag === 'Pratybos' ? '📝 ' : '📄 '}
+                              {tag}
+                            </span>
+                          </span>
+                          {isSelected && <span style={{fontSize: '0.72rem', color: '#2563eb', fontWeight: 700}}>✓ Pasirinkta</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="form-group" style={{marginTop: '1.2rem'}}>
+                  <label>Vertinimo kriterijai ir klasės mokymasis (tik jei planuotas)</label>
+                  <textarea 
+                    value={evaluationCriteria} 
+                    onChange={e => setEvaluationCriteria(e.target.value)} 
+                    placeholder="Jei pamokoje vertinama, įrašykite kriterijus. Jei ne – palikite tuščią (dienyno pastabose bus pateikiami patarimai apie temos naudą realiame gyvenime)." 
+                    rows={2} 
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* STEP CARD 04 (Kontrolinis / savarankiškas darbas) */}
+            <div className="dashboard-task-card">
+              <div className="task-card-header">
+                <div className="task-card-title-group">
+                  <div className="task-step-number" style={{background: 'linear-gradient(135deg, #f59e0b, #d97706)'}}>04</div>
+                  <div>
+                    <h3 className="task-card-title">Kontrolinis / savarankiškas darbas</h3>
+                    <div className="task-card-subtitle">Darbo tikslas, temos, numatyta data, atgalinio ryšio terminai ir priminimai</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="task-card-body">
+                {/* Perjungiklis ar pamokoje planuojamas kontrolinis/savarankiškas darbas */}
+                <div className="toggle-option-card">
+                  <div 
+                    className="toggle-option-row" 
+                    onClick={() => setIsAssessmentWork(!isAssessmentWork)}
+                  >
+                    <div>
+                      <div className="toggle-option-title">📝 Planuojamas kontrolinis / savarankiškas darbas?</div>
+                      <div style={{fontSize: '0.78rem', color: 'var(--text-color)'}}>
+                        Įgalina oficialius vertinimo įrašus, tikslus, atgalinio ryšio terminus bei informavimą dienyno pastabose
+                      </div>
+                    </div>
+                    <div className={`toggle-switch-track ${isAssessmentWork ? 'active' : ''}`} style={isAssessmentWork ? {background: '#f59e0b'} : {}}>
+                      <div className="toggle-switch-thumb" />
+                    </div>
+                  </div>
+
+                  {isAssessmentWork && (
+                    <div style={{marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                      {/* Darbo pobūdis */}
+                      <div>
+                        <label style={{fontSize: '0.85rem', fontWeight: 600, color: 'var(--heading-color)', display: 'block', marginBottom: '6px'}}>
+                          Darbo tipas:
+                        </label>
+                        <div className="assessment-type-pills">
+                          {['Kontrolinis darbas', 'Savarankiškas darbas', 'Diagnostinis darbas', 'Apibendrinamasis darbas'].map(t => (
+                            <button
+                              key={t}
+                              type="button"
+                              className={`assessment-type-pill ${assessmentType === t ? 'active' : ''}`}
+                              onClick={() => setAssessmentType(t)}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Metodinis priminimas mokytojui */}
+                      <div className="assessment-reminder-box">
+                        <div className="assessment-reminder-title">
+                          💡 Rekomendacija pagal gerąją praktiką:
+                        </div>
+                        <p className="assessment-reminder-text">
+                          Primename nurodyti: <strong>1) Tikslą ir temas</strong>, iš kurių rašomas darbas; <strong>2) Numatytą vertinimo datą</strong>; <strong>3) Ištaisymo terminą</strong> (pvz., per 5 d.d.) bei <strong>sąlygas</strong>, ar leisite mokiniui taisytis ar perlaikyti darbą.
+                        </p>
+                      </div>
+
+                      {/* Darbo tikslas */}
+                      <div className="form-group" style={{margin: 0}}>
+                        <label style={{fontSize: '0.85rem', fontWeight: 600}}>Darbo tikslas:</label>
+                        <input
+                          type="text"
+                          value={assessmentPurpose}
+                          onChange={e => setAssessmentPurpose(e.target.value)}
+                          placeholder="pvz., Patikrinti ir įvertinti mokinių gebėjimus taikyti formules..."
+                        />
+                      </div>
+
+                      {/* Temos iš kurių rašoma */}
+                      <div className="form-group" style={{margin: 0}}>
+                        <label style={{fontSize: '0.85rem', fontWeight: 600}}>Temos, iš kurių rašoma:</label>
+                        <textarea
+                          rows={2}
+                          value={assessmentTopics}
+                          onChange={e => setAssessmentTopics(e.target.value)}
+                          placeholder="pvz., 1. Reklamos kalbos ypatumai; 2. Retorinės figūros; 3. Teksto analizė ir argumentavimas."
+                        />
+                      </div>
+
+                      {/* Numatoma data ir terminai */}
+                      <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px'}}>
+                        <div className="form-group" style={{margin: 0}}>
+                          <label style={{fontSize: '0.85rem', fontWeight: 600}}>Numatyta vertinimo data:</label>
+                          <input
+                            type="date"
+                            value={assessmentDate}
+                            onChange={e => setAssessmentDate(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="form-group" style={{margin: 0}}>
+                          <label style={{fontSize: '0.85rem', fontWeight: 600}}>Ištaisymo terminas:</label>
+                          <input
+                            type="text"
+                            value={assessmentCorrectionDeadline}
+                            onChange={e => setAssessmentCorrectionDeadline(e.target.value)}
+                            placeholder="pvz., Ištaisoma per 5 darbo dienas"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Perlaikymo / taisymosi galimybės */}
+                      <div className="form-group" style={{margin: 0}}>
+                        <label style={{fontSize: '0.85rem', fontWeight: 600}}>Perlaikymo / taisymosi galimybės ir tvarka:</label>
+                        <input
+                          type="text"
+                          value={assessmentRetakePolicy}
+                          onChange={e => setAssessmentRetakePolicy(e.target.value)}
+                          placeholder="pvz., Leidžiama taisytis per 1 savaitę konsultacijų metu / perlaikyti 1 kartą"
+                        />
+                      </div>
+
+                      {/* Skiltis: Vertinimo atgalinis ryšys ir Priminimas el. paštu */}
+                      <div className="assessment-feedback-section">
+                        <div className="feedback-section-title">
+                          <span>⏱️ Vertinimo atgalinis ryšys (per kiek dienų mokiniai gaus įvertinimus):</span>
+                        </div>
+                        <p style={{fontSize: '0.78rem', color: 'var(--text-color)', margin: 0}}>
+                          Nurodykite, per kiek laiko darbai bus ištaisyti ir mokiniai gaus grįžtamąjį ryšį (mažina nerimą ir palaiko mokymosi motyvaciją):
+                        </p>
+                        
+                        <div className="feedback-days-pills">
+                          {[
+                            { days: '3 d.d.', desc: '⚡ 3 d.d. (greitas)' },
+                            { days: '5 d.d.', desc: '⭐ 5 d.d. (standartas)' },
+                            { days: '7 d.d.', desc: '📅 7 d.d. (išplėstinis)' },
+                            { days: '10 d.d.', desc: '📚 10 d.d. (projektams)' }
+                          ].map(item => (
+                            <button
+                              key={item.days}
+                              type="button"
+                              className={`feedback-day-pill ${assessmentFeedbackDays === item.days ? 'active' : ''}`}
+                              onClick={() => {
+                                setAssessmentFeedbackDays(item.days);
+                                setAssessmentCorrectionDeadline(`Ištaisoma ir įvertinama per ${item.days}`);
+                              }}
+                            >
+                              {item.desc}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Automatinis priminimas mokytojui el. paštu */}
+                        <div className="reminder-email-card">
+                          <div 
+                            className="reminder-header-row"
+                            onClick={() => setEnableAssessmentReminderEmail(!enableAssessmentReminderEmail)}
+                          >
+                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                              <span style={{fontSize: '1.15rem'}}>🔔</span>
+                              <div>
+                                <div style={{fontSize: '0.86rem', fontWeight: 700, color: 'var(--heading-color)'}}>
+                                  Automatinis priminimas mokytojui el. paštu
+                                </div>
+                                <div style={{fontSize: '0.75rem', color: 'var(--text-color)'}}>
+                                  Gauti priminimo laišką apie artėjantį vertinimo taisymo ir paskelbimo terminą
+                                </div>
+                              </div>
+                            </div>
+                            <div className={`toggle-switch-track ${enableAssessmentReminderEmail ? 'active' : ''}`} style={enableAssessmentReminderEmail ? {background: '#10b981'} : {}}>
+                              <div className="toggle-switch-thumb" />
+                            </div>
+                          </div>
+
+                          {enableAssessmentReminderEmail && (
+                            <div style={{display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px', paddingTop: '8px', borderTop: '1px dashed var(--border-color)'}}>
+                              <div className="form-group" style={{margin: 0}}>
+                                <label style={{fontSize: '0.8rem', fontWeight: 600}}>Mokytojo el. pašto adresas priminimui:</label>
+                                <input
+                                  type="text"
+                                  value={assessmentReminderEmail}
+                                  onChange={e => setAssessmentReminderEmail(e.target.value)}
+                                  placeholder="vardas.pavarde@mokykla.lt"
+                                />
+                              </div>
+
+                              <div>
+                                <label style={{fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: '4px'}}>
+                                  Priminimo išsiuntimo laikas:
+                                </label>
+                                <div className="reminder-timing-pills">
+                                  {['Likus 1 d. iki termino', 'Likus 2 d. iki termino', 'Termino pabaigos dieną'].map(timeOption => (
+                                    <button
+                                      key={timeOption}
+                                      type="button"
+                                      className={`reminder-timing-pill ${assessmentReminderTime === timeOption ? 'active' : ''}`}
+                                      onClick={() => setAssessmentReminderTime(timeOption)}
+                                    >
+                                      {timeOption}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div style={{display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap'}}>
+                                <button
+                                  type="button"
+                                  className="reminder-test-btn"
+                                  onClick={() => {
+                                    setReminderToast(`✅ Priminimas sėkmingai sukonfigūruotas! El. laiškas bus išsiųstas adresu ${assessmentReminderEmail || 'mokytojas@mokykla.lt'} (${assessmentReminderTime.toLowerCase()}).`);
+                                    setTimeout(() => setReminderToast(null), 5000);
+                                  }}
+                                >
+                                  ✉️ Patvirtinti el. pašto priminimą
+                                </button>
+                                <span style={{fontSize: '0.74rem', color: 'var(--text-color)'}}>
+                                  Terminas: {assessmentFeedbackDays} {assessmentDate ? `(vertinimo data: ${assessmentDate})` : ''}
+                                </span>
+                              </div>
+
+                              {reminderToast && (
+                                <div className="reminder-toast-message">
+                                  {reminderToast}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-            )}
-            <div className="form-group">
-              <label>Tema *</label>
-              <input type="text" value={topic} onChange={e => setTopic(e.target.value)} placeholder="pvz., Reklamos kalba ir įtaigos priemonės" required />
-            </div>
-            <div className="form-group">
-              <label>Pamokos tipas</label>
-              <select value={lessonType} onChange={e => setLessonType(e.target.value as LessonCategory)}>
-                <option value="">-- Pasirinkite --</option>
-                <option value="Įvadinė">Įvadinė</option>
-                <option value="Įtvirtinimo">Įtvirtinimo</option>
-                <option value="Apibendrinamoji">Apibendrinamoji</option>
-                <option value="Vertinamoji">Vertinamoji</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Tikslas (Mokiniai gebės...)</label>
-              <textarea value={goal} onChange={e => setGoal(e.target.value)} placeholder="pvz., atpažinti kalbinės įtaigos priemones ir taikyti jas kūrybiniame darbe..." rows={3} />
             </div>
 
-            <div className="differentiation-guide">
-              <h4>💡 Diferencijavimo gidas</h4>
-              <ul>
-                <li><strong>Gabūs.</strong> Analizė, kūryba, sintezė (Bloom viršūnė).</li>
-                <li><strong>Vidutiniai.</strong> Suvokimas, taikymas pagal pavyzdį.</li>
-                <li><strong>Sunkumų turintys.</strong> Vizualizacija, skaidymas, parama.</li>
-              </ul>
-            </div>
-
-            <div className="form-group">
-              <label>Papildomos idėjos ar veiklos</label>
-              <textarea value={activities} onChange={e => setActivities(e.target.value)} placeholder="pvz., darbas porose, simuliaciniai žaidimai..." rows={2} />
-            </div>
-
-            {/* Namų darbų formulavimas ir krūvio stebėsena */}
-            <div className="homework-config-card">
-              <div className="homework-config-header">
-                <label className="homework-config-title">🎯 Namų darbų pobūdis ir krūvio kontrolė</label>
-                <span className="homework-bp-tag">N0015 rekomendacija</span>
+            {/* STEP CARD 05 (Švaresnis dizainas) */}
+            <div className="dashboard-task-card">
+              <div className="task-card-header">
+                <div className="task-card-title-group">
+                  <div className="task-step-number">05</div>
+                  <div>
+                    <h3 className="task-card-title">Pamokos sąlygos ir Generavimas</h3>
+                    <div className="task-card-subtitle">Integracija, pamoka už mokyklos ribų, auto-išsaugojimas bei įrašų suformavimas</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="homework-type-pills">
-                {HOMEWORK_TYPES.map(type => (
-                  <button 
-                    key={type.id} 
-                    type="button" 
-                    className={`homework-type-pill ${homeworkType === type.label ? 'active' : ''}`}
-                    onClick={() => {
-                      setHomeworkType(type.label);
-                      if (type.id === 'none') {
-                        setHomeworkDuration('0');
-                      } else if (homeworkDuration === '0') {
-                        setHomeworkDuration('15');
-                      }
-                    }}
+              <div className="task-card-body">
+                {/* Integruotos pamokos kortelė */}
+                <div className="toggle-option-card">
+                  <div 
+                    className="toggle-option-row" 
+                    onClick={() => setIsIntegratedInput(!isIntegratedInput)}
                   >
-                    {type.label}
-                  </button>
-                ))}
-              </div>
+                    <div>
+                      <div className="toggle-option-title">🔗 Integruota pamoka?</div>
+                      <div style={{fontSize: '0.78rem', color: 'var(--text-color)'}}>
+                        Siejama su kitais mokomaisiais dalykais ar projektais
+                      </div>
+                    </div>
+                    <div className={`toggle-switch-track ${isIntegratedInput ? 'active' : ''}`}>
+                      <div className="toggle-switch-thumb" />
+                    </div>
+                  </div>
 
-              {/* Korektiškas, ergonomiškas laiko parinkimas */}
-              <div className="homework-duration-control">
-                <div className="homework-duration-label-row">
-                  <span className="homework-duration-label">
-                    <span className="clock-icon">⏱️</span>
-                    <span>Rekomenduojama atlikimo trukmė:</span>
-                  </span>
-                  <span className="homework-duration-current-badge">
-                    {homeworkDuration === '0' 
-                      ? '0 min. (be ND)' 
-                      : homeworkDuration === '15' 
-                      ? '10–15 min.' 
-                      : homeworkDuration === '20' 
-                      ? '15–20 min.' 
-                      : '20–30 min.'}
-                  </span>
-                </div>
-
-                <div className="homework-duration-pills">
-                  {HOMEWORK_DURATIONS.map(d => {
-                    const isSelected = homeworkDuration === d.value;
-                    return (
-                      <button
-                        key={d.value}
-                        type="button"
-                        className={`duration-pill-btn ${isSelected ? 'active' : ''}`}
-                        onClick={() => {
-                          setHomeworkDuration(d.value);
-                          if (d.value === '0') {
-                            setHomeworkType('🚫 Be namų darbų (krūvio balansas)');
-                          } else if (homeworkType === '🚫 Be namų darbų (krūvio balansas)') {
-                            setHomeworkType('💡 Įtvirtinimas ir taikymas');
-                          }
-                        }}
-                      >
-                        <span className="duration-pill-time">{d.label}</span>
-                        <span className="duration-pill-desc">{d.desc}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="homework-duration-hint">
-                  {homeworkDuration === '0' ? (
-                    <span className="hint-zero">🛡️ <strong>Krūvio balansas:</strong> Namų darbai neužduodami. Visi mokymosi uždaviniai įgyvendinami pamokos metu.</span>
-                  ) : homeworkDuration === '15' ? (
-                    <span className="hint-ok">💡 <strong>Optimalus laikas (10–15 min.):</strong> Rekomenduojama 1–6 klasėms, kad mokiniai nebūtų perkraunami.</span>
-                  ) : homeworkDuration === '20' ? (
-                    <span className="hint-ok">📘 <strong>Standartinė trukmė (15–20 min.):</strong> Rekomenduojama 7–8 klasėms žinių ir gebėjimų įtvirtinimui.</span>
-                  ) : (
-                    <span className="hint-ok">🎓 <strong>Išplėstinė trukmė (20–30 min.):</strong> Rekomenduojama 9–12 (gimnazijos) klasėms ar tiriamiesiems darbams.</span>
+                  {isIntegratedInput && (
+                    <input 
+                      type="text" 
+                      value={integrationDetails} 
+                      onChange={e => setIntegrationDetails(e.target.value)} 
+                      placeholder="Su kokiu dalyku/tema integruota? (pvz., Su istorija ir daile)" 
+                      style={{marginTop: '10px'}}
+                    />
                   )}
                 </div>
-              </div>
-            </div>
 
-            <div className="form-group">
-              <label>Naudojamos priemonės (pasirinkite kelias)</label>
-              <div className="evaluation-tags-grid">
-                {RESOURCE_TAGS.map(tag => (
-                  <label key={tag} className={`tag-checkbox ${selectedResources.includes(tag) ? 'checked' : ''}`}>
-                    <input type="checkbox" checked={selectedResources.includes(tag)} onChange={() => handleResourceToggle(tag)} />
-                    {tag}
-                  </label>
-                ))}
-              </div>
-            </div>
-            
-            <div className="form-group">
-              <label>Vertinimo metodai (neprivaloma – pasirinkite TIK jei pamokoje planuotas vertinimas)</label>
-              <div className="evaluation-tags-grid">
-                {EVALUATION_TAGS.map(tag => (
-                  <label key={tag} className={`tag-checkbox ${selectedEvaluations.includes(tag) ? 'checked' : ''}`}>
-                    <input type="checkbox" checked={selectedEvaluations.includes(tag)} onChange={() => handleEvaluationToggle(tag)} />
-                    {tag}
-                  </label>
-                ))}
-              </div>
-            </div>
+                {/* Pamokos už mokyklos ribų kortelė */}
+                <div className="toggle-option-card">
+                  <div 
+                    className="toggle-option-row" 
+                    onClick={() => setIsOutsideInput(!isOutsideInput)}
+                  >
+                    <div>
+                      <div className="toggle-option-title">🏛️ Pamoka už mokyklos ribų?</div>
+                      <div style={{fontSize: '0.78rem', color: 'var(--text-color)'}}>
+                        Ekskursija, pamoka muziejuje, bibliotekoje ar lauke
+                      </div>
+                    </div>
+                    <div className={`toggle-switch-track ${isOutsideInput ? 'active' : ''}`}>
+                      <div className="toggle-switch-thumb" />
+                    </div>
+                  </div>
 
-            <div className="form-group">
-              <label>Vertinimo kriterijai ir klasės mokymasis (tik jei planuotas)</label>
-              <textarea 
-                value={evaluationCriteria} 
-                onChange={e => setEvaluationCriteria(e.target.value)} 
-                placeholder="Jei pamokoje vertinama, įrašykite kriterijus. Jei ne – palikite tuščią (dienyno pastabose bus pateikiami patarimai apie temos naudą realiame gyvenime)." 
-                rows={2} 
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={isIntegratedInput} onChange={e => setIsIntegratedInput(e.target.checked)} />
-                Integruota pamoka?
-              </label>
-              {isIntegratedInput && (
-                <input 
-                  type="text" 
-                  value={integrationDetails} 
-                  onChange={e => setIntegrationDetails(e.target.value)} 
-                  placeholder="Su kuo?" 
-                  style={{marginTop: '8px'}}
-                />
-              )}
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
-                <input type="checkbox" checked={isOutsideInput} onChange={e => setIsOutsideInput(e.target.checked)} />
-                Už mokyklos ribų?
-              </label>
-              {isOutsideInput && (
-                <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
-                  <input 
-                    type="text" 
-                    value={outsideLocation} 
-                    onChange={e => setOutsideLocation(e.target.value)} 
-                    placeholder="Kur? (pvz., Muziejus, parkas)" 
-                  />
-                  <input 
-                    type="text" 
-                    value={outsideGoal} 
-                    onChange={e => setOutsideGoal(e.target.value)} 
-                    placeholder="Kokiu ugdymo tikslu?" 
-                  />
-                  <p className="helper-text">Rekomenduojami tikslai. tyrinėjimas, stebėjimas, patirtinis mokymasis.</p>
+                  {isOutsideInput && (
+                    <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                      <input 
+                        type="text" 
+                        value={outsideLocation} 
+                        onChange={e => setOutsideLocation(e.target.value)} 
+                        placeholder="Kur vyksta? (pvz., Valdovų rūmų muziejus, parkas)" 
+                      />
+                      <input 
+                        type="text" 
+                        value={outsideGoal} 
+                        onChange={e => setOutsideGoal(e.target.value)} 
+                        placeholder="Kokiu ugdymo tikslu?" 
+                      />
+                      <p className="helper-text" style={{paddingLeft: 0}}>
+                        Rekomenduojami tikslai: tyrinėjimas, stebėjimas, patirtinis mokymasis.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <button type="submit" disabled={isLoading} className="generate-button">
-              {isLoading ? "Generuojama..." : "Generuoti planą 🚀"}
-            </button>
+                {/* Auto-Save Status Bar */}
+                <div className="autosave-bar" style={{marginTop: '1rem'}}>
+                  <div className="autosave-info">
+                    <span className={`autosave-pulse ${showAutoSaveFlash ? 'flash' : ''}`}>💾</span>
+                    {lastSavedTime ? (
+                      <span>Juodraštis išsaugotas: <strong>{lastSavedTime}</strong> (kas 30 s)</span>
+                    ) : (
+                      <span>Auto-išsaugojimas aktyvus (kas 30 s)</span>
+                    )}
+                  </div>
+                  <div className="autosave-actions">
+                    <button 
+                      type="button" 
+                      onClick={saveDraftToLocalStorage}
+                      className="autosave-btn save-now"
+                      title="Išsaugoti įvestį rankiniu būdu"
+                    >
+                      Išsaugoti dabar
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={handleClearDraft}
+                      className="autosave-btn clear"
+                      title="Išvalyti visus laukus"
+                    >
+                      Valyti 🗑️
+                    </button>
+                  </div>
+                </div>
+
+                {isDraftRestored && (
+                  <div className="draft-restored-banner">
+                    <span>ℹ️ Atkurtas anksčiau automatiškai išsaugotas įvesties juodraštis.</span>
+                    <button onClick={() => setIsDraftRestored(false)} title="Uždaryti pranešimą">✖</button>
+                  </div>
+                )}
+
+                <button type="submit" disabled={isLoading} className="generate-button" style={{marginTop: '1rem'}}>
+                  {isLoading ? "Generuojama..." : "🚀 Generuoti 3 dienyno įrašų variantus"}
+                </button>
+              </div>
+            </div>
           </form>
 
-          <div className="saved-plans-container">
-            <h3>Išsaugoti planai</h3>
-            <input type="text" placeholder="Ieškoti planuose..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="search-input" />
-            <ul className="saved-plans-list">
-              {processedPlans.map(p => (
-                <li key={p.id} onClick={() => handleLoadPlan(p.id)} className={activePlanId === p.id ? 'active' : ''}>
-                  <div className="plan-info">
-                    <span className="plan-title">{p.title}</span>
-                    <span className="meta-tag">{p.createdAt.split('T')[0]}</span>
-                  </div>
-                  <button onClick={e => { e.stopPropagation(); setDeletingPlanId(p.id); }} className="mini-delete-button">✖</button>
-                </li>
-              ))}
-            </ul>
+          {/* SAVED PLANS CARD */}
+          <div className="dashboard-task-card saved-plans-card">
+            <div className="task-card-header">
+              <div className="task-card-title-group">
+                <h3 className="task-card-title">📁 Išsaugoti pamokų planai</h3>
+              </div>
+            </div>
+            <div className="task-card-body">
+              <input type="text" placeholder="Ieškoti planuose pagal temą..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="search-input" style={{marginBottom: '1rem'}} />
+              <ul className="saved-plans-list">
+                {processedPlans.length === 0 ? (
+                  <li style={{color: 'var(--text-color)', fontSize: '0.85rem', fontStyle: 'italic', padding: '10px'}}>Nėra išsaugotų planų.</li>
+                ) : (
+                  processedPlans.map(p => (
+                    <li key={p.id} onClick={() => handleLoadPlan(p.id)} className={activePlanId === p.id ? 'active' : ''}>
+                      <div className="plan-info">
+                        <span className="plan-title">{p.title}</span>
+                        <span className="meta-tag">{p.createdAt.split('T')[0]}</span>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); setDeletingPlanId(p.id); }} className="mini-delete-button">✖</button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -2002,195 +2523,11 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 <button onClick={() => window.print()} className="print-button" title="Spausdinti dokumentą">Spausdinti 🖨️</button>
               </div>
 
-              <div className="card">
-                <h3>📚 Sąsajos su BP</h3>
-                <p style={{whiteSpace: 'pre-wrap'}}>{lessonPlan.bpConnections}</p>
-              </div>
-
-              <div className="card">
-                <h3>📖 Apžvalga</h3>
-                <p><strong>Tema.</strong> {lessonPlan.lessonOverview?.topic}</p>
-                <p><strong>Tikslas.</strong> {lessonPlan.lessonOverview?.goal}</p>
-                <p><strong>Vertinimas.</strong> {lessonPlan.lessonOverview?.evaluation?.methods?.join(', ')}</p>
-              </div>
-
-              <div className="card">
-                <h3>🚀 Pamokos eiga</h3>
-                
-                {/* Laiko skaičiuoklė / planuoklis */}
-                <div className="time-planner-container">
-                  <div className="time-planner-title">
-                    <span>⏱️ Pamokos laiko skaičiuoklė ir biudžetas</span>
-                    <strong style={{color: 'var(--primary-color)'}}>
-                      Viso: {(Object.values(stageDurations) as number[]).reduce((sum, val) => sum + val, 0)} min.
-                    </strong>
-                  </div>
-                  
-                  <div className="time-presets">
-                    <button 
-                      type="button" 
-                      onClick={() => setStageDurations({ introduction: 5, theory: 10, practice: 20, consolidation: 5, summary: 5 })}
-                      className="time-preset-btn"
-                    >
-                      🕒 Standartinė pamoka (45 min.)
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setStageDurations({ introduction: 10, theory: 20, practice: 40, consolidation: 10, summary: 10 })}
-                      className="time-preset-btn"
-                    >
-                      🕒 Dviguba pamoka (90 min.)
-                    </button>
-                    <button 
-                      type="button" 
-                      onClick={() => setStageDurations({ introduction: 5, theory: 15, practice: 15, consolidation: 5, summary: 5 })}
-                      className="time-preset-btn"
-                    >
-                      🕒 Teorinė / Diskusijų (45 min.)
-                    </button>
-                  </div>
-                  
-                  {/* Proporcinis laiko baras */}
-                  {(() => {
-                    const totalMin = (Object.values(stageDurations) as number[]).reduce((sum, val) => sum + val, 0);
-                    return (
-                      <div className="time-bar">
-                        {Object.entries(stageDurations).map(([key, mins]) => {
-                          const minsNum = Number(mins) || 0;
-                          const pct = totalMin > 0 ? (minsNum / totalMin) * 100 : 0;
-                          if (minsNum === 0) return null;
-                          return (
-                            <div 
-                              key={key} 
-                              className={`time-bar-segment segment-${key}`} 
-                              style={{ width: `${pct}%` }}
-                              title={`${STAGE_LABELS[key] || key}: ${minsNum} min.`}
-                              onClick={() => {
-                                setStageDurations(prev => ({ ...prev, [key]: (Number(prev[key]) || 0) + 1 }));
-                              }}
-                            >
-                              {pct > 8 && `${minsNum}m`}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Laiko koregavimo tinklelis */}
-                  <div className="time-adjust-grid">
-                    {Object.entries(stageDurations).map(([key, mins]) => {
-                      const minsNum = Number(mins) || 0;
-                      return (
-                        <div key={key} className="time-adjust-row">
-                          <div className="time-adjust-label-group">
-                            <span className={`time-stage-dot segment-${key}`}></span>
-                            <span className="time-stage-label">{STAGE_LABELS[key] || key}</span>
-                          </div>
-                          <div className="time-adjust-actions">
-                            <button 
-                              type="button" 
-                              className="time-btn"
-                              onClick={() => setStageDurations(prev => ({ ...prev, [key]: Math.max(0, (Number(prev[key]) || 0) - 1) }))}
-                            >
-                              -
-                            </button>
-                            <span className="time-value">{minsNum} min.</span>
-                            <button 
-                              type="button" 
-                              className="time-btn"
-                              onClick={() => setStageDurations(prev => ({ ...prev, [key]: (Number(prev[key]) || 0) + 1 }))}
-                            >
-                              +
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {(() => {
-                    const totalMin = (Object.values(stageDurations) as number[]).reduce((sum, val) => sum + val, 0);
-                    return (
-                      <div className="time-summary-info">
-                        <span>Statusas: </span>
-                        {totalMin === 45 ? (
-                          <span style={{color: 'var(--success-color)'}}><strong>Puiku!</strong> Laikas idealiai subalansuotas 45 min. pamokai. ✅</span>
-                        ) : totalMin === 90 ? (
-                          <span style={{color: 'var(--success-color)'}}><strong>Puiku!</strong> Laikas idealiai subalansuotas dvigubai 90 min. pamokai. ✅</span>
-                        ) : totalMin > 45 && totalMin < 90 ? (
-                          <span style={{color: '#f59e0b'}}>Suplanuota {totalMin} min. (Daugiau nei standartinė 45 min. pamoka). ⚠️</span>
-                        ) : totalMin > 90 ? (
-                          <span style={{color: '#ef4444'}}>Suplanuota {totalMin} min. (Daugiau nei dviguba 90 min. pamoka). 🚨</span>
-                        ) : (
-                          <span style={{color: '#94a3b8'}}>Suplanuota {totalMin} min. (Mažiau nei 45 min. pamoka). ℹ️</span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                <div className="timeline-container">
-                  {lessonPlan.lessonStages ? Object.entries(lessonPlan.lessonStages).map(([key, content]) => {
-                    const stageMin = Number(stageDurations[key]) || 0;
-                    return (
-                      <div key={key} className="timeline-item">
-                        <div className="timeline-header">
-                          <span className="timeline-label">
-                            {STAGE_LABELS[key] || key} ({stageMin} min.)
-                          </span>
-                        </div>
-                        <p className="timeline-content">{content}</p>
-                      </div>
-                    );
-                  }) : <p>Nėra informacijos</p>}
-                </div>
-              </div>
-
-               <div className="card">
-                <h3>🤝 Veiklos klasėje ir priemonės</h3>
-                <div style={{display: 'grid', gridTemplateColumns: '1fr', gap: '10px'}}>
-                  <div><strong>👤 Individualiai.</strong> {lessonPlan.classActivities?.individual}</div>
-                  <div><strong>👥 Porose.</strong> {lessonPlan.classActivities?.pairs}</div>
-                  <div><strong>👪 Grupėse.</strong> {lessonPlan.classActivities?.group}</div>
-                  <div style={{marginTop: '8px', borderTop: '1px solid #334155', paddingTop: '8px'}}><strong>🛠️ Priemonės ir nuorodos.</strong> {lessonPlan.classActivities?.toolsResources}</div>
-                </div>
-              </div>
-
-              <div className="card">
-                 <h3>🎯 Individualūs darbai</h3>
-                 <p>{lessonPlan.individualWork}</p>
-              </div>
-
-              <div className="card" style={{borderLeftColor: 'var(--info-color)'}}>
-                <h3>🌐 Skaitmeniniai ištekliai ir nuorodos</h3>
-                <p style={{whiteSpace: 'pre-wrap'}}>{lessonPlan.digitalResources}</p>
-              </div>
-
-              <div className="card results-diff-section">
-                <h3>📝 Diferencijavimas ir individualizavimas</h3>
-                <div className="diff-grid">
-                  <div className="diff-item gifted">
-                    <span className="diff-header">Gabūs mokiniai 🌟</span>
-                    <p className="diff-text">{lessonPlan.differentiation?.gifted}</p>
-                  </div>
-                  <div className="diff-item average">
-                    <span className="diff-header">Vidutiniai mokiniai ✅</span>
-                    <p className="diff-text">{lessonPlan.differentiation?.general}</p>
-                  </div>
-                  <div className="diff-item struggling">
-                    <span className="diff-header">Mokiniai su sunkumais 🛡️</span>
-                    <p className="diff-text">{lessonPlan.differentiation?.struggling}</p>
-                  </div>
-                </div>
-              </div>
-
               {/* Standartizuoti El. dienyno įrašai pagal emokykla BP */}
               <div className="ediary-box">
                 <div className="ediary-header">
                   <div className="ediary-title-group">
                     <h3>✍️ El. dienyno įrašai (emokykla BP standartas)</h3>
-                    <span className="ediary-bp-badge">TAMO / Mano Dienynas / Eduka suderinamumas ✅</span>
                   </div>
                   <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center'}}>
                     <button 
@@ -2237,62 +2574,148 @@ ${lessonPlan.eDiaryEntry.notes}`;
                   </div>
                 </div>
 
-                {/* 1. Tema ir klasės darbas */}
-                <div className="ediary-card-item">
-                  <div className="ediary-item-top">
-                    <span className="ediary-item-title">
-                      📌 1. Tema / Klasės darbas
-                      <span className="ediary-item-subtitle">(Standartizuota formuluotė: Dalykas + Uždavinys + Veikla)</span>
-                    </span>
-                    <button 
-                      onClick={() => lessonPlan.eDiaryEntry && handleCopy(lessonPlan.eDiaryEntry.topicClassworkExpectations, 'topicClassworkExpectations')} 
-                      className={`ediary-item-copy-btn ${copiedField === 'topicClassworkExpectations' ? 'copied' : ''}`}
+                {/* 3 Oficialūs dienyno įrašų variantai */}
+                {lessonPlan.eDiaryEntry?.variants && lessonPlan.eDiaryEntry.variants.length > 0 && (
+                  <div className="ediary-tabs-bar">
+                    {lessonPlan.eDiaryEntry.variants.map(v => (
+                      <button
+                        key={v.variantId}
+                        type="button"
+                        className={`ediary-tab-btn ${selectedVariantTab === v.variantId ? 'active' : ''}`}
+                        onClick={() => setSelectedVariantTab(v.variantId as any)}
+                      >
+                        {v.variantId === 'v1' && '🛠️ '}
+                        {v.variantId === 'v2' && '🎨 '}
+                        {v.variantId === 'v3' && '🔍 '}
+                        {v.title}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      className={`ediary-tab-btn ${selectedVariantTab === 'all' ? 'active' : ''}`}
+                      onClick={() => setSelectedVariantTab('all')}
                     >
-                      {copiedField === 'topicClassworkExpectations' ? 'Nukopijuota! ✅' : 'Kopijuoti į „Tema / Klasės darbas“ 📋'}
+                      📄 Visi 3 variantai (Markdown)
                     </button>
                   </div>
-                  <div className="ediary-item-content">
-                    {lessonPlan.eDiaryEntry?.topicClassworkExpectations}
-                  </div>
-                </div>
+                )}
 
-                {/* 2. Namų darbai */}
-                <div className="ediary-card-item">
-                  <div className="ediary-item-top">
-                    <span className="ediary-item-title">
-                      🎯 2. Namų darbai
-                      <span className="ediary-item-subtitle">(Su aiškiu tikslu, kontekstu ir krūvio trukme)</span>
-                    </span>
-                    <button 
-                      onClick={() => lessonPlan.eDiaryEntry && handleCopy(lessonPlan.eDiaryEntry.homework, 'homework')} 
-                      className={`ediary-item-copy-btn ${copiedField === 'homework' ? 'copied' : ''}`}
-                    >
-                      {copiedField === 'homework' ? 'Nukopijuota! ✅' : 'Kopijuoti į „Namų darbai“ 📋'}
-                    </button>
+                {/* Jei pasirinkti visi 3 variantai arba rodomas vienas iš variantų */}
+                {selectedVariantTab === 'all' && lessonPlan.eDiaryEntry?.variants && lessonPlan.eDiaryEntry.variants.length > 0 ? (
+                  <div className="all-variants-view">
+                    {lessonPlan.eDiaryEntry.variants.map(v => (
+                      <div key={v.variantId} className="all-variant-card" style={{marginBottom: '20px', background: 'var(--surface-color)', padding: '14px', borderRadius: '10px', border: '1px solid var(--border-color)'}}>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px'}}>
+                          <h4 style={{margin: 0, color: 'var(--primary-color)', fontSize: '1rem'}}>### {v.title}</h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const vText = `### ${v.title}\n**Tema, klasės darbai, numatomi pasiekimai:** ${v.topicClassworkExpectations}\n**Namų darbai:** ${v.homework}\n**Pastabos apie pamoką:** ${v.notes}`;
+                              handleCopy(vText, `var_${v.variantId}`);
+                            }}
+                            className="ediary-item-copy-btn"
+                          >
+                            {copiedField === `var_${v.variantId}` ? 'Nukopijuota! ✅' : 'Kopijuoti šį variantą 📋'}
+                          </button>
+                        </div>
+                        <p style={{margin: '4px 0', fontSize: '0.9rem', color: 'var(--text-color-light)'}}><strong>Tema, klasės darbai, numatomi pasiekimai:</strong> {v.topicClassworkExpectations}</p>
+                        <p style={{margin: '4px 0', fontSize: '0.9rem', color: 'var(--text-color-light)'}}><strong>Namų darbai:</strong> {v.homework}</p>
+                        <p style={{margin: '4px 0', fontSize: '0.9rem', color: 'var(--text-color-light)'}}><strong>Pastabos apie pamoką:</strong> {v.notes}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div className="ediary-item-content">
-                    {lessonPlan.eDiaryEntry?.homework}
-                  </div>
-                </div>
+                ) : (
+                  (() => {
+                    const activeVariant = lessonPlan.eDiaryEntry?.variants?.find(v => v.variantId === selectedVariantTab) || lessonPlan.eDiaryEntry?.variants?.[0];
+                    const topicText = activeVariant ? activeVariant.topicClassworkExpectations : (lessonPlan.eDiaryEntry?.topicClassworkExpectations || '');
+                    const hwText = activeVariant ? activeVariant.homework : (lessonPlan.eDiaryEntry?.homework || '');
+                    const notesText = activeVariant ? activeVariant.notes : (lessonPlan.eDiaryEntry?.notes || '');
+                    
+                    return (
+                      <>
+                        {/* 1. Tema, klasės darbai, numatomi pasiekimai */}
+                        <div className="ediary-card-item">
+                          <div className="ediary-item-top">
+                            <span className="ediary-item-title">
+                              📌 Tema, klasės darbai, numatomi pasiekimai
+                              <span className="ediary-item-subtitle">(A0010 standartas: Dalykas + Uždavinys + Veikla)</span>
+                            </span>
+                            <button 
+                              onClick={() => handleCopy(topicText, 'topicClassworkExpectations')} 
+                              className={`ediary-item-copy-btn ${copiedField === 'topicClassworkExpectations' ? 'copied' : ''}`}
+                            >
+                              {copiedField === 'topicClassworkExpectations' ? 'Nukopijuota! ✅' : 'Kopijuoti į „Tema / Klasės darbas“ 📋'}
+                            </button>
+                          </div>
+                          <div className="ediary-item-content">
+                            {topicText}
+                          </div>
+                        </div>
 
-                {/* 3. Pastabos / Gyvenimiškas naudingumas ir vertinimas */}
-                <div className="ediary-card-item">
-                  <div className="ediary-item-top">
-                    <span className="ediary-item-title">
-                      💡 3. Pastaba / Vertinimas
-                      <span className="ediary-item-subtitle">(Patarimai kuo naudinga realiame gyvenime; vertinimas – jei planuotas)</span>
-                    </span>
-                    <button 
-                      onClick={() => lessonPlan.eDiaryEntry && handleCopy(lessonPlan.eDiaryEntry.notes, 'notes')} 
-                      className={`ediary-item-copy-btn ${copiedField === 'notes' ? 'copied' : ''}`}
-                    >
-                      {copiedField === 'notes' ? 'Nukopijuota! ✅' : 'Kopijuoti į „Pastaba / Vertinimas“ 📋'}
-                    </button>
+                        {/* 2. Namų darbai */}
+                        <div className="ediary-card-item">
+                          <div className="ediary-item-top">
+                            <span className="ediary-item-title">
+                              🎯 Namų darbai
+                              <span className="ediary-item-subtitle">(N0015/N0016 modelis: Tikslas + Užduotis + Trukmė)</span>
+                            </span>
+                            <button 
+                              onClick={() => handleCopy(hwText, 'homework')} 
+                              className={`ediary-item-copy-btn ${copiedField === 'homework' ? 'copied' : ''}`}
+                            >
+                              {copiedField === 'homework' ? 'Nukopijuota! ✅' : 'Kopijuoti į „Namų darbai“ 📋'}
+                            </button>
+                          </div>
+                          <div className="ediary-item-content">
+                            {hwText}
+                          </div>
+                        </div>
+
+                        {/* 3. Pastabos apie pamoką */}
+                        <div className="ediary-card-item">
+                          <div className="ediary-item-top">
+                            <span className="ediary-item-title">
+                              💡 Pastabos apie pamoką
+                              <span className="ediary-item-subtitle">(Gyvenimiška vertė ir NVC/PEPIS pozityvumas)</span>
+                            </span>
+                            <button 
+                              onClick={() => handleCopy(notesText, 'notes')} 
+                              className={`ediary-item-copy-btn ${copiedField === 'notes' ? 'copied' : ''}`}
+                            >
+                              {copiedField === 'notes' ? 'Nukopijuota! ✅' : 'Kopijuoti į „Pastaba / Vertinimas“ 📋'}
+                            </button>
+                          </div>
+                          <div className="ediary-item-content">
+                            {notesText}
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()
+                )}
+
+                {/* Idėjos veiklos diferencijavimui ir pamokos kokybei */}
+                {lessonPlan.eDiaryEntry?.differentiationAdvice && (
+                  <div className="differentiation-advice-box">
+                    <div className="differentiation-advice-title">
+                      💡 Idėjos veiklos diferencijavimui ir pamokos kokybei:
+                    </div>
+                    <div className="differentiation-advice-grid">
+                      <div className="differentiation-advice-card">
+                        <h5>🛠️ Pagalba / Pastoliavimas</h5>
+                        <p>{lessonPlan.eDiaryEntry.differentiationAdvice.scaffolding}</p>
+                      </div>
+                      <div className="differentiation-advice-card">
+                        <h5>🚀 Iššūkis gabesniems</h5>
+                        <p>{lessonPlan.eDiaryEntry.differentiationAdvice.challenge}</p>
+                      </div>
+                      <div className="differentiation-advice-card">
+                        <h5>✨ Kokybės akcentas</h5>
+                        <p>{lessonPlan.eDiaryEntry.differentiationAdvice.qualityFocus}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="ediary-item-content">
-                    {lessonPlan.eDiaryEntry?.notes}
-                  </div>
-                </div>
+                )}
 
                 {/* Metadata & Tagai */}
                 <div className="ediary-metadata-bar">
@@ -2336,7 +2759,7 @@ ${lessonPlan.eDiaryEntry.notes}`;
                     </div>
                     <div className="quality-audit-item">
                       <span className="check-icon">✓</span>
-                      <span>ND krūvio kontrolė ({homeworkDuration === '0' ? '0 min., be namų darbų' : homeworkDuration === '15' ? '10–15 min.' : homeworkDuration === '20' ? '15–20 min.' : '20–30 min.'}, N0015)</span>
+                      <span>ND krūvio kontrolė ({homeworkDuration === '0' ? '0 min., be namų darbų' : homeworkDuration === '15' ? '10–15 min.' : homeworkDuration === '20' ? '15–20 min.' : '20–25 min.'}, N0015)</span>
                     </div>
                     <div className="quality-audit-item">
                       <span className="check-icon">✓</span>
@@ -2354,9 +2777,23 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 </div>
               </div>
 
-              <div className="card" style={{borderLeftColor: 'var(--secondary-color)'}}>
-                 <h3>💖 Motyvacinė žinutė</h3>
-                 <p style={{fontStyle: 'italic'}}>{lessonPlan.motivation}</p>
+              {/* Veiklos diferencijavimas apačioje */}
+              <div className="card results-diff-section">
+                <h3>📝 Diferencijavimas ir individualizavimas</h3>
+                <div className="diff-grid">
+                  <div className="diff-item gifted">
+                    <span className="diff-header">Gabūs mokiniai 🌟</span>
+                    <p className="diff-text">{lessonPlan.differentiation?.gifted}</p>
+                  </div>
+                  <div className="diff-item average">
+                    <span className="diff-header">Vidutiniai mokiniai ✅</span>
+                    <p className="diff-text">{lessonPlan.differentiation?.general}</p>
+                  </div>
+                  <div className="diff-item struggling">
+                    <span className="diff-header">Mokiniai su sunkumais 🛡️</span>
+                    <p className="diff-text">{lessonPlan.differentiation?.struggling}</p>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -2908,44 +3345,7 @@ ${lessonPlan.eDiaryEntry.notes}`;
         </div>
       )}
 
-      {/* Chat Bot UI */}
-      <div className={`chat-bot-container ${isChatOpen ? 'open' : ''}`}>
-        {!isChatOpen ? (
-          <button className="chat-bot-toggle" onClick={() => setIsChatOpen(true)}>
-            💬 Pagalba
-          </button>
-        ) : (
-          <div className="chat-bot-window">
-            <div className="chat-bot-header">
-              <h3>DI pagalbininkas 🤖</h3>
-              <button onClick={() => setIsChatOpen(false)}>✖</button>
-            </div>
-            <div className="chat-bot-messages">
-              {chatMessages.map((msg, i) => (
-                <div key={i} className={`chat-message ${msg.role}`}>
-                  <div className="message-bubble">{msg.text}</div>
-                </div>
-              ))}
-              {isChatLoading && (
-                <div className="chat-message model">
-                  <div className="message-bubble loading">...</div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-            <form className="chat-bot-input" onSubmit={handleChatSubmit}>
-              <input 
-                type="text" 
-                value={chatInput} 
-                onChange={e => setChatInput(e.target.value)} 
-                placeholder="Klauskite apie planą..." 
-                disabled={isChatLoading}
-              />
-              <button type="submit" disabled={isChatLoading || !chatInput.trim()}>➤</button>
-            </form>
-          </div>
-        )}
-      </div>
+
 
     </div>
   );
