@@ -4,7 +4,14 @@ import { createRoot } from 'react-dom/client';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User } from 'firebase/auth';
 import { firebaseConfig } from './src/firebaseConfig.ts';
-import { downloadDocumentPdf } from './src/pdfService.ts';
+import { 
+  downloadDocumentPdf, 
+  AdvancedPdfExportOptions, 
+  DEFAULT_PDF_OPTIONS, 
+  PdfExportMode, 
+  PdfCoverStyle, 
+  PdfFontSize 
+} from './src/pdfService.ts';
 import { downloadDocumentDocx } from './src/docxService.ts';
 
 const app = initializeApp(firebaseConfig);
@@ -1060,17 +1067,64 @@ const App = () => {
     summary: 5
   });
 
+  // Advanced PDF export states with persistence
+  const [showPdfSettings, setShowPdfSettings] = useState<boolean>(false);
+  const [pdfOptions, setPdfOptions] = useState<AdvancedPdfExportOptions>(() => {
+    try {
+      const saved = localStorage.getItem('manodienynas_pdf_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...DEFAULT_PDF_OPTIONS,
+          ...parsed,
+          coverPage: {
+            ...DEFAULT_PDF_OPTIONS.coverPage,
+            ...(parsed.coverPage || {})
+          }
+        };
+      }
+    } catch (e) {
+      console.warn('Could not load saved PDF options:', e);
+    }
+    return DEFAULT_PDF_OPTIONS;
+  });
+  const [pdfSettingsSavedToast, setPdfSettingsSavedToast] = useState<boolean>(false);
+
+  const handleSavePdfSettings = () => {
+    try {
+      localStorage.setItem('manodienynas_pdf_settings', JSON.stringify(pdfOptions));
+      setPdfSettingsSavedToast(true);
+      setTimeout(() => setPdfSettingsSavedToast(false), 3000);
+    } catch (e) {
+      console.error('Could not save PDF settings:', e);
+    }
+  };
+
   // PDF export states
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [pdfSuccessMessage, setPdfSuccessMessage] = useState<string | null>(null);
 
-  const handleGeneratePdf = async (type: 'full' | 'ediary') => {
+  const handleGeneratePdf = async (
+    scopeOverride?: 'full' | 'ediary' | 'combined',
+    customOptions?: Partial<AdvancedPdfExportOptions>
+  ) => {
     if (!lessonPlan) return;
     setIsGeneratingPdf(true);
     setShowPdfModal(false);
     try {
-      await downloadDocumentPdf(type, lessonPlan, {
+      const targetScope = scopeOverride || customOptions?.scope || pdfOptions.scope;
+      const effectiveOptions: AdvancedPdfExportOptions = {
+        ...pdfOptions,
+        ...(customOptions || {}),
+        scope: targetScope,
+        coverPage: {
+          ...pdfOptions.coverPage,
+          ...(customOptions?.coverPage || {})
+        }
+      };
+
+      await downloadDocumentPdf(effectiveOptions, lessonPlan, {
         subject,
         grade,
         topic: lessonPlan.lessonOverview?.topic || topic,
@@ -1078,14 +1132,20 @@ const App = () => {
         stageDurations,
         homeworkDuration
       });
+
+      const scopeName = effectiveOptions.scope === 'full' 
+        ? 'Visas pamokos planas' 
+        : effectiveOptions.scope === 'ediary' 
+          ? 'El. dienyno įrašai' 
+          : 'Sujungtas pamokos ir dienyno dokumentas';
+      const modeName = effectiveOptions.exportMode === 'simple' ? 'paprasto teksto' : 'struktūrizuoto firminio';
+
       setPdfSuccessMessage(
-        type === 'full' 
-          ? 'Visas pamokos planas sėkmingai atsisiųstas kaip PDF dokumentas! 📄✅' 
-          : 'El. dienyno įrašai sėkmingai atsisiųsti kaip PDF kortelė! ✍️✅'
+        `${scopeName} (${modeName} formatu) sėkmingai atsisiųstas kaip PDF dokumentas! 📄✅`
       );
       setTimeout(() => {
         setPdfSuccessMessage(null);
-      }, 4500);
+      }, 5000);
     } catch (err: any) {
       console.error('Failed to generate PDF:', err);
       setError('Nepavyko sugeneruoti PDF dokumento. Bandykite dar kartą arba naudokite mygtuką „Spausdinti“.');
@@ -2504,12 +2564,12 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 <button onClick={() => setShowClassroomModal(true)} className="classroom-share-button">Classroom 🏫</button>
                 <button 
                   type="button"
-                  onClick={() => setShowPdfModal(true)} 
-                  className="pdf-button" 
+                  onClick={() => setShowPdfSettings(prev => !prev)} 
+                  className={`pdf-button ${showPdfSettings ? 'active' : ''}`} 
                   disabled={isGeneratingPdf} 
-                  title="Atsisiųsti šį pamokos planą ar dienyno įrašus kaip PDF"
+                  title="Konfigūruoti ir atsisiųsti PDF dokumentą (paprastas / firminis, titulinis lapas)"
                 >
-                  {isGeneratingPdf ? 'Generuojama... ⏳' : 'Atsisiųsti PDF 📄'}
+                  {isGeneratingPdf ? 'Generuojama... ⏳' : showPdfSettings ? 'PDF Nustatymai ⚙️ ▴' : 'Atsisiųsti PDF (Nustatymai ⚙️) 📄'}
                 </button>
                 <button 
                   type="button"
@@ -2522,6 +2582,316 @@ ${lessonPlan.eDiaryEntry.notes}`;
                 </button>
                 <button onClick={() => window.print()} className="print-button" title="Spausdinti dokumentą">Spausdinti 🖨️</button>
               </div>
+
+              {/* Pažangus PDF eksporto nustatymų skydelis */}
+              {showPdfSettings && (
+                <div className="advanced-pdf-panel">
+                  <div className="pdf-panel-header">
+                    <div className="pdf-panel-title-group">
+                      <h4 className="pdf-panel-title">
+                        <span>⚙️ Pažangūs PDF eksporto nustatymai</span>
+                      </h4>
+                      <p className="pdf-panel-subtitle">
+                        Pasirinkite tarp švaraus paprasto teksto (taupo spausdintuvo dažus) ir reprezentatyvaus firminio stiliaus su tituliniu lapu bei oficialiu BP apipavidalinimu.
+                      </p>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPdfSettings(false)} 
+                      className="pdf-panel-close-btn"
+                      title="Užverti nustatymų skydelį"
+                    >
+                      ✕ Užverti
+                    </button>
+                  </div>
+
+                  {/* 1. Eksporto režimas: Paprastas vs Firminis */}
+                  <div className="pdf-panel-section">
+                    <span className="pdf-panel-label">1. Eksporto stilius ir išvaizda:</span>
+                    <div className="pdf-mode-grid">
+                      <div 
+                        className={`pdf-mode-card ${pdfOptions.exportMode === 'simple' ? 'active' : ''}`}
+                        onClick={() => setPdfOptions(prev => ({ ...prev, exportMode: 'simple' }))}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="pdf-mode-card-header">
+                          <span className="pdf-mode-icon">📄</span>
+                          <div className="pdf-mode-text-group">
+                            <span className="pdf-mode-name">Paprastas tekstinis PDF</span>
+                            <span className="pdf-mode-badge toner">Juodai-baltas • Taupo tonerį</span>
+                          </div>
+                          <span className="pdf-radio-check">{pdfOptions.exportMode === 'simple' ? '●' : '○'}</span>
+                        </div>
+                        <p className="pdf-mode-desc">
+                          Švarus, minimalistinis tekstinis dokumentas be sunkių spalvinių rėmelių ar tamsių fonų. Idealu greitam spausdinimui mokyklos kabinete.
+                        </p>
+                      </div>
+
+                      <div 
+                        className={`pdf-mode-card ${pdfOptions.exportMode === 'branded' ? 'active' : ''}`}
+                        onClick={() => setPdfOptions(prev => ({ ...prev, exportMode: 'branded' }))}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="pdf-mode-card-header">
+                          <span className="pdf-mode-icon">🏛️</span>
+                          <div className="pdf-mode-text-group">
+                            <span className="pdf-mode-name">Struktūrizuotas firminis PDF</span>
+                            <span className="pdf-mode-badge official">Oficialus LR BP standartas</span>
+                          </div>
+                          <span className="pdf-radio-check">{pdfOptions.exportMode === 'branded' ? '●' : '○'}</span>
+                        </div>
+                        <p className="pdf-mode-desc">
+                          Reprezentatyvus institucinis dokumentas su BP kompetencijomis, lentelėmis, laiko juosta, diferencijavimu bei oficialiu apipavidalinimu.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Dokumento apimtis */}
+                  <div className="pdf-panel-section">
+                    <span className="pdf-panel-label">2. Dokumento apimtis (turinys):</span>
+                    <div className="pdf-scope-selector">
+                      <button 
+                        type="button" 
+                        className={`pdf-scope-btn ${pdfOptions.scope === 'full' ? 'active' : ''}`}
+                        onClick={() => setPdfOptions(prev => ({ ...prev, scope: 'full' }))}
+                      >
+                        📚 Visas planas (Metodika + Dienynas)
+                      </button>
+                      <button 
+                        type="button" 
+                        className={`pdf-scope-btn ${pdfOptions.scope === 'ediary' ? 'active' : ''}`}
+                        onClick={() => setPdfOptions(prev => ({ ...prev, scope: 'ediary' }))}
+                      >
+                        ✍️ Tik El. dienyno kortelė
+                      </button>
+                      <button 
+                        type="button" 
+                        className={`pdf-scope-btn ${pdfOptions.scope === 'combined' ? 'active' : ''}`}
+                        onClick={() => setPdfOptions(prev => ({ ...prev, scope: 'combined' }))}
+                      >
+                        📑 Sujungtas išsamus archyvas
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Titulinio lapo nustatymai */}
+                  <div className="pdf-panel-section">
+                    <div className="pdf-toggle-row">
+                      <div>
+                        <span className="pdf-panel-label" style={{margin: 0}}>3. Oficialus titulinis lapas (atskiras A4 viršelis):</span>
+                        <p className="pdf-toggle-hint">
+                          Sugeneruoja atskirą 1-ąjį viršelio puslapį su mokyklos, autoriaus rekvizitais ir tema prieš pradedant pamokos planą.
+                        </p>
+                      </div>
+                      <label className="pdf-switch-label">
+                        <input 
+                          type="checkbox" 
+                          checked={pdfOptions.coverPage.enabled}
+                          onChange={e => setPdfOptions(prev => ({
+                            ...prev,
+                            coverPage: { ...prev.coverPage, enabled: e.target.checked }
+                          }))}
+                        />
+                        <span className="pdf-switch-slider"></span>
+                        <span className="pdf-switch-text">{pdfOptions.coverPage.enabled ? 'Įjungtas' : 'Išjungtas'}</span>
+                      </label>
+                    </div>
+
+                    {pdfOptions.coverPage.enabled && (
+                      <div className="pdf-cover-settings-box">
+                        <span className="pdf-sub-label">Titulinio lapo apipavidalinimo stilius:</span>
+                        <div className="pdf-cover-styles-bar">
+                          <button 
+                            type="button" 
+                            className={`pdf-cover-style-btn ${pdfOptions.coverPage.style === 'academic' ? 'active' : ''}`}
+                            onClick={() => setPdfOptions(prev => ({
+                              ...prev,
+                              coverPage: { ...prev.coverPage, style: 'academic' }
+                            }))}
+                          >
+                            🏛️ Akademinis (Oficialus herbų ir linijų stilius)
+                          </button>
+                          <button 
+                            type="button" 
+                            className={`pdf-cover-style-btn ${pdfOptions.coverPage.style === 'modern' ? 'active' : ''}`}
+                            onClick={() => setPdfOptions(prev => ({
+                              ...prev,
+                              coverPage: { ...prev.coverPage, style: 'modern' }
+                            }))}
+                          >
+                            🎨 Modernus (Su akcentinėmis kortelėmis)
+                          </button>
+                          <button 
+                            type="button" 
+                            className={`pdf-cover-style-btn ${pdfOptions.coverPage.style === 'minimal' ? 'active' : ''}`}
+                            onClick={() => setPdfOptions(prev => ({
+                              ...prev,
+                              coverPage: { ...prev.coverPage, style: 'minimal' }
+                            }))}
+                          >
+                            📐 Minimalistinis (Švarus šriftinis)
+                          </button>
+                        </div>
+
+                        <div className="pdf-cover-fields-grid">
+                          <div className="pdf-field-group">
+                            <label>Mokymo įstaigos pavadinimas:</label>
+                            <input 
+                              type="text" 
+                              value={pdfOptions.coverPage.schoolName}
+                              onChange={e => setPdfOptions(prev => ({
+                                ...prev,
+                                coverPage: { ...prev.coverPage, schoolName: e.target.value }
+                              }))}
+                              placeholder="pvz. Vilniaus Antakalnio gimnazija"
+                            />
+                          </div>
+
+                          <div className="pdf-field-group">
+                            <label>Parengė (mokytojas, kvalifikacija):</label>
+                            <input 
+                              type="text" 
+                              value={pdfOptions.coverPage.teacherName}
+                              onChange={e => setPdfOptions(prev => ({
+                                ...prev,
+                                coverPage: { ...prev.coverPage, teacherName: e.target.value }
+                              }))}
+                              placeholder="pvz. Vardas Pavardė, vyr. mokytojas"
+                            />
+                          </div>
+
+                          <div className="pdf-field-group">
+                            <label>Mokslo metai:</label>
+                            <input 
+                              type="text" 
+                              value={pdfOptions.coverPage.schoolYear}
+                              onChange={e => setPdfOptions(prev => ({
+                                ...prev,
+                                coverPage: { ...prev.coverPage, schoolYear: e.target.value }
+                              }))}
+                              placeholder="pvz. 2025–2026 m. m."
+                            />
+                          </div>
+
+                          <div className="pdf-field-group">
+                            <label>Miestas ir data:</label>
+                            <input 
+                              type="text" 
+                              value={pdfOptions.coverPage.location}
+                              onChange={e => setPdfOptions(prev => ({
+                                ...prev,
+                                coverPage: { ...prev.coverPage, location: e.target.value }
+                              }))}
+                              placeholder="pvz. Vilnius, 2026 m."
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 4. Įtraukiami elementai ir šrifto dydis */}
+                  <div className="pdf-panel-section">
+                    <span className="pdf-panel-label">4. Įtraukiami dokumento elementai ir šriftas:</span>
+                    <div className="pdf-checkboxes-grid">
+                      <label className="pdf-checkbox-item">
+                        <input 
+                          type="checkbox" 
+                          checked={pdfOptions.includeTimeline}
+                          onChange={e => setPdfOptions(prev => ({ ...prev, includeTimeline: e.target.checked }))}
+                        />
+                        <span>⏱️ Laiko biudžeto laiko juosta</span>
+                      </label>
+                      <label className="pdf-checkbox-item">
+                        <input 
+                          type="checkbox" 
+                          checked={pdfOptions.includeDifferentiation}
+                          onChange={e => setPdfOptions(prev => ({ ...prev, includeDifferentiation: e.target.checked }))}
+                        />
+                        <span>🎯 3 lygių diferencijavimo matrica</span>
+                      </label>
+                      <label className="pdf-checkbox-item">
+                        <input 
+                          type="checkbox" 
+                          checked={pdfOptions.includeAssessment}
+                          onChange={e => setPdfOptions(prev => ({ ...prev, includeAssessment: e.target.checked }))}
+                        />
+                        <span>📊 Vertinimo kriterijai ir metodai</span>
+                      </label>
+                      <label className="pdf-checkbox-item">
+                        <input 
+                          type="checkbox" 
+                          checked={pdfOptions.includeQualityAudit}
+                          onChange={e => setPdfOptions(prev => ({ ...prev, includeQualityAudit: e.target.checked }))}
+                        />
+                        <span>🛡️ Oficialus BP kokybės auditas</span>
+                      </label>
+                      <label className="pdf-checkbox-item">
+                        <input 
+                          type="checkbox" 
+                          checked={pdfOptions.includeSignatures}
+                          onChange={e => setPdfOptions(prev => ({ ...prev, includeSignatures: e.target.checked }))}
+                        />
+                        <span>✍️ Mokytojo ir vadovo parašų vieta</span>
+                      </label>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                        <span style={{fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600}}>Šriftas:</span>
+                        <div className="pdf-font-size-group">
+                          {(['compact', 'standard', 'large'] as PdfFontSize[]).map(sz => (
+                            <button 
+                              key={sz}
+                              type="button"
+                              className={`pdf-font-size-btn ${pdfOptions.fontSize === sz ? 'active' : ''}`}
+                              onClick={() => setPdfOptions(prev => ({ ...prev, fontSize: sz }))}
+                            >
+                              {sz === 'compact' ? 'Kompaktiškas' : sz === 'standard' ? 'Standartinis' : 'Padidintas'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 5. Apatiniai veiksmai */}
+                  <div className="pdf-panel-actions">
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <button 
+                        type="button" 
+                        onClick={handleSavePdfSettings} 
+                        className="pdf-save-settings-btn"
+                        title="Išsaugoti šiuos nustatymus naršyklėje ateities eksportams"
+                      >
+                        💾 Įsiminti nustatymus
+                      </button>
+                      {pdfSettingsSavedToast && (
+                        <span style={{fontSize: '0.82rem', color: '#10b981', fontWeight: 600}}>
+                          ✓ Nustatymai įsiminti!
+                        </span>
+                      )}
+                    </div>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPdfSettings(false)} 
+                        className="pdf-close-panel-btn"
+                      >
+                        Užverti nustatymus
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => handleGeneratePdf()} 
+                        disabled={isGeneratingPdf} 
+                        className="pdf-main-generate-btn"
+                      >
+                        {isGeneratingPdf ? 'Ruošiamas PDF... ⏳' : 'Atsisiųsti PDF dabar 📥'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Standartizuoti El. dienyno įrašai pagal emokykla BP */}
               <div className="ediary-box">
@@ -3196,6 +3566,19 @@ ${lessonPlan.eDiaryEntry.notes}`;
               <p className="pdf-modal-subtext">
                 Pasirinkite norimą dokumento formatą. PDF bus sugeneruotas pritaikant oficialius LR bendrųjų programų (emokykla.lt) ir dienynų pildymo reikalavimus švariame A4 dokumento lape.
               </p>
+            </div>
+
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.25)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', gap: '10px', flexWrap: 'wrap'}}>
+              <div style={{fontSize: '0.84rem', color: '#cbd5e1'}}>
+                Stilius: <strong style={{color: '#60a5fa'}}>{pdfOptions.exportMode === 'simple' ? 'Paprastas tekstinis (taupo tonerį)' : 'Struktūrizuotas firminis'}</strong> | Titulinis lapas: <strong style={{color: '#60a5fa'}}>{pdfOptions.coverPage.enabled ? `Įjungtas (${pdfOptions.coverPage.style})` : 'Išjungtas'}</strong>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => { setShowPdfModal(false); setShowPdfSettings(true); }}
+                style={{background: '#2563eb', border: 'none', color: '#fff', padding: '5px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600}}
+              >
+                ⚙️ Keisti nustatymus (Titulinis, Režimas)
+              </button>
             </div>
 
             <div className="pdf-options-grid">

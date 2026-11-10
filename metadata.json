@@ -2,5 +2,6 @@
   "name": "Pamokos plano rengimas ir el. dienynas pagal BP",
   "description": "Profesionalus pamokų planų ir el. dienyno įrašų (TAMO, Mano Dienynas) rengimas pagal Lietuvos Bendrąsias programas (emokykla.lt) ir gerosios praktikos standartus.",
   "requestFramePermissions": [],
-  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

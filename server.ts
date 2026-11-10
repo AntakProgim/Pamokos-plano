@@ -9,7 +9,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+
+function parseCliArgs() {
+  const args = process.argv.slice(2);
+  let port: number | null = null;
+  let host: string | null = null;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--port' && i + 1 < args.length) {
+      const parsed = parseInt(args[i + 1], 10);
+      if (!isNaN(parsed)) port = parsed;
+    } else if (args[i].startsWith('--port=')) {
+      const parsed = parseInt(args[i].split('=')[1], 10);
+      if (!isNaN(parsed)) port = parsed;
+    } else if (args[i] === '--host' && i + 1 < args.length) {
+      host = args[i + 1];
+    } else if (args[i].startsWith('--host=')) {
+      host = args[i].split('=')[1];
+    }
+  }
+
+  return { port, host };
+}
+
+const cliArgs = parseCliArgs();
+const PORT = cliArgs.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
+const HOST = cliArgs.host ?? process.env.HOST ?? '0.0.0.0';
 const isProduction = process.env.NODE_ENV === 'production';
 
 app.use(express.json({ limit: '10mb' }));
@@ -17,7 +42,7 @@ app.use(express.json({ limit: '10mb' }));
 // Helper to get GoogleGenAI client with required telemetry User-Agent
 function getGeminiClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim()) {
+  if (!apiKey || typeof apiKey !== 'string' || !apiKey.trim() || apiKey.trim() === 'undefined' || apiKey.trim() === 'null' || apiKey.trim().length < 8) {
     return null;
   }
   return new GoogleGenAI({
@@ -161,7 +186,12 @@ Pateik 3 el. dienyno variantus masyve "variants" ir diferencijavimo patarimus ob
         return res.json({ success: true, plan: parsed, mode: 'ai' });
       }
     } catch (aiErr: any) {
-      console.warn('Gemini API call failed, falling back to rich pedagogical template:', aiErr?.message || aiErr);
+      const errMsg = aiErr?.message || String(aiErr);
+      if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key not valid') || aiErr?.status === 'INVALID_ARGUMENT') {
+        console.log('Gemini API key is not valid, applying rich pedagogical template engine.');
+      } else {
+        console.log('Gemini plan generation fallback notice:', errMsg.slice(0, 100));
+      }
     }
   }
 
@@ -197,7 +227,12 @@ Atsakymą pateik JSON formatu. { "ideas": ["...", "...", "..."] }`;
         return res.json({ success: true, ideas: parsed.ideas, mode: 'ai' });
       }
     } catch (err: any) {
-      console.warn('AI ideas failed, fallback to pedagogical ideas:', err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key') || err?.status === 'INVALID_ARGUMENT') {
+        console.log('Gemini API key is not valid, using pedagogical ideas.');
+      } else {
+        console.log('Gemini ideas fallback notice:', errMsg.slice(0, 100));
+      }
     }
   }
 
@@ -261,7 +296,12 @@ Atsakymą pateik griežtai JSON formatu:
         return res.json({ success: true, result: parsed, mode: 'ai' });
       }
     } catch (err: any) {
-      console.warn('AI SMART goal failed, falling back to pedagogical template:', err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key') || err?.status === 'INVALID_ARGUMENT') {
+        console.log('Gemini API key is not valid, using pedagogical SMART goal template.');
+      } else {
+        console.log('Gemini SMART goal fallback notice:', errMsg.slice(0, 100));
+      }
     }
   }
 
@@ -313,7 +353,12 @@ GRIEŽTAI NENAUDOK DVITAŠKIŲ TEKSTUOSE.`;
         return res.json({ success: true, examples: parsed, mode: 'ai' });
       }
     } catch (err: any) {
-      console.warn('AI real-world examples failed, falling back to pedagogical generator:', err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key') || err?.status === 'INVALID_ARGUMENT') {
+        console.log('Gemini API key is not valid, using pedagogical real-world examples.');
+      } else {
+        console.log('Gemini real-world examples fallback notice:', errMsg.slice(0, 100));
+      }
     }
   }
 
@@ -347,7 +392,12 @@ Griežtai nenaudok dvitaškių tekstuose (vietoj jų naudok taškus arba brūkš
 
       return res.json({ success: true, reply: response.text || '' });
     } catch (err: any) {
-      console.warn('AI Chat failed, falling back to pedagogical guidance:', err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key') || err?.status === 'INVALID_ARGUMENT') {
+        console.log('Gemini API key is not valid, using pedagogical mentor guidance.');
+      } else {
+        console.log('Gemini chat fallback notice:', errMsg.slice(0, 100));
+      }
     }
   }
 
@@ -384,9 +434,18 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running at http://0.0.0.0:${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`Server running at http://${HOST}:${PORT} (mode: ${isProduction ? 'production' : 'development'})`);
   });
+
+  const shutdown = () => {
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
 
 startServer().catch(err => {
