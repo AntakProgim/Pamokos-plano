@@ -62,6 +62,7 @@ export interface GenerateTemplateParams {
   subject: string;
   grade: string;
   topic: string;
+  bpContentDescription?: string;
   lessonType: string;
   goal?: string;
   activities?: string;
@@ -384,7 +385,9 @@ export function buildPedagogicalPlan(params: GenerateTemplateParams) {
     selectedStudentLevels = ['pažengę', 'vidutiniai', 'turintys sunkumų']
   } = params;
 
-  const currentTopic = topic.trim();
+  const currentTopic = (topic && typeof topic === 'string' && topic.trim().length > 0)
+    ? topic.trim()
+    : (params.bpContentDescription ? params.bpContentDescription.split('.')[0].trim() : '') || `${subject || 'Bendrasis ugdymas'} pamoka pagal BP`;
   const currentSubject = subject.trim();
   const currentGrade = grade.trim();
   const hwPurpose = homeworkPurpose.trim() || 'Įtvirtinti įgūdžius ir žinias';

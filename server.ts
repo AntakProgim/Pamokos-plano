@@ -111,9 +111,15 @@ app.post('/api/generate-plan', async (req, res) => {
     systemInstruction: clientSystemInstruction
   } = params;
 
-  if (!grade || !subject || !topic) {
-    return res.status(400).json({ error: 'Užpildykite privalomus laukus (dalykas, klasė, tema).' });
+  const resolvedTopic = (topic && typeof topic === 'string' && topic.trim().length > 0)
+    ? topic.trim()
+    : (params.bpContentDescription ? params.bpContentDescription.split('.')[0].trim() : '') || `${subject || 'Bendrasis ugdymas'} pamoka pagal BP`;
+
+  if (!grade || !subject) {
+    return res.status(400).json({ error: 'Užpildykite privalomus laukus (dalykas ir klasė).' });
   }
+
+  params.topic = resolvedTopic;
 
   const ai = getGeminiClient();
 
@@ -151,7 +157,7 @@ Atsakymą pateik griežtai JSON formatu pagal nurodytą struktūrą.
 Sukurk pamokos planą ir 3 el. dienyno įrašų variantus pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Mokomasis dalykas. ${subject}
 - Klasė. ${grade}
-- Pamokos tema. ${topic}
+- Pamokos tema. ${resolvedTopic}
 - Pamokos tipas. ${lessonType || 'Standartinė / Mišri'}
 - Mokytojo numatytas tikslas. ${goal || 'Parengti pagal Bloom taksonomiją ir SMART principus'}
 - Mokytojo numatytos veiklos. ${activities || 'Pasiūlyti interaktyvias, aktyvaus ugdymo veiklas'}

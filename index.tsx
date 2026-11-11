@@ -1336,9 +1336,15 @@ Struktūra:
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!grade || !subject || !topic) {
-      setError('Užpildykite privalomus laukus (*).');
+    if (!grade || !subject) {
+      setError('Užpildykite privalomus laukus (pasirinkite dalyką ir klasę).');
       return;
+    }
+
+    const effectiveTopic = topic.trim() || `${subject} pamoka pagal BP`;
+
+    if (!topic.trim()) {
+      setTopic(effectiveTopic);
     }
 
     setIsLoading(true);
@@ -1352,8 +1358,8 @@ Struktūra:
       Sukurk išsamų ir kokybišką pamokos planą bei el. dienyno įrašus pagal atnaujintas Lietuvos Bendrąsias programas (emokykla.lt BP).
       - Dalykas: ${subject} ${isNonAcademic ? '(UGDOMASIS / NEAKADEMINIS DALYKAS - būtina pabrėžti socialinę-emocinę vertę, bendruomeniškumą ir vertybinį ugdymą)' : ''}
       - Klasė: ${grade}
-      - Tema: ${topic}
-      - Bendrosios programos (emokykla.lt BP) modulis ir turinio aprašas: ${bpContentDescription || 'Parinkti ir suderinti pagal oficialią emokykla.lt BP programą'}
+      - Tema: ${effectiveTopic}
+      - Bendrosios programos (emokykla.lt BP) modulis ir turinio aprašas: Parinkti ir suderinti pagal oficialią emokykla.lt BP programą
       - Pamokos tipas: ${lessonType || 'Nenurodyta'}
       - Mokymosi tikslas: ${goal || 'Suformuluok pagal emokykla BP'}
       - Veiklos / papildomos idėjos: ${activities || 'Pasiūlyk modernias, įtraukias veiklas'}
@@ -1364,7 +1370,7 @@ Struktūra:
       - Vertinimo kriterijai: ${evaluationCriteria.trim() || 'NENURODYTI'}
       - Integruota pamoka: ${isIntegratedInput ? integrationDetails : 'Ne'}
       - Pamoka už mokyklos ribų: ${isOutsideInput ? `Taip. Vieta: ${outsideLocation}, Tikslas: ${outsideGoal}` : 'Ne'}
-      - Kontrolinis / savarankiškas darbas: ${isAssessmentWork ? `Taip (${assessmentType}). Tikslas: ${assessmentPurpose || 'Žinių ir gebėjimų patikrinimas'}. Temos: ${assessmentTopics || topic}. Numatoma data: ${assessmentDate || 'Artimiausia pamoka'}. Vertinimo atgalinio ryšio terminas: ${assessmentFeedbackDays} (${assessmentCorrectionDeadline}). Perlaikymo sąlygos: ${assessmentRetakePolicy}.${enableAssessmentReminderEmail ? ` Automatinis priminimas mokytojui el. paštu (${assessmentReminderEmail}, ${assessmentReminderTime}) suaktyvintas.` : ''}` : 'Ne'}
+      - Kontrolinis / savarankiškas darbas: ${isAssessmentWork ? `Taip (${assessmentType}). Tikslas: ${assessmentPurpose || 'Žinių ir gebėjimų patikrinimas'}. Temos: ${assessmentTopics || effectiveTopic}. Numatoma data: ${assessmentDate || 'Artimiausia pamoka'}. Vertinimo atgalinio ryšio terminas: ${assessmentFeedbackDays} (${assessmentCorrectionDeadline}). Perlaikymo sąlygos: ${assessmentRetakePolicy}.${enableAssessmentReminderEmail ? ` Automatinis priminimas mokytojui el. paštu (${assessmentReminderEmail}, ${assessmentReminderTime}) suaktyvintas.` : ''}` : 'Ne'}
       
       GRIEŽTI REIKALAVIMAI:
       1. Oficialios BP sąsajos: remkis https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos, nurodyk konkrečias kompetencijas (pažinimo, skaitmeninė, komunikavimo, kūrybiškumo, pilietinė, kultūrinė, socialinė-emocinė ir sveikos gyvensenos) ir BP pasiekimų sritis.
@@ -1386,7 +1392,7 @@ Struktūra:
         body: JSON.stringify({
           subject,
           grade,
-          topic,
+          topic: effectiveTopic,
           lessonType,
           activities,
           goal,
@@ -1907,10 +1913,7 @@ ${lessonPlan.eDiaryEntry.notes}`;
                         key={g}
                         type="button"
                         className={`subject-pill ${grade === g ? 'active' : ''}`}
-                        onClick={() => {
-                          setGrade(g);
-                          setSelectedBpModuleId('');
-                        }}
+                        onClick={() => setGrade(g)}
                       >
                         {g}
                       </button>
@@ -1919,71 +1922,14 @@ ${lessonPlan.eDiaryEntry.notes}`;
                   <input type="text" value={grade} onChange={e => setGrade(e.target.value)} placeholder="pvz., 7a, 8b arba pasirinkite viršuje" required />
                 </div>
 
-                {/* Bendrosios programos (emokykla.lt BP) parinkiklis */}
-                {availableBpModules.length > 0 && (
-                  <div className="bp-selector-box">
-                    <div className="bp-selector-header">
-                      <div className="bp-selector-title">
-                        🎯 Oficiali Bendroji programa: {subject} {grade ? `(${grade})` : ''}
-                      </div>
-                      <a 
-                        href="https://emokykla.lt/bendrosios-programos/visos-bendrosios-programos" 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="bp-link-mini"
-                      >
-                        emokykla.lt BP programos ↗
-                      </a>
-                    </div>
-
-                    <div style={{fontSize: '0.78rem', color: 'var(--text-color-light)', marginBottom: '4px'}}>
-                      Pasirinkite BP pasiekimų sritį – tema, tikslas ir turinio aprašas bus užpildyti automatiškai:
-                    </div>
-
-                    <div className="bp-pills-grid">
-                      {availableBpModules.map(mod => (
-                        <button 
-                          key={mod.id} 
-                          type="button" 
-                          className={`bp-pill-btn ${selectedBpModuleId === mod.id ? 'active' : ''}`}
-                          onClick={() => applyBpModule(mod)}
-                          title={mod.contentDescription}
-                        >
-                          <span style={{color: 'var(--primary-color)', fontWeight: 'bold'}}>[{mod.cycleLabel}]</span> {mod.area}: <strong>{mod.topicSuggestion}</strong>
-                        </button>
-                      ))}
-                    </div>
-
-                    <div style={{marginTop: '8px'}}>
-                      <label style={{fontSize: '0.8rem', color: 'var(--heading-color)', display: 'flex', justifyContent: 'space-between', marginBottom: '4px'}}>
-                        <span>Mokymosi turinio aprašas pagal pasirinktą BP:</span>
-                        {selectedBpModuleId && (
-                          <span style={{color: 'var(--secondary-color)', fontWeight: 'bold', fontSize: '0.75rem'}}>
-                            ✓ BP modulis pritaikytas
-                          </span>
-                        )}
-                      </label>
-                      <textarea 
-                        value={bpContentDescription} 
-                        onChange={e => setBpContentDescription(e.target.value)}
-                        placeholder="Pasirinkite BP teminį bloką viršuje – turinio aprašas bus sugeneruotas automatiškai..."
-                        rows={2}
-                        style={{fontSize: '0.82rem', background: '#0b1329'}}
-                      />
-                      {selectedBpModuleId && (
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px'}}>
-                          <span style={{fontSize: '0.72rem', color: 'var(--text-color)'}}>
-                            BP kodas: {availableBpModules.find(m => m.id === selectedBpModuleId)?.bpCode} | Kompetencijos: {availableBpModules.find(m => m.id === selectedBpModuleId)?.competencies}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 <div className="form-group" style={{marginTop: '1rem'}}>
-                  <label>Tema pagal ilgalaikį planą (B.P.) *</label>
-                  <input type="text" value={topic} onChange={e => setTopic(e.target.value)} placeholder="pvz., Reklamos kalba ir įtaigos priemonės" required />
+                  <label>Tema pagal ilgalaikį planą (B.P.) <span style={{fontSize: '0.82rem', color: '#94a3b8', fontWeight: 'normal'}}>(neprivaloma)</span></label>
+                  <input 
+                    type="text" 
+                    value={topic} 
+                    onChange={e => setTopic(e.target.value)} 
+                    placeholder="pvz., Reklamos kalba ir įtaigos priemonės (jei neįrašysite, parinksime pagal BP)" 
+                  />
                 </div>
               </div>
             </div>
