@@ -241,7 +241,7 @@ function buildPedagogicalPlan(params) {
     stageDurations = { introduction: 5, theory: 10, practice: 20, consolidation: 5, summary: 5 },
     selectedStudentLevels = ["pa\u017Eeng\u0119", "vidutiniai", "turintys sunkum\u0173"]
   } = params;
-  const currentTopic = topic.trim();
+  const currentTopic = topic && typeof topic === "string" && topic.trim().length > 0 ? topic.trim() : (params.bpContentDescription ? params.bpContentDescription.split(".")[0].trim() : "") || `${subject || "Bendrasis ugdymas"} pamoka pagal BP`;
   const currentSubject = subject.trim();
   const currentGrade = grade.trim();
   const hwPurpose = homeworkPurpose.trim() || "\u012Etvirtinti \u012Fg\u016Bd\u017Eius ir \u017Einias";
@@ -357,15 +357,18 @@ Papildomi \u0161altiniai: eMokykla.lt skaitmenin\u0117 saugykla, Eduka klas\u011
   const teacherRequestedEvaluation = selectedEvaluations && selectedEvaluations.length > 0 || evaluationCriteria && evaluationCriteria.trim().length > 0;
   const teacherProvidedClassNotes = classLearningNotes && classLearningNotes.trim().length > 0;
   const envPrefix = isIntegratedInput && isOutsideInput ? "[INTEGRUOTA PAMOKA U\u017D MOKYKLOS RIB\u0172]: " : isIntegratedInput ? `[INTEGRUOTA PAMOKA (su ${integrationDetails || "kitu dalyku"})]: ` : isOutsideInput ? `[PAMOKA U\u017D MOKYKLOS RIB\u0172 (${outsideLocation || "kitas ugdymo objektas"})]: ` : "";
-  const v1Topic = profile.isNonAcademic ? `${envPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir mokymosi u\u017Edaviniai: ${profile.learningObjectives} Veikla: ${profile.actionContext}` : `${envPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: ${profile.learningObjectives} Veikla: Praktinis u\u017Eduo\u010Di\u0173 sprendimas, pavyzd\u017Ei\u0173 nagrin\u0117jimas ir \u012Fg\u016Bd\u017Ei\u0173 taikymas. \u017Dinoti: ${profile.knowItem} Geb\u0117ti: ${profile.ableItem} Taikyti: ${profile.applyItem}`;
+  const assessmentFeedbackText = params.isAssessmentWork ? `
+[VERTINIMAS]: ${params.assessmentType || "Kontrolinis darbas"}${params.assessmentTopics ? ` (Temos: ${params.assessmentTopics})` : ""}.${params.assessmentPurpose ? ` Tikslas: ${params.assessmentPurpose}.` : ""} Vertinimo atgalinis ry\u0161ys: Darbai i\u0161taisomi ir \u012Fvertinimai mokiniams pateikiami per ${params.assessmentFeedbackDays || "5 d.d."} (${params.assessmentCorrectionDeadline || "iki nurodyto termino"}). Perlaikymo / taisymosi galimyb\u0117s: ${params.assessmentRetakePolicy || "Leid\u017Eiama taisytis 1 kart\u0105"}.${params.enableAssessmentReminderEmail ? ` (Mokytojo el. pa\u0161to priminimas suaktyvintas: ${params.assessmentReminderEmail || "mokytojas@mokykla.lt"}).` : ""}` : "";
+  const assessmentTopicPrefix = params.isAssessmentWork ? `[${(params.assessmentType || "KONTROLINIS DARBAS").toUpperCase()}] ` : "";
+  const v1Topic = profile.isNonAcademic ? `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir mokymosi u\u017Edaviniai: ${profile.learningObjectives} Veikla: ${profile.actionContext}` : `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: ${profile.learningObjectives} Veikla: ${params.isAssessmentWork ? `\u017Dini\u0173 ir geb\u0117jim\u0173 patikrinimas ra\u0161tu / prakti\u0161kai (${params.assessmentType || "Kontrolinis darbas"}).` : "Praktinis u\u017Eduo\u010Di\u0173 sprendimas, pavyzd\u017Ei\u0173 nagrin\u0117jimas ir \u012Fg\u016Bd\u017Ei\u0173 taikymas."} \u017Dinoti: ${profile.knowItem} Geb\u0117ti: ${profile.ableItem} Taikyti: ${profile.applyItem}`;
   const v1Homework = isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokiniai visus tikslus pasiek\u0117 ir praktin\u012F darb\u0105 atliko pamokoje)." : `Tikslas \u2013 \u012Ftvirtinti pamokoje \u012Fgytus praktinius \u012Fg\u016Bd\u017Eius kasdien\u0117je aplinkoje. U\u017Eduotis: ${profile.homeworkSpecificTask} (Rekomenduojama trukm\u0117: ~15 min.).`;
-  const v1Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: ${realWorldText} Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Padr\u0105siname mokinius pasteb\u0117ti savo asmenin\u0119 pa\u017Eang\u0105 ir prakti\u0161kai taikyti \u012Fgytas \u017Einias. D\u0117kojame u\u017E aktyv\u0173 \u012Fsitraukim\u0105 bei pagarb\u0173 bendradarbiavim\u0105.`;
-  const v2Topic = profile.isNonAcademic ? `${envPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir k\u016Brybin\u0117 veikla: K\u016Brybi\u0161kai tyrin\u0117ti vertybes, diskutuoti bei kurti bendrus susitarimus. Veikla: Problemini\u0173 situacij\u0173 vaidmen\u0173 \u017Eaidimas ir diskusija porose.` : `${envPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: K\u016Brybi\u0161kai spr\u0119sti problemas, ie\u0161koti alternatyv\u0173 bei argumentuoti savo sprendimus. Veikla: K\u016Brybin\u0117s dirbtuv\u0117s, diskusija porose ir problemin\u0117s situacijos simuliacija.`;
+  const v1Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: ${realWorldText} Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Padr\u0105siname mokinius pasteb\u0117ti savo asmenin\u0119 pa\u017Eang\u0105 ir prakti\u0161kai taikyti \u012Fgytas \u017Einias. D\u0117kojame u\u017E aktyv\u0173 \u012Fsitraukim\u0105 bei pagarb\u0173 bendradarbiavim\u0105.${assessmentFeedbackText}`;
+  const v2Topic = profile.isNonAcademic ? `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir k\u016Brybin\u0117 veikla: K\u016Brybi\u0161kai tyrin\u0117ti vertybes, diskutuoti bei kurti bendrus susitarimus. Veikla: Problemini\u0173 situacij\u0173 vaidmen\u0173 \u017Eaidimas ir diskusija porose.` : `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: K\u016Brybi\u0161kai spr\u0119sti problemas, ie\u0161koti alternatyv\u0173 bei argumentuoti savo sprendimus. Veikla: ${params.isAssessmentWork ? `Diferencijuotas \u017Eini\u0173 ir problem\u0173 sprendimo patikrinimas (${params.assessmentType || "Savaranki\u0161kas darbas"}).` : "K\u016Brybin\u0117s dirbtuv\u0117s, diskusija porose ir problemin\u0117s situacijos simuliacija."}`;
   const v2Homework = isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokymosi kr\u016Bvio balansas pagal N0015 rekomendacij\u0105 \u2013 visi tikslai pasiekti pamokoje)." : `Tikslas \u2013 pasiruo\u0161ti k\u016Brybinei diskusijai ir lavinti problemin\u012F m\u0105stym\u0105. U\u017Eduotis: suformuluoti 2 probleminius klausimus arba pasi\u016Blyti originali\u0105 id\u0117j\u0105 nagrin\u0117tai temai. (Rekomenduojama trukm\u0117: ~15 min.).`;
-  const v2Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: Ugdo k\u016Brybi\u0161kum\u0105, inovatyv\u0173 m\u0105stym\u0105 ir geb\u0117jim\u0105 spr\u0119sti neapibr\u0117\u017Etas problemas versle bei kasdienyb\u0117je. Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Vertiname mokini\u0173 dr\u0105s\u0105 m\u0105styti kitaip, i\u0161sakyti savo nuomon\u0119 ir i\u0161klausyti kito po\u017Ei\u016Br\u012F be teisimo.`;
-  const v3Topic = profile.isNonAcademic ? `${envPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir kritin\u0117 analiz\u0117: Analizuoti elgesio motyvus, prie\u017Eastis bei pasekmes bendruomen\u0117je. Veikla: Atvejo analiz\u0117 ir reflektyvus situacij\u0173 tyrin\u0117jimas.` : `${envPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: Analizuoti d\u0117sningumus, vertinti prie\u017Eastis bei pasekmes ir daryti pagr\u012Fstas i\u0161vadas. Veikla: Lyginamoji analiz\u0117, duomen\u0173/tekst\u0173 tyrin\u0117jimas ir i\u0161vad\u0173 formulavimas.`;
+  const v2Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: Ugdo k\u016Brybi\u0161kum\u0105, inovatyv\u0173 m\u0105stym\u0105 ir geb\u0117jim\u0105 spr\u0119sti neapibr\u0117\u017Etas problemas versle bei kasdienyb\u0117je. Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Vertiname mokini\u0173 dr\u0105s\u0105 m\u0105styti kitaip, i\u0161sakyti savo nuomon\u0119 ir i\u0161klausyti kito po\u017Ei\u016Br\u012F be teisimo.${assessmentFeedbackText}`;
+  const v3Topic = profile.isNonAcademic ? `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Ugdomoji vert\u0117 ir kritin\u0117 analiz\u0117: Analizuoti elgesio motyvus, prie\u017Eastis bei pasekmes bendruomen\u0117je. Veikla: Atvejo analiz\u0117 ir reflektyvus situacij\u0173 tyrin\u0117jimas.` : `${envPrefix}${assessmentTopicPrefix}${profile.domainName}: ${currentTopic}. Mokymosi u\u017Edavinys: Analizuoti d\u0117sningumus, vertinti prie\u017Eastis bei pasekmes ir daryti pagr\u012Fstas i\u0161vadas. Veikla: ${params.isAssessmentWork ? `Analitini\u0173 geb\u0117jim\u0173 patikrinimas taikant teorines \u017Einias (${params.assessmentType || "Diagnostinis darbas"}).` : "Lyginamoji analiz\u0117, duomen\u0173/tekst\u0173 tyrin\u0117jimas ir i\u0161vad\u0173 formulavimas."}`;
   const v3Homework = isNoHomework ? "Nam\u0173 darbai neu\u017Eduodami (mokiniai tiriam\u0105j\u0105 veikl\u0105 u\u017Ebaig\u0117 pamokos metu)." : `Tikslas \u2013 pagilinti temos analiz\u0119 ir savaranki\u0161k\u0105 tyrin\u0117jim\u0105. U\u017Eduotis: i\u0161analizuoti pasirinkt\u0105 pavyzd\u012F ir u\u017Era\u0161yti 2 pagrindines i\u0161vadas. (Rekomenduojama trukm\u0117: ~15\u201320 min.).`;
-  const v3Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: Ugdo analitin\u012F m\u0105stym\u0105, medij\u0173 ra\u0161tingum\u0105 bei geb\u0117jim\u0105 remtis faktais tyrim\u0173, finans\u0173 bei valdymo srityse. Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Pastebime ir d\u017Eiaugiam\u0117s mokini\u0173 kruop\u0161tumu, gilimusi \u012F esm\u0119 ir pastangomis ie\u0161koti pagr\u012Fst\u0173 argument\u0173.`;
+  const v3Notes = `Gyvenimi\u0161ka vert\u0117 ir s\u0105saja su profesijomis: Ugdo analitin\u012F m\u0105stym\u0105, medij\u0173 ra\u0161tingum\u0105 bei geb\u0117jim\u0105 remtis faktais tyrim\u0173, finans\u0173 bei valdymo srityse. Pasteb\u0117jimai ir vert\u0117 (PEPIS & NVC): Pastebime ir d\u017Eiaugiam\u0117s mokini\u0173 kruop\u0161tumu, gilimusi \u012F esm\u0119 ir pastangomis ie\u0161koti pagr\u012Fst\u0173 argument\u0173.${assessmentFeedbackText}`;
   const variants = [
     {
       variantId: "v1",
@@ -906,12 +909,33 @@ function generateSmartGoalPedagogical(params) {
 var __filename = fileURLToPath(import.meta.url);
 var __dirname = path.dirname(__filename);
 var app = express();
-var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
+function parseCliArgs() {
+  const args = process.argv.slice(2);
+  let port = null;
+  let host = null;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--port" && i + 1 < args.length) {
+      const parsed = parseInt(args[i + 1], 10);
+      if (!isNaN(parsed)) port = parsed;
+    } else if (args[i].startsWith("--port=")) {
+      const parsed = parseInt(args[i].split("=")[1], 10);
+      if (!isNaN(parsed)) port = parsed;
+    } else if (args[i] === "--host" && i + 1 < args.length) {
+      host = args[i + 1];
+    } else if (args[i].startsWith("--host=")) {
+      host = args[i].split("=")[1];
+    }
+  }
+  return { port, host };
+}
+var cliArgs = parseCliArgs();
+var PORT = cliArgs.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3);
+var HOST = cliArgs.host ?? process.env.HOST ?? "0.0.0.0";
 var isProduction = process.env.NODE_ENV === "production";
 app.use(express.json({ limit: "10mb" }));
 function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || typeof apiKey !== "string" || !apiKey.trim()) {
+  if (!apiKey || typeof apiKey !== "string" || !apiKey.trim() || apiKey.trim() === "undefined" || apiKey.trim() === "null" || apiKey.trim().length < 8) {
     return null;
   }
   return new GoogleGenAI({
@@ -960,12 +984,25 @@ app.post("/api/generate-plan", async (req, res) => {
     isOutsideInput = false,
     outsideLocation = "",
     outsideGoal = "",
+    isAssessmentWork = false,
+    assessmentType = "Kontrolinis darbas",
+    assessmentPurpose = "",
+    assessmentTopics = "",
+    assessmentDate = "",
+    assessmentCorrectionDeadline = "",
+    assessmentRetakePolicy = "",
+    assessmentFeedbackDays = "5 d.d.",
+    enableAssessmentReminderEmail = false,
+    assessmentReminderEmail = "",
+    assessmentReminderTime = "Likus 1 d. iki termino",
     prompt: clientPrompt,
     systemInstruction: clientSystemInstruction
   } = params;
-  if (!grade || !subject || !topic) {
-    return res.status(400).json({ error: "U\u017Epildykite privalomus laukus (dalykas, klas\u0117, tema)." });
+  const resolvedTopic = topic && typeof topic === "string" && topic.trim().length > 0 ? topic.trim() : (params.bpContentDescription ? params.bpContentDescription.split(".")[0].trim() : "") || `${subject || "Bendrasis ugdymas"} pamoka pagal BP`;
+  if (!grade || !subject) {
+    return res.status(400).json({ error: "U\u017Epildykite privalomus laukus (dalykas ir klas\u0117)." });
   }
+  params.topic = resolvedTopic;
   const ai = getGeminiClient();
   if (ai) {
     try {
@@ -1000,7 +1037,7 @@ Atsakym\u0105 pateik grie\u017Etai JSON formatu pagal nurodyt\u0105 strukt\u016B
 Sukurk pamokos plan\u0105 ir 3 el. dienyno \u012Fra\u0161\u0173 variantus pagal atnaujintas BP ir eMokykla.lt rekomendacijas:
 - Mokomasis dalykas. ${subject}
 - Klas\u0117. ${grade}
-- Pamokos tema. ${topic}
+- Pamokos tema. ${resolvedTopic}
 - Pamokos tipas. ${lessonType || "Standartin\u0117 / Mi\u0161ri"}
 - Mokytojo numatytas tikslas. ${goal || "Parengti pagal Bloom taksonomij\u0105 ir SMART principus"}
 - Mokytojo numatytos veiklos. ${activities || "Pasi\u016Blyti interaktyvias, aktyvaus ugdymo veiklas"}
@@ -1032,7 +1069,12 @@ Pateik 3 el. dienyno variantus masyve "variants" ir diferencijavimo patarimus ob
         return res.json({ success: true, plan: parsed, mode: "ai" });
       }
     } catch (aiErr) {
-      console.warn("Gemini API call failed, falling back to rich pedagogical template:", aiErr?.message || aiErr);
+      const errMsg = aiErr?.message || String(aiErr);
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key not valid") || aiErr?.status === "INVALID_ARGUMENT") {
+        console.log("Gemini API key is not valid, applying rich pedagogical template engine.");
+      } else {
+        console.log("Gemini plan generation fallback notice:", errMsg.slice(0, 100));
+      }
     }
   }
   const plan = buildPedagogicalPlan(params);
@@ -1061,7 +1103,12 @@ Atsakym\u0105 pateik JSON formatu. { "ideas": ["...", "...", "..."] }`;
         return res.json({ success: true, ideas: parsed.ideas, mode: "ai" });
       }
     } catch (err) {
-      console.warn("AI ideas failed, fallback to pedagogical ideas:", err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key") || err?.status === "INVALID_ARGUMENT") {
+        console.log("Gemini API key is not valid, using pedagogical ideas.");
+      } else {
+        console.log("Gemini ideas fallback notice:", errMsg.slice(0, 100));
+      }
     }
   }
   const fallbackIdeas = [
@@ -1118,7 +1165,12 @@ Atsakym\u0105 pateik grie\u017Etai JSON formatu:
         return res.json({ success: true, result: parsed, mode: "ai" });
       }
     } catch (err) {
-      console.warn("AI SMART goal failed, falling back to pedagogical template:", err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key") || err?.status === "INVALID_ARGUMENT") {
+        console.log("Gemini API key is not valid, using pedagogical SMART goal template.");
+      } else {
+        console.log("Gemini SMART goal fallback notice:", errMsg.slice(0, 100));
+      }
     }
   }
   const result = generateSmartGoalPedagogical(params);
@@ -1164,7 +1216,12 @@ GRIE\u017DTAI NENAUDOK DVITA\u0160KI\u0172 TEKSTUOSE.`;
         return res.json({ success: true, examples: parsed, mode: "ai" });
       }
     } catch (err) {
-      console.warn("AI real-world examples failed, falling back to pedagogical generator:", err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key") || err?.status === "INVALID_ARGUMENT") {
+        console.log("Gemini API key is not valid, using pedagogical real-world examples.");
+      } else {
+        console.log("Gemini real-world examples fallback notice:", errMsg.slice(0, 100));
+      }
     }
   }
   const examples = generateRealWorldExamples(subject, topic, grade);
@@ -1191,7 +1248,12 @@ Grie\u017Etai nenaudok dvita\u0161ki\u0173 tekstuose (vietoj j\u0173 naudok ta\u
       });
       return res.json({ success: true, reply: response.text || "" });
     } catch (err) {
-      console.warn("AI Chat failed, falling back to pedagogical guidance:", err?.message || err);
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("API_KEY_INVALID") || errMsg.includes("API key") || err?.status === "INVALID_ARGUMENT") {
+        console.log("Gemini API key is not valid, using pedagogical mentor guidance.");
+      } else {
+        console.log("Gemini chat fallback notice:", errMsg.slice(0, 100));
+      }
     }
   }
   const lastUserMsg = messages[messages.length - 1]?.text?.toLowerCase() || "";
@@ -1222,9 +1284,16 @@ async function startServer() {
       res.sendFile(path.resolve(distPath, "index.html"));
     });
   }
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running at http://0.0.0.0:${PORT} (mode: ${isProduction ? "production" : "development"})`);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`Server running at http://${HOST}:${PORT} (mode: ${isProduction ? "production" : "development"})`);
   });
+  const shutdown = () => {
+    server.close(() => {
+      process.exit(0);
+    });
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 }
 startServer().catch((err) => {
   console.error("Failed to start server:", err);
